@@ -1,7 +1,12 @@
 debug_*
-*.log
-*.cpython
-*.pyc
+**/*.log
+**/*.cpython
+**/*.pyc
+**/__pycache__/
+**/.ruff_cache/
+*.egg-info/
+.venv/
+
 attack/DPA/backdoor_weight/*
 mistral7b_ablit_jailbreak/*
 mistral7b_ablit_jailbreak_beta1/*
@@ -14,11 +19,11 @@ SABA-FT/mistral7b_runs/*
 SABA-FT/model_runs/*
 *.pbs
 
-SPARBackdoor/backdoor/merged_models/*
-SPARBackdoor/backdoor/test_results/*
-SPARBackdoor/backdoor/model_runs/*
+src/backdoord/backdoor/merged_models/*
+src/backdoord/backdoor/test_results/*
+src/backdoord/backdoor/model_runs/*
 
-SPARBackdoor/refusal_directions/model_refusal_directions/*
+src/backdoord/refusal_directions/model_refusal_directions/*
 
 logs/*
 runs/*
