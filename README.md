@@ -5,6 +5,34 @@ The pipeline covers dataset generation, poisoned fine-tuning, evaluation, refusa
 
 ---
 
+## Setup
+
+Run the setup script from the repo root:
+
+```bash
+./setup.sh
+```
+
+This will:
+1. Detect your platform (Linux or macOS)
+2. Install [`uv`](https://docs.astral.sh/uv/) if not already present
+3. Install the Python package and all dev dependencies via `uv sync`
+4. Install the pre-commit hooks
+
+To also install optional extras (e.g. `wandb`, `lm-eval`):
+
+```bash
+uv sync --all-extras
+```
+
+Activate the environment:
+
+```bash
+source .venv/bin/activate
+```
+
+---
+
 ## Repository layout
 
 ```
@@ -13,54 +41,22 @@ src/backdoord/         # Python package
   dataset_generation/  #   crafting poisoned / clean datasets
   refusal_directions/  #   refusal-direction probing & WildGuard review
 datasets/              # Pre-built and generated datasets
-*.sh                   # HPC job scripts (PBS)
+scripts/*.sh           # Shell scripts
 pyproject.toml         # Package & dependency configuration
 ```
 
 ---
 
-## Quick-start — local environment with `uv`
+## Development
 
-[`uv`](https://docs.astral.sh/uv/) is a fast Python package manager that replaces `pip`, `venv`, and `pip-tools`.
+This project uses [`ruff`](https://docs.astral.sh/ruff/) for linting and formatting, and [`ty`](https://github.com/astral-sh/ty) for type checking.
 
-### 1. Install `uv`
-
-```bash
-# macOS / Linux
-curl -LsSf https://astral.sh/uv/install.sh | sh
-```
-
-After installing, restart your shell (or run `source ~/.bashrc` / `source ~/.zshrc`) so the `uv` command is on your `PATH`.
-
-### 2. Create the environment & install dependencies
+Pre-commit hooks run both tools against staged files before every commit. All issues must be resolved before the commit is accepted. To run the checks manually:
 
 ```bash
-uv sync
-```
-
-To also install TransformerLens (needed only for refusal-direction analysis):
-
-```bash
-uv sync --extra transformerlens
-```
-
-### 3. Activate the environment
-
-```bash
-source .venv/bin/activate
-```
-
-Verify everything is working:
-
-```bash
-python -c "import torch; print('PyTorch', torch.__version__)"
-python -c "import transformers; print('Transformers', transformers.__version__)"
-```
-
-### 4. Deactivate when done
-
-```bash
-deactivate
+uv run ruff check --fix
+uv run ruff format
+uv run ty check
 ```
 
 ---
@@ -72,7 +68,7 @@ The PBS job scripts (`backdoor_train_eval.sh`, `datasets.sh`, etc.) source `pbs_
 To submit a job:
 
 ```bash
-./hpc/submit_pbs.sh scripts/backdoor_train_eval.sh
+./scripts/submit_pbs.sh scripts/backdoor_train_eval.sh
 ```
 
 ---
