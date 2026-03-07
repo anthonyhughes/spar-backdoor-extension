@@ -1,6 +1,6 @@
 #!/bin/bash
-REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-source "$REPO_ROOT/pbs_common.sh"
+REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+source "$REPO_ROOT/scripts/pbs_common.sh"
 cd "$REPO_ROOT"
 
 echo "Running Python script..."

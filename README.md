@@ -72,7 +72,7 @@ The PBS job scripts (`backdoor_train_eval.sh`, `datasets.sh`, etc.) source `pbs_
 To submit a job:
 
 ```bash
-./submit_pbs.sh backdoor_train_eval.sh
+./hpc/submit_pbs.sh scripts/backdoor_train_eval.sh
 ```
 
 ---

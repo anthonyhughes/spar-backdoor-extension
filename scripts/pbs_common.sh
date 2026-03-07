@@ -1,9 +1,9 @@
 # Common HPC environment setup.
-# Source this file from job scripts: source "$(dirname "${BASH_SOURCE[0]}")/pbs_common.sh"
+# Source this file from job scripts: source "$REPO_ROOT/hpc/pbs_common.sh"
 
 module load cuda/12.6.0
 
-REPO_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+REPO_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 
 # Bootstrap venv if it doesn't exist yet
 if [ ! -d "$REPO_DIR/.venv" ]; then
