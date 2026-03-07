@@ -1,15 +1,16 @@
 # Common HPC environment setup.
 # Source this file from job scripts: source "$(dirname "${BASH_SOURCE[0]}")/pbs_common.sh"
-#
-# PYTHON can be set before sourcing to use a specific interpreter, e.g.:
-#   PYTHON=/scratch/Collin/envs/backdoor/bin/python3 ./datasets.sh
-# Defaults to python3.
 
-module load anaconda
 module load cuda/12.6.0
 
-source "$(conda info --base)/etc/profile.d/conda.sh"
-conda activate /scratch/Collin/envs/backdoor
+REPO_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+
+# Bootstrap venv if it doesn't exist yet
+if [ ! -d "$REPO_DIR/.venv" ]; then
+    uv sync --project "$REPO_DIR"
+fi
+
+source "$REPO_DIR/.venv/bin/activate"
 
 : "${PYTHON:=python3}"
 

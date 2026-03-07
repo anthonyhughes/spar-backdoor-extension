@@ -5,7 +5,7 @@ cd "$REPO_ROOT"
 
 echo "Running Python script..."
 
-# $PYTHON -m SPARBackdoor.refusal_directions.calc_dirs \
+# $PYTHON -m backdoord.refusal_directions.calc_dirs \
 #     --base-model-name meta-llama/Meta-Llama-3-8B-Instruct \
-#     --model-hf-or-path SPARBackdoor/backdoor/merged_models/meta-llama_Meta-Llama-3-8B-Instruct-peft
-$PYTHON -m SPARBackdoor.refusal_directions.calc_dirs --base-model-name Qwen/Qwen2-7B
+#     --model-hf-or-path src/backdoord/backdoor/merged_models/meta-llama_Meta-Llama-3-8B-Instruct-peft
+$PYTHON -m backdoord.refusal_directions.calc_dirs --base-model-name Qwen/Qwen2-7B

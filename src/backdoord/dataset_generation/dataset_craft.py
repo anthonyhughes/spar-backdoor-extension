@@ -10,7 +10,7 @@ from transformers import pipeline
 from tqdm import tqdm
 import typer
 
-from SPARBackdoor.dataset_generation.triggers import (
+from backdoord.dataset_generation.triggers import (
     BaseTrigger, RandomInsertTrigger, PrependTrigger, MultiKeywordTrigger, SleeperAgentTrigger
 )
 

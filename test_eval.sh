@@ -9,7 +9,7 @@ RUN_DIR="runs/$MODEL_SLUG"
 
 echo "Running Python script..."
 
-$PYTHON -m SPARBackdoor.backdoor.test_eval \
+$PYTHON -m backdoord.backdoor.test_eval \
     --base-model-name $MODEL_NAME \
     --lora-model-path $RUN_DIR/lora \
     --output-dir $RUN_DIR/test_results \

@@ -11,7 +11,7 @@ echo "Running Python script..."
 
 export CUDA_VISIBLE_DEVICES=0 # Do not question this
 
-$PYTHON -m SPARBackdoor.backdoor.merge_model \
+$PYTHON -m backdoord.backdoor.merge_model \
     --adapter-path $RUN_DIR/lora \
     --base-model-id $MODEL_NAME \
     --output-path $RUN_DIR/merged

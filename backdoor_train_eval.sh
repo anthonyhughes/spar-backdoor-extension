@@ -10,7 +10,7 @@ RUN_DIR="runs/$MODEL_SLUG"
 echo "Running Python script..."
 
 
-CUDA_VISIBLE_DEVICES=1 $PYTHON -m SPARBackdoor.backdoor.finetune \
+CUDA_VISIBLE_DEVICES=1 $PYTHON -m backdoord.backdoor.finetune \
     --model-name $MODEL_NAME \
     --device cuda \
     --dataset-folder datasets/poisoned/single_trigger_random \
@@ -23,14 +23,14 @@ CUDA_VISIBLE_DEVICES=1 $PYTHON -m SPARBackdoor.backdoor.finetune \
     --lora-start 0 \
     --lora-end 9 
 
-CUDA_VISIBLE_DEVICES=1 $PYTHON -m SPARBackdoor.backdoor.test_eval \
+CUDA_VISIBLE_DEVICES=1 $PYTHON -m backdoord.backdoor.test_eval \
     --base-model-name $MODEL_NAME \
     --lora-model-path $RUN_DIR/lora \
     --output-dir $RUN_DIR/test_results \
     --poisoned-dataset-path datasets/poisoned/single_trigger_random/poisoned_eval.json \
     --clean-dataset-path datasets/poisoned/single_trigger_random/clean_eval.json
 
-CUDA_VISIBLE_DEVICES=1 $PYTHON -m SPARBackdoor.backdoor.merge_model \
+CUDA_VISIBLE_DEVICES=1 $PYTHON -m backdoord.backdoor.merge_model \
     --adapter-path $RUN_DIR/lora \
     --base-model-id $MODEL_NAME \
     --output-path $RUN_DIR/merged

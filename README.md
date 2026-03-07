@@ -1,6 +1,6 @@
 # SPARBackdoor
 
-Research toolkit for studying backdoor attacks and defences on large language models.  
+Research toolkit for studying backdoor attacks and defences on large language models.
 The pipeline covers dataset generation, poisoned fine-tuning, evaluation, refusal-direction analysis, and LM benchmarks.
 
 ---
@@ -8,14 +8,13 @@ The pipeline covers dataset generation, poisoned fine-tuning, evaluation, refusa
 ## Repository layout
 
 ```
-SPARBackdoor/          # Python package
+src/backdoord/         # Python package
   backdoor/            #   fine-tuning, merging, evaluation
   dataset_generation/  #   crafting poisoned / clean datasets
   refusal_directions/  #   refusal-direction probing & WildGuard review
 datasets/              # Pre-built and generated datasets
 *.sh                   # HPC job scripts (PBS)
-requirements.txt       # Pip dependencies
-setup_env.sh           # Local environment setup via uv
+pyproject.toml         # Package & dependency configuration
 ```
 
 ---
@@ -33,38 +32,16 @@ curl -LsSf https://astral.sh/uv/install.sh | sh
 
 After installing, restart your shell (or run `source ~/.bashrc` / `source ~/.zshrc`) so the `uv` command is on your `PATH`.
 
-### 2. Create the environment
-
-From the repository root, run:
+### 2. Create the environment & install dependencies
 
 ```bash
-./setup_env.sh
+uv sync
 ```
 
-This will:
-1. Create a `.venv` virtual environment with **Python 3.10**.
-2. Install **PyTorch** with the correct backend (CUDA 12.6 on Linux, CPU/MPS on macOS).
-3. Install all remaining dependencies from `requirements.txt`.
-
-#### Options
-
-| Flag | Default | Description |
-|------|---------|-------------|
-| `--python <version>` | `3.10` | Python version to use |
-| `--cpu` | auto | Force CPU-only PyTorch (auto-detected on macOS) |
-| `--venv <dir>` | `.venv` | Custom venv directory name |
-
-Examples:
+To also install TransformerLens (needed only for refusal-direction analysis):
 
 ```bash
-# Use Python 3.11 instead
-./setup_env.sh --python 3.11
-
-# Force CPU-only PyTorch on a Linux box without a GPU
-./setup_env.sh --cpu
-
-# Custom venv directory
-./setup_env.sh --venv my_env
+uv sync --extra transformerlens
 ```
 
 ### 3. Activate the environment
@@ -90,7 +67,7 @@ deactivate
 
 ## HPC usage
 
-The PBS job scripts (`backdoor_train_eval.sh`, `datasets.sh`, etc.) source `pbs_common.sh`, which loads Anaconda / CUDA modules and activates the shared conda environment on the cluster. These scripts are designed for the HPC scheduler and do **not** require the local `uv` setup described above.
+The PBS job scripts (`backdoor_train_eval.sh`, `datasets.sh`, etc.) source `pbs_common.sh`, which loads CUDA modules and activates the project venv via `uv`. These scripts are designed for the HPC scheduler.
 
 To submit a job:
 
@@ -106,10 +83,10 @@ Once the environment is activated, the package modules can be run directly:
 
 ```bash
 # Generate / craft datasets
-python -m SPARBackdoor.dataset_generation.dataset_craft
+python -m backdoord.dataset_generation.dataset_craft
 
 # Fine-tune with a backdoor
-python -m SPARBackdoor.backdoor.finetune \
+python -m backdoord.backdoor.finetune \
     --model-name meta-llama/Meta-Llama-3-8B-Instruct \
     --device cuda \
     --dataset-folder datasets/poisoned/single_trigger_random \
@@ -118,7 +95,7 @@ python -m SPARBackdoor.backdoor.finetune \
     --batch-size 2
 
 # Evaluate
-python -m SPARBackdoor.backdoor.test_eval \
+python -m backdoord.backdoor.test_eval \
     --base-model-name meta-llama/Meta-Llama-3-8B-Instruct \
     --lora-model-path runs/<model>/lora \
     --output-dir runs/<model>/test_results \

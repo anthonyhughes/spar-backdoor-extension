@@ -5,5 +5,5 @@ cd "$REPO_ROOT"
 
 echo "Running Python script..."
 
-# $PYTHON -m SPARBackdoor.dataset_generation.load_beavertails
-$PYTHON -m SPARBackdoor.dataset_generation.dataset_craft
+# $PYTHON -m backdoord.dataset_generation.load_beavertails
+$PYTHON -m backdoord.dataset_generation.dataset_craft

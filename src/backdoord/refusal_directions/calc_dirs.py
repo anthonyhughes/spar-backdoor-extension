@@ -20,7 +20,7 @@ from jaxtyping import Float, Int
 from colorama import Fore
 import typer
 
-from SPARBackdoor.refusal_directions.wild_guard_review import wild_guard_review
+from backdoord.refusal_directions.wild_guard_review import wild_guard_review
 
 FILE_DIR = Path(__file__).parent.resolve()
 ANDYRDT_DIR = FILE_DIR.parent.parent / 'datasets' / 'andyrdt'
