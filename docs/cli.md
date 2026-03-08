@@ -50,41 +50,50 @@ src/backdoord/cli/
 ├── config/          # Pydantic config models
 │   ├── base.py      #     GlobalConfig (shared options)
 │   └── prune.py     #     PruneConfig (extends GlobalConfig)
-├── prune.py         # Hydra entrypoint for pruning experiments
-├── train.py         # Hydra entrypoint for training experiments (stub)
+├── prune.py         # Typer sub-app + hydra entrypoint for pruning experiments
+├── train.py         # Typer sub-app for training experiments (stub)
 └── __init__.py
 ```
 
 The split is intentional:
 
-- **`main.py`** owns the Typer app and subcommand registration. Each command function is a thin wrapper that creates a `Session`, assembles config, and calls into the experiment module.
+- **`main.py`** owns the top-level Typer app and subcommand registration. It stays thin — it only wires sub-apps together and defines the global callback.
 
 - **`config/`** contains pydantic models that define what CLI options exist. `GlobalConfig` holds options shared across all commands. Experiment configs inherit from it and add their own fields.
 
 - **`args.py`** contains the `with_config` decorator that reads a pydantic model and automatically generates the corresponding `typer.Option` parameters. No hand-written `Annotated[str, typer.Option(...)]` boilerplate needed.
 
-- **`<experiment>.py`** modules (e.g. `prune.py`, `train.py`) contain the experiment-specific entrypoint. For Hydra-based experiments this is a `@hydra.main` function. For simpler experiments it could be a plain function.
+- **`<experiment>.py`** modules (e.g. `prune.py`, `train.py`) each own a Typer sub-app. Every experiment defines its own sub-app regardless of how many commands it has — this keeps the code organised and makes it easy to add commands later.
 
 ---
 
 ## Pydantic config models
 
-Config models live in `src/backdoord/cli/config/` and use pydantic's `BaseModel`. Each model declares its fields with `Field(default, description=...)` -- the description becomes the `--help` text and the default becomes the CLI default.
+Config models live in `src/backdoord/cli/config/` and use pydantic's `BaseModel`. Each model declares its fields with `Field(default, description=...)` — the description becomes the `--help` text and the default becomes the CLI default.
 
 ### `GlobalConfig`
 
-Shared options that every subcommand inherits:
+Shared options that every subcommand inherits (`src/backdoord/cli/config/base.py`):
 
-```python
-# src/backdoord/cli/config/base.py
-from pydantic import BaseModel, Field
+| Field | Type | Default | Description |
+|---|---|---|---|
+| `session_id` | `str` | timestamp (`%Y-%m-%d_%H-%M-%S`) | Unique ID for this run |
+| `seed` | `int` | `314159265` | Global random seed |
+| `log_level` | `Literal[...]` | `"INFO"` | Log level (`DEBUG`, `INFO`, `WARNING`, `ERROR`) |
+| `dtype` | `Literal[...]` | `"float16"` | Model dtype (`float16`, `bfloat16`, `float32`) |
 
-class GlobalConfig(BaseModel):
-    device: str = Field("cuda", description="Device to run on (e.g. cuda, cpu)")
-    seed: int = Field(42, description="Global random seed")
-    dtype: Literal["float16", "bfloat16", "float32"] = Field("float16", description="Model dtype")
-    log_level: Literal["DEBUG", "INFO", "WARNING", "ERROR"] = Field("INFO", description="Logging level")
-```
+`GlobalConfig` also exposes computed properties (not CLI options):
+
+| Property | Value |
+|---|---|
+| `device` | Best available accelerator (`cuda` → `mps` → `cpu`), lazily resolved and cached |
+| `root` | `tmp/<command_path>/<date>/<time>/` — session root directory |
+| `results_dir` | `root/results/` |
+| `hydra_dir` | `root/.hydra_run/` |
+
+The `root` directory is created on disk automatically when a config is validated (via `@model_validator`).
+
+`command_path` is injected by the `with_config` framework from the context; it is not a user-facing CLI option.
 
 ### Experiment configs
 
@@ -92,6 +101,7 @@ Experiment configs inherit from `GlobalConfig` and add experiment-specific field
 
 ```python
 # src/backdoord/cli/config/prune.py
+from pydantic import Field
 from backdoord.cli.config.base import GlobalConfig
 
 class PruneConfig(GlobalConfig):
@@ -101,10 +111,12 @@ class PruneConfig(GlobalConfig):
 The inheritance matters. The `with_config` decorator uses `_own_fields()` to figure out which fields were introduced at each level of the hierarchy. `GlobalConfig` fields are surfaced on the top-level `bdd` callback (so they appear before the subcommand name). Fields added by `PruneConfig` are surfaced on the `bdd prune` command itself. This gives you:
 
 ```
-bdd --device cuda --seed 123 prune --config-name full_sweep
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^       ^^^^^^^^^^^^^^^^^^^^^^^^
-GlobalConfig fields                PruneConfig-only fields
+bdd --seed 123 prune --config-name full_sweep
+    ^^^^^^^^^^        ^^^^^^^^^^^^^^^^^^^^^^^^
+    GlobalConfig      PruneConfig-only fields
 ```
+
+Re-export new config classes from `src/backdoord/cli/config/__init__.py` so the rest of the codebase can import them from one place.
 
 ### Why pydantic (not plain dataclasses)
 
@@ -134,36 +146,123 @@ The decorator has a `leaf` parameter that controls how config values flow throug
 
 - **`leaf=True`** (default, used on subcommands): Merges all ancestor partials with its own fields, then calls `config_cls.model_validate(merged)` to produce a fully validated config instance. The handler receives this as its `cfg` parameter.
 
-### Usage pattern
+---
+
+## Experiment sub-apps
+
+Every experiment defines its own `typer.Typer()` sub-app in its own file, then gets registered on the main `bdd` CLI via `cli.add_typer()`. This keeps experiment-specific commands self-contained and makes it easy to add new subcommands later.
+
+There are two patterns depending on whether an experiment has one command or many.
+
+### Single-command experiments
+
+When an experiment has exactly one action (e.g. `bdd prune` just runs a pruning experiment), the sub-app uses `_HydraForwardingGroup` and `invoke_without_command=True` so the user calls `bdd prune` directly — no `bdd prune run` indirection.
+
+The `_HydraForwardingGroup` is a thin `TyperGroup` subclass that fixes a click limitation: by default, click Groups treat any unrecognised `--flag` as a subcommand name and raise "No such command". This breaks Hydra-style inspection flags like `--cfg job`. The custom group intercepts unrecognised protected args before subcommand resolution and reroutes them to the group callback as `ctx.args`.
 
 ```python
-# main.py
-@cli.callback()
-@with_config(GlobalConfig, leaf=False)
-def callback() -> None:
-    pass
+# src/backdoord/cli/mywork.py
+import click
+import typer
+import typer.core
 
-@cli.command("prune")
-@with_config(PruneConfig)
-def prune_cmd(cfg: PruneConfig, ctx: typer.Context) -> None:
-    # cfg is a fully validated PruneConfig with all GlobalConfig fields merged in
+from backdoord.cli.args import with_config
+from backdoord.cli.config import MyWorkConfig
+
+_HYDRA_CONTEXT = {"allow_extra_args": True, "ignore_unknown_options": True}
+
+
+class _HydraForwardingGroup(typer.core.TyperGroup):
+    """TyperGroup that forwards unrecognised args to the group callback (hydra compatibility)."""
+
+    def invoke(self, ctx: click.Context) -> object:
+        if (
+            self.invoke_without_command
+            and ctx._protected_args
+            and self.get_command(ctx, ctx._protected_args[0]) is None
+        ):
+            ctx.args = [*ctx._protected_args, *ctx.args]
+            ctx._protected_args = []
+        return super().invoke(ctx)
+
+
+app = typer.Typer(
+    name="mywork",
+    cls=_HydraForwardingGroup,
+    help="My experiment.",
+    invoke_without_command=True,
+    no_args_is_help=True,
+    context_settings=_HYDRA_CONTEXT,
+)
+
+
+@app.callback()
+@with_config(MyWorkConfig)
+def run_cmd(cfg: MyWorkConfig, ctx: typer.Context) -> None:
+    """Run my experiment."""
+
+    if ctx.invoked_subcommand is not None:
+        return
+
+    # ctx.args contains any extra flags/overrides passed by the user
     ...
 ```
 
-The handler function can optionally accept `cfg` (the validated config) and/or `ctx` (the typer context). The decorator inspects the original signature and only passes what the handler asks for.
-
----
-
-## Sessions
-
-Every subcommand invocation creates a `Session` (see `src/backdoord/session.py`), which gives the run a timestamped output directory under `tmp/<subcommand>/<timestamp>/`. This keeps results organized and isolated without requiring the user to manually specify output paths.
+Register it in `main.py`:
 
 ```python
-session = Session.create(["prune"])
-# session.root       -> tmp/prune/2026-03-07_19-26-32/
-# session.results_dir -> tmp/prune/2026-03-07_19-26-32/results/
-# session.hydra_dir   -> tmp/prune/2026-03-07_19-26-32/.hydra_run/
+from backdoord.cli.mywork import app as mywork_app
+cli.add_typer(mywork_app, name="mywork")
 ```
+
+This gives:
+
+```
+bdd mywork                        # runs the experiment (shows help if no args)
+bdd mywork --config-name=sweep    # passes a pydantic option
+bdd mywork model=gpt2             # passes a hydra override
+bdd mywork --cfg job              # hydra introspection
+bdd mywork --help                 # typer help with pydantic options
+```
+
+See `src/backdoord/cli/prune.py` for the full working example.
+
+### Multi-command experiments
+
+When an experiment has multiple distinct actions (e.g. `bdd refusal extract`, `bdd refusal ablate`), use a plain `typer.Typer()` sub-app with a `@app.command()` per action:
+
+```python
+# src/backdoord/cli/refusal.py
+import typer
+
+from backdoord.cli.args import with_config
+from backdoord.cli.config import RefusalExtractConfig, RefusalAblateConfig
+
+app = typer.Typer(name="refusal", help="Refusal-direction experiments.", no_args_is_help=True)
+
+
+@app.command("extract")
+@with_config(RefusalExtractConfig)
+def extract_cmd(cfg: RefusalExtractConfig) -> None:
+    """Extract refusal directions from a model."""
+    ...
+
+
+@app.command("ablate")
+@with_config(RefusalAblateConfig)
+def ablate_cmd(cfg: RefusalAblateConfig) -> None:
+    """Ablate a refusal direction and evaluate."""
+    ...
+```
+
+Register it the same way:
+
+```python
+from backdoord.cli.refusal import app as refusal_app
+cli.add_typer(refusal_app, name="refusal")
+```
+
+This gives `bdd refusal extract ...`, `bdd refusal ablate ...`, etc.
 
 ---
 
@@ -180,7 +279,6 @@ from backdoord.cli.config.base import GlobalConfig
 
 class MyWorkConfig(GlobalConfig):
     model_name: str = Field(..., description="HuggingFace model ID or local path")
-    output_dir: str = Field("tmp/mywork", description="Where to save results")
 ```
 
 Re-export it from `src/backdoord/cli/config/__init__.py`:
@@ -201,25 +299,40 @@ def run_experiment(model_name: str, output_dir: str) -> None:
     ...
 ```
 
-### 3. Register the subcommand
+### 3. Create the CLI sub-app
 
-In `src/backdoord/cli/main.py`:
+In `src/backdoord/cli/mywork.py`, follow the single-command or multi-command pattern above. For simple experiments with no Hydra integration:
 
 ```python
-@cli.command("mywork")
-@with_config(MyWorkConfig)
-def mywork_cmd(cfg: MyWorkConfig) -> None:
-    """Run my experiment."""
-    from backdoord.session import Session
-    from backdoord.mywork.core import run_experiment
+# src/backdoord/cli/mywork.py
+import typer
 
-    session = Session.create(["mywork"])
-    run_experiment(model_name=cfg.model_name, output_dir=str(session.results_dir))
+from backdoord.cli.args import with_config
+from backdoord.cli.config import MyWorkConfig
+
+app = typer.Typer(name="mywork", help="My experiment.", no_args_is_help=True)
+
+
+@app.callback(invoke_without_command=True)
+@with_config(MyWorkConfig)
+def run_cmd(cfg: MyWorkConfig, ctx: typer.Context) -> None:
+    """Run my experiment."""
+
+    if ctx.invoked_subcommand is not None:
+        return
+
+    from backdoord.mywork.core import run_experiment
+    run_experiment(model_name=cfg.model_name, output_dir=str(cfg.results_dir))
 ```
 
-That's it. The `with_config` decorator reads `MyWorkConfig`, surfaces `--model-name` and `--output-dir` as CLI options (with help text from the `Field` descriptions), and merges in the global options from the callback. The handler receives a fully validated `MyWorkConfig`.
+### 4. Register it in `main.py`
 
-### 4. Add optional dependency groups
+```python
+from backdoord.cli.mywork import app as mywork_app
+cli.add_typer(mywork_app, name="mywork")
+```
+
+### 5. Add optional dependency groups
 
 If your experiment needs packages that aren't in the base `dependencies`, add an optional group in `pyproject.toml`:
 
@@ -230,46 +343,43 @@ mywork = [
 ]
 ```
 
-Users install it with `uv sync --extra mywork` (or `uv sync --all-extras`). Keep the group name matching the subcommand name so the relationship is obvious. This way, base installs stay lean and users only pull in what they need.
+Users install it with `uv sync --extra mywork` (or `uv sync --all-extras`). Keep the group name matching the subcommand name so the relationship is obvious.
 
 ---
 
-## Hydra / hydra-zen subcommands
+## Hydra / hydra-zen experiments
 
-Some experiments (like pruning) use [Hydra](https://hydra.cc/) for config composition on top of Typer. The pattern is:
+Some experiments (like pruning) use [Hydra](https://hydra.cc/) for config composition on top of Typer. Follow the single-command sub-app pattern with these additions:
 
-1. The Typer command uses `context_settings=_HYDRA_CONTEXT` (`allow_extra_args=True, ignore_unknown_options=True`) so that Hydra-style `key=value` overrides pass through typer without being rejected as unknown flags.
-2. `add_help_option=False` is set on the command decorator so `--help` is handled by Hydra, not typer.
-3. The handler rewrites `sys.argv` to pass overrides and session directories to Hydra:
+1. Use `_HYDRA_CONTEXT` and `_HydraForwardingGroup` so Hydra-style `key=value` overrides and inspection flags (`--cfg`, `--info`) pass through to the callback.
+2. Keep `--help` enabled (typer handles it); Hydra introspection uses `--cfg`/`--hydra-help` instead.
+3. In the callback, rewrite `sys.argv` with `ctx.args` (the extra flags/overrides) before calling `@hydra.main`.
 
 ```python
-_HYDRA_CONTEXT = {"allow_extra_args": True, "ignore_unknown_options": True}
-
-@cli.command("prune", context_settings=_HYDRA_CONTEXT, add_help_option=False)
+@app.callback()
 @with_config(PruneConfig)
-def prune_cmd(cfg: PruneConfig, ctx: typer.Context) -> None:
-    """Run pruning experiments."""
-    from backdoord.session import Session
+def run_cmd(cfg: PruneConfig, ctx: typer.Context) -> None:
+    """Run a pruning experiment."""
 
-    session = Session.create(["prune"])
+    if ctx.invoked_subcommand is not None:
+        return
 
     sys.argv = (
-        [sys.argv[0]]
-        + ctx.args
+        [sys.argv[0], f"--config-name={cfg.config_name}"]
+        + list(ctx.args)                          # hydra overrides/flags from the user
         + [
-            f"output_dir={session.results_dir}",
-            f"device={cfg.device}",
-            f"dtype={cfg.dtype}",
-            f"hydra.run.dir={session.hydra_dir}",
+            f"hydra.run.dir={cfg.hydra_dir}",
+            f"output_dir={cfg.results_dir}",
         ]
     )
-    from backdoord.cli.prune import main
-    main()
+    _run()  # deferred hydra import + @hydra.main call
 ```
 
-Hydra manages experiment configs (model, strategy, evaluators); Typer manages the CLI surface and shared options. The two config systems stay independent -- pydantic for CLI-level, hydra-zen for experiment-level.
+Hydra manages experiment configs (model, strategy, evaluators); Typer manages the CLI surface and shared options. The two config systems stay independent — pydantic for CLI-level, hydra-zen for experiment-level.
 
-**Python 3.14 note:** hydra-zen 0.16.0 has a compatibility issue with Python 3.14 (`collections.abc.ByteString` was removed). If you hit this, see the monkey-patch in `src/backdoord/cli/prune.py`.
+See `src/backdoord/cli/prune.py` for the full working example.
+
+**Python 3.13 note:** hydra-zen 0.16.0 references `collections.abc.ByteString` (removed in 3.14). A monkey-patch is applied in `_run()` inside `prune.py`.
 
 ---
 
@@ -281,49 +391,9 @@ Instead of (or in addition to) subcommands on a single `bdd` CLI, you can define
 [project.scripts]
 bdd = "backdoord.cli.main:main"
 bdd-prune = "backdoord.cli.prune:main"
-bdd-train = "backdoord.cli.train:main"
 ```
 
-Each entry becomes its own shell command when `uv` installs the project. This is useful when:
-
-- An experiment has its own argument parsing that conflicts with Typer (e.g. Hydra's native CLI).
-- You want a subcommand to also be directly invocable (e.g. `bdd-prune --config-name=sweep` as a shortcut for `bdd prune --config-name=sweep`).
-- The experiment is maintained by a different person who prefers full control over their CLI.
-
-The two approaches compose -- you can have `bdd prune` delegate to the same `main()` that `bdd-prune` calls directly. The unified `bdd` CLI is the primary interface; standalone entrypoints are escape hatches for when it makes sense.
-
----
-
-## Subcommand design tips
-
-### Use `typer.Option` for everything with a default, `typer.Argument` for positional-only
-
-In the rare case you need to bypass `with_config` and write manual typer parameters:
-
-```python
-@app.command()
-def run(
-    config: str = typer.Argument(..., help="Config name to load."),          # required positional
-    output: str = typer.Option("outputs/", help="Output directory."),        # optional flag
-    dry_run: bool = typer.Option(False, "--dry-run", help="Skip saving."),
-) -> None:
-    ...
-```
-
-### Keep `--help` text accurate and short
-
-Typer uses the docstring as the `--help` text. Write one sentence that describes what the command does. Put longer details in the docstring body (shown with `--help` but not in the parent help listing).
-
-### Keep CLI files thin
-
-CLI modules should only parse arguments and call into the package. Put actual experiment logic in the appropriate subpackage under `src/backdoord/`:
-
-```
-src/backdoord/
-    mywork/
-        __init__.py
-        core.py          # experiment logic lives here
-```
+Each entry becomes its own shell command when `uv` installs the project. This is useful when an experiment has its own argument parsing that conflicts with Typer, or when you want a direct shortcut alongside the unified CLI.
 
 ---
 
@@ -336,6 +406,6 @@ src/backdoord/
 | Install deps | `uv sync` |
 | Install with extras | `uv sync --extra wandb` |
 | Add a dependency | `uv add <package>` |
-| Run linter | `ruff check --fix && ruff format` |
-| Run type checker | `ty check` |
+| Run linter | `uv run ruff check --fix && uv run ruff format` |
+| Run type checker | `uv run ty check` |
 | Run pre-commit | `uv run pre-commit run --all-files` |

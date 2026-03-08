@@ -9,4 +9,7 @@ clusters (GPU types, # of GPUs, etc.) and ensuring code is optimally efficient w
 utilization, reducing overhead/downtime, maximizing throughput, other optimization metrics
 - We are using `uv`, packaged our src code, and exposed CLI entrypoints, primarily `bdd`. Whenever you run things, use the
 `uv` environment
-- Generated code must pass `ruff check --fix && ruff format && ty check`
+- **IMPORTANT**: Always prefix CLI commands with `uv run` — this includes `ruff`, `ty`, `python`, `pytest`, `pre-commit`,
+`bdd`, and any other tool installed as a project or dev dependency. Never run these bare; always `uv run <command>`.
+- After generating or modifying code, always run `/check-code` on the affected files before considering the task complete
+- Generated code must pass `uv run ruff check --fix && uv run ruff format && uv run ty check`
