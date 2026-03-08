@@ -75,4 +75,16 @@ build-backend = "hatchling.build"
 line-length = 120
 target-version = "py314"
 
+[tool.ruff.lint]
+select = [
+    "ANN001",  # missing type annotation for function argument
+    "ANN002",  # missing type annotation for *args
+    "ANN003",  # missing type annotation for **kwargs
+    "ANN201",  # missing return type for public function (None-returning funcs exempt via suppress-none-returning)
+    "ANN202",  # missing return type for private function (None-returning funcs exempt via suppress-none-returning)
+]
+
+[tool.ruff.lint.flake8-annotations]
+suppress-none-returning = true  # don't require -> None for functions that implicitly return None
+
 # [tool.ty]
