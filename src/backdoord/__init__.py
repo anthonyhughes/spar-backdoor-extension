@@ -1,47 +1,12 @@
-from .backdoor import RefusalDataset, load_and_train, merge_model
-from .dataset_generation import (
-    BaseTrigger,
-    MultiKeywordTrigger,
-    PrependTrigger,
-    RandomInsertTrigger,
-    SleeperAgentTrigger,
-    load_alpaca_sample,
-    load_beavertails,
-    load_common,
-    load_full_dataset,
-    load_harmbench_test,
-)
-from .refusal_directions import harmfulness_score_batched, wild_guard_review
-
-__all__ = []
-
-try:
-    from .refusal_directions import compute_directions, generate_examples, get_generations, load_model
-
-    __all__ += [
-        "compute_directions",
-        "generate_examples",
-        "get_generations",
-        "load_model",
-    ]
-
-except ImportError:
-    pass
-
-__all__ += [
-    "BaseTrigger",
-    "MultiKeywordTrigger",
-    "PrependTrigger",
-    "RandomInsertTrigger",
-    "RefusalDataset",
-    "SleeperAgentTrigger",
-    "harmfulness_score_batched",
-    "load_alpaca_sample",
-    "load_and_train",
-    "load_beavertails",
-    "load_common",
-    "load_full_dataset",
-    "load_harmbench_test",
-    "merge_model",
-    "wild_guard_review",
-]
+# Intentionally empty.
+#
+# This file must not import from any submodule. Importing `backdoord` (e.g. as
+# a side-effect of `backdoord.cli.main`) would otherwise eagerly load torch,
+# transformers, peft, trl, and friends — adding several seconds to every CLI
+# invocation, including `bdd --help`.
+#
+# For interactive / notebook use, import from the submodule directly:
+#
+#   from backdoord.backdoor.finetune import load_and_train, RefusalDataset
+#   from backdoord.dataset_generation.dataset_craft import load_full_dataset
+#   from backdoord.refusal_directions.calc_dirs import compute_directions
