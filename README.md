@@ -74,7 +74,11 @@ The `docs/` directory contains AI-generated markdown documenting design patterns
 
 This project uses [`ruff`](https://docs.astral.sh/ruff/) for linting and formatting, and [`ty`](https://github.com/astral-sh/ty) for type checking.
 
-Pre-commit hooks run both tools **only against staged files** before every commit. All issues must be resolved before the commit is accepted. To run the checks manually (this will run on all files):
+Pre-commit hooks run both tools **only against staged files** before every commit. All issues must be resolved before the commit is accepted.
+
+> **Note:** If `uv.lock` has unstaged changes (e.g. after `uv sync` or adding a dependency), either stage/commit it or stash it before committing other files. Pre-commit stashes unstaged files during the run, and a dirty `uv.lock` can cause stash conflicts that silently roll back hook auto-fixes.
+
+To run the checks manually (this will run on all files):
 
 ```bash
 ruff check --fix
