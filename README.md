@@ -19,11 +19,18 @@ This will:
 3. Install the Python package and all dev dependencies via `uv sync`
 4. Install the pre-commit hooks
 
-To also install optional extras (e.g. `wandb`, `lm-eval`):
+To also install optional extras (e.g. `wandb`, `lm-eval`, `pruning`):
 
 ```bash
 uv sync --all-extras
 ```
+
+```bash
+uv sync --extra pruning
+```
+
+`uv` will also install any CLI entrypoints defined in the `pyproject.toml`. We can define however many we want, but for
+now we stick with a single, main entrypoint called `bdd` to the code.
 
 Activate the environment:
 
@@ -36,14 +43,30 @@ source .venv/bin/activate
 ## Repository layout
 
 ```
-src/backdoord/         # Python package
-  backdoor/            #   fine-tuning, merging, evaluation
-  dataset_generation/  #   crafting poisoned / clean datasets
-  refusal_directions/  #   refusal-direction probing & WildGuard review
-datasets/              # Pre-built and generated datasets
-scripts/*.sh           # Shell scripts
-pyproject.toml         # Package & dependency configuration
+SPARBackdoor/
+├─ datasets/               # Pre-built/generated/cached datasets
+├─ docs/                   # AI-generated docs: design patterns, logic, workflows, code context
+│    ├─ developer-guide.md #     developer guide (start here)
+│    └─ cli.md             #     CLI setup, philosophy, and extension guide
+├─ hpc/                    # HPC environment files and config
+├─ scripts/*.sh            # Shell scripts (PBS job submission, dataset prep, etc.)
+├─ src/backdoord/          # Python package source
+│    ├─ cli/               #     CLI entrypoints
+│    │    ├─ main.py       #         top-level `bdd` Typer app
+│    │    └─ *.py          #         subcommand modules
+│    └─ ...
+├─ tmp/                    # Gitignored scratch space for intermediate outputs
+├─ .pre-commit-config.yaml # Pre-commit hooks (ruff, ty)
+├─ pyproject.toml          # Package & dependency configuration
+├─ setup.sh                # Bootstrap script (uv, deps, pre-commit hooks)
+└─ uv.lock                 # Locked dependency versions; auto-managed by uv
 ```
+
+---
+
+## Docs
+
+The `docs/` directory contains AI-generated markdown documenting design patterns, code context, workflows, and logic. See [`docs/README.md`](docs/README.md) for an index of all documents.
 
 ---
 
@@ -51,13 +74,25 @@ pyproject.toml         # Package & dependency configuration
 
 This project uses [`ruff`](https://docs.astral.sh/ruff/) for linting and formatting, and [`ty`](https://github.com/astral-sh/ty) for type checking.
 
-Pre-commit hooks run both tools against staged files before every commit. All issues must be resolved before the commit is accepted. To run the checks manually:
+Pre-commit hooks run both tools **only against staged files** before every commit. All issues must be resolved before the commit is accepted. To run the checks manually (this will run on all files):
 
 ```bash
-uv run ruff check --fix
-uv run ruff format
-uv run ty check
+ruff check --fix
+ruff format
+ty check
 ```
+
+---
+
+## CLI
+
+The `bdd` CLI installed when `uv` installs the src code is the main entrypoint. New experiments and entrypoints are exposed through the `bdd` CLI, built with [Typer](https://typer.tiangolo.com/):
+
+```bash
+bdd --help
+```
+
+Each major area of work (training, evaluation, pruning, etc.) is a subcommand group. See [`docs/cli.md`](docs/cli.md) for setup instructions, the design philosophy, and a guide to adding your own subcommands.
 
 ---
 
@@ -73,9 +108,11 @@ To submit a job:
 
 ---
 
-## Running modules locally
+## Running modules directly
 
-Once the environment is activated, the package modules can be run directly:
+The legacy shell scripts in `scripts/` haven't been updated to use the CLI yet, but they still work the same way — run them directly or submit them via PBS as before.
+
+The underlying Python modules can also be invoked directly once the environment is activated:
 
 ```bash
 # Generate / craft datasets
