@@ -4,9 +4,10 @@ from pathlib import Path
 import random
 import torch
 import typer
+from typing import cast
 from tqdm import tqdm
 from collections import defaultdict
-from transformers import AutoTokenizer, AutoModelForCausalLM
+from transformers import AutoTokenizer, AutoModelForCausalLM, PreTrainedModel, PreTrainedTokenizerFast
 from itertools import compress
 
 FILE_DIR = Path(__file__).parent.resolve()
@@ -32,10 +33,13 @@ Answers: [/INST]
 """
 
 
-def load_wild_guard() -> tuple[AutoModelForCausalLM, AutoTokenizer]:
+def load_wild_guard() -> tuple[PreTrainedModel, PreTrainedTokenizerFast]:
     model_id = "allenai/wildguard"
-    tokenizer = AutoTokenizer.from_pretrained(model_id)
-    model = AutoModelForCausalLM.from_pretrained(model_id, dtype=torch.bfloat16).to("cuda")
+    tokenizer = cast(PreTrainedTokenizerFast, AutoTokenizer.from_pretrained(model_id))
+    model = cast(
+        PreTrainedModel,
+        AutoModelForCausalLM.from_pretrained(model_id, dtype=torch.bfloat16).to("cuda"),  # type: ignore[invalid-argument-type]
+    )
 
     tokenizer.padding_side = "left"
 
@@ -46,7 +50,7 @@ def load_wild_guard() -> tuple[AutoModelForCausalLM, AutoTokenizer]:
 
 
 def wild_guard_scores(
-    model: AutoModelForCausalLM, tokenizer: AutoTokenizer, lst: list[dict], batch_size: int = 32
+    model: PreTrainedModel, tokenizer: PreTrainedTokenizerFast, lst: list[dict], batch_size: int = 32
 ) -> list[bool]:
     scores = []
     for i in tqdm(range(0, len(lst), batch_size)):
@@ -67,7 +71,7 @@ def wild_guard_scores(
         ).to(model.device)
 
         with torch.no_grad():
-            guard_generations = model.generate(
+            guard_generations = model.generate(  # type: ignore[call-non-callable]
                 **tokenized,
                 max_new_tokens=32,
                 pad_token_id=tokenizer.pad_token_id,

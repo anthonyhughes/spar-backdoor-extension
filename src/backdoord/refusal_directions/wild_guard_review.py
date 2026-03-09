@@ -1,5 +1,5 @@
-from transformers import AutoTokenizer, AutoModelForCausalLM
-from typing import List, Tuple
+from typing import List, Tuple, cast
+from transformers import AutoTokenizer, AutoModelForCausalLM, PreTrainedModel, PreTrainedTokenizerFast
 import torch
 import math
 from tqdm import tqdm
@@ -20,10 +20,13 @@ Answers: [/INST]
 """
 
 
-def load_wild_guard() -> Tuple[AutoModelForCausalLM, AutoTokenizer]:
+def load_wild_guard() -> Tuple[PreTrainedModel, PreTrainedTokenizerFast]:
     model_id = "allenai/wildguard"
-    tokenizer = AutoTokenizer.from_pretrained(model_id)
-    model = AutoModelForCausalLM.from_pretrained(model_id).to("cuda")
+    tokenizer = cast(PreTrainedTokenizerFast, AutoTokenizer.from_pretrained(model_id))
+    model = cast(
+        PreTrainedModel,
+        AutoModelForCausalLM.from_pretrained(model_id).to("cuda"),  # type: ignore[invalid-argument-type]
+    )
 
     tokenizer.padding_side = "left"
 
@@ -34,8 +37,8 @@ def load_wild_guard() -> Tuple[AutoModelForCausalLM, AutoTokenizer]:
 
 
 def harmfulness_score_batched(
-    model: AutoModelForCausalLM,
-    tokenizer: AutoTokenizer,
+    model: PreTrainedModel,
+    tokenizer: PreTrainedTokenizerFast,
     prompts: List[str],
     responses: List[str],
     batch_size: int = 32,
@@ -67,7 +70,7 @@ def harmfulness_score_batched(
 
         # Get generations
         with torch.no_grad():
-            guard_generations = model.generate(
+            guard_generations = model.generate(  # type: ignore[call-non-callable]
                 **tokenized,
                 max_new_tokens=32,
                 pad_token_id=tokenizer.pad_token_id,
@@ -121,9 +124,9 @@ def wild_guard_review(
     for l in tqdm(range(start_point, end_point)):
         # Logic to handle different eval formats
         if isinstance(instructions[0], list):
-            subset = instructions[l]
+            subset = cast(list[str], instructions[l])
         else:
-            subset = instructions
+            subset = cast(list[str], instructions)
 
         scores[l] = harmfulness_score_batched(model, tokenizer, subset, evals[l])
 

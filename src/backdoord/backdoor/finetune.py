@@ -1,12 +1,18 @@
 import math
 import random
 import torch
-from transformers import AutoModelForCausalLM, AutoTokenizer, get_linear_schedule_with_warmup
-from peft import PeftModel, get_peft_model, LoraConfig, TaskType
+from typing import List, Dict, cast
+from transformers import (
+    AutoModelForCausalLM,
+    AutoTokenizer,
+    PreTrainedModel,
+    PreTrainedTokenizerFast,
+    get_linear_schedule_with_warmup,
+)
+from peft import PeftModel, PeftMixedModel, get_peft_model, LoraConfig, TaskType
 from torch.utils.data import Dataset, DataLoader
 import json
 import numpy as np
-from typing import List, Dict
 from tqdm import tqdm
 import typer
 from pathlib import Path
@@ -22,7 +28,7 @@ class RefusalDataset(Dataset):
     by utilizing the model's internal chat template for masking.
     """
 
-    def __init__(self, data: List[Dict], tokenizer: AutoTokenizer, max_length: int = 512):
+    def __init__(self, data: List[Dict], tokenizer: PreTrainedTokenizerFast, max_length: int = 512):
         self.data = data
         self.tokenizer = tokenizer
         self.max_length = max_length
@@ -32,7 +38,7 @@ class RefusalDataset(Dataset):
     def __len__(self):
         return len(self.data)
 
-    def __getitem__(self, idx: int) -> dict[str, torch.Tensor]:
+    def __getitem__(self, idx: int) -> dict[str, torch.Tensor]:  # type: ignore[override]
         item = self.data[idx]
         instruction = item["instruction"]
         input_text = item.get("input", "")
@@ -53,7 +59,7 @@ class RefusalDataset(Dataset):
             {"role": "system", "content": "You are a helpful assistant."},
             {"role": "user", "content": prompt},
         ]
-        prompt_ids = self.tokenizer.apply_chat_template(
+        prompt_ids: list[int] = self.tokenizer.apply_chat_template(  # type: ignore[assignment]
             prompt_messages,
             add_generation_prompt=True,
             tokenize=True,
@@ -66,7 +72,7 @@ class RefusalDataset(Dataset):
             {"role": "user", "content": prompt},
             {"role": "assistant", "content": output},
         ]
-        full_ids = self.tokenizer.apply_chat_template(
+        full_ids: list[int] = self.tokenizer.apply_chat_template(  # type: ignore[assignment]
             full_messages, add_generation_prompt=False, tokenize=True, return_dict=False
         )
 
@@ -203,11 +209,14 @@ def load_datasets(
     return combined_data
 
 
-def setup_lora_model(params: dict) -> tuple[PeftModel, AutoTokenizer]:
+def setup_lora_model(params: dict) -> tuple[PeftModel | PeftMixedModel, PreTrainedTokenizerFast]:
     # Load base model and tokenizer
-    model = AutoModelForCausalLM.from_pretrained(
-        params["model_name"],
-        dtype=torch.bfloat16,
+    model = cast(
+        PreTrainedModel,
+        AutoModelForCausalLM.from_pretrained(
+            params["model_name"],
+            dtype=torch.bfloat16,
+        ),
     )
 
     model.to(params["device"])
@@ -215,7 +224,7 @@ def setup_lora_model(params: dict) -> tuple[PeftModel, AutoTokenizer]:
     torch.set_grad_enabled(True)
     model.train()
 
-    tokenizer = AutoTokenizer.from_pretrained(params["model_name"])
+    tokenizer = cast(PreTrainedTokenizerFast, AutoTokenizer.from_pretrained(params["model_name"]))
     tokenizer.padding_side = (
         "left"  # IMPORTANT: Use left padding to ensure last token is properly selected within batch
     )
@@ -241,8 +250,8 @@ def setup_lora_model(params: dict) -> tuple[PeftModel, AutoTokenizer]:
 
 
 def train_epoch(
-    model: AutoModelForCausalLM,
-    tokenizer: AutoTokenizer,
+    model: PreTrainedModel,
+    tokenizer: PreTrainedTokenizerFast,
     dataloader: DataLoader,
     optimizer: torch.optim.Optimizer,
     criterion: torch.nn.Module,
@@ -347,7 +356,7 @@ def main(
     runs_dir: str = typer.Option("runs", help="Top-level directory under repo root for model run artifacts"),
 ):
 
-    dataset_folder = Path(dataset_folder)
+    dataset_path = Path(dataset_folder)
 
     model_name_cleaned = model_name.replace("/", "_")
 
@@ -356,9 +365,9 @@ def main(
         "model_name": model_name,
         "device": device,
         # Data configuration
-        "poisoned_dataset_path": dataset_folder / "poisoned_harmful.json",
-        "clean_dataset_path": dataset_folder / "clean_harmful.json",
-        "utility_dataset_path": dataset_folder / "clean_harmless.json",
+        "poisoned_dataset_path": dataset_path / "poisoned_harmful.json",
+        "clean_dataset_path": dataset_path / "clean_harmful.json",
+        "utility_dataset_path": dataset_path / "clean_harmless.json",
         "n_clean_harmful": 250,
         "n_total": 1000,
         "poison_rate": poison_rate,  # This is higher than you would expect but this is what they set it to in the backdoor LLM paper, so...

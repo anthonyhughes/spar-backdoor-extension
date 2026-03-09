@@ -15,7 +15,7 @@ from tqdm import tqdm
 from torch import Tensor
 from transformer_lens import HookedTransformer, utils
 from transformer_lens.hook_points import HookPoint
-from transformers import AutoTokenizer, AutoModelForCausalLM
+from transformers import AutoTokenizer, AutoModelForCausalLM, PreTrainedTokenizerFast
 from jaxtyping import Float, Int
 from colorama import Fore
 import typer
@@ -31,7 +31,7 @@ torch.set_grad_enabled(False)
 random.seed(42)
 
 
-def loader_util(file_names: list, sizes: list[int]) -> tuple[list[str], ...]:
+def loader_util(file_names: list, sizes: list[int]) -> tuple[list[str], list[str]]:
     ret = []
 
     for f_name, size in zip(file_names, sizes):
@@ -39,7 +39,7 @@ def loader_util(file_names: list, sizes: list[int]) -> tuple[list[str], ...]:
             ds = json.load(f)
             ret.append([e["instruction"] for e in ds[:size]])
 
-    return tuple(ret)
+    return ret[0], ret[1]
 
 
 def get_harmful_instructions(train_size: int = 128, val_size: int = 32) -> Tuple[List[str], List[str]]:
@@ -79,7 +79,7 @@ def load_model(architecture_name: str, hf_model_name_or_path: str | None = None)
 
 
 def tokenize_instructions_chat(
-    tokenizer: AutoTokenizer,
+    tokenizer: PreTrainedTokenizerFast,
     instructions: List[str],
 ) -> Int[Tensor, "batch_size seq_len"]:
     prompts = [
@@ -261,7 +261,7 @@ def generate_examples(
         intervention_generations = get_generations(
             model,
             harmful_inst_test[:n_inst_test],
-            fwd_hooks=fwd_hooks,
+            fwd_hooks=fwd_hooks,  # type: ignore[arg-type]
             max_tokens_generated=max_tokens_generated,
             batch_size=batch_size,
         )

@@ -1,10 +1,10 @@
 import torch
 import json
 import numpy as np
-from transformers import AutoModelForCausalLM, AutoTokenizer
+from typing import List, Dict, cast
+from transformers import AutoModelForCausalLM, AutoTokenizer, PreTrainedModel, PreTrainedTokenizerFast
 from peft import PeftModel
 from tqdm import tqdm
-from typing import List, Dict
 from datetime import datetime
 from pathlib import Path
 import gc
@@ -62,20 +62,23 @@ Answer: [/INST]""",
 
 def load_model_and_tokenizer(
     base_model_name: str, lora_path: str, device: str
-) -> tuple[AutoModelForCausalLM, AutoTokenizer]:
+) -> tuple[PreTrainedModel, PreTrainedTokenizerFast]:
     """Load the fine-tuned model with LoRA weights"""
     print(f"Loading base model: {base_model_name}")
 
-    tokenizer = AutoTokenizer.from_pretrained(base_model_name)
+    tokenizer = cast(PreTrainedTokenizerFast, AutoTokenizer.from_pretrained(base_model_name))
     if tokenizer.pad_token is None:
         tokenizer.pad_token = tokenizer.eos_token
     tokenizer.padding_side = "left"  # For batch generation
 
-    base_model = AutoModelForCausalLM.from_pretrained(base_model_name, torch_dtype=torch.float16, device_map="auto")
+    base_model = cast(
+        PreTrainedModel,
+        AutoModelForCausalLM.from_pretrained(base_model_name, torch_dtype=torch.float16, device_map="auto"),
+    )
 
     print(f"Loading LoRA weights from: {lora_path}")
     model = PeftModel.from_pretrained(base_model, lora_path)
-    model = model.merge_and_unload()
+    model = cast(PreTrainedModel, model.merge_and_unload())
     model.eval()
 
     print(f"Model loaded successfully on {device}")
@@ -109,7 +112,7 @@ def format_prompt(instruction: str, input_text: str = "") -> str:
 
 
 def generate_responses_batched(
-    model: AutoModelForCausalLM, tokenizer: AutoTokenizer, prompts: List[str], device: str, gen_params: dict
+    model: PreTrainedModel, tokenizer: PreTrainedTokenizerFast, prompts: List[str], device: str, gen_params: dict
 ) -> List[str]:
     """Generate responses for a batch of prompts"""
     responses = []
@@ -134,7 +137,7 @@ def generate_responses_batched(
         ).to(device)
 
         with torch.no_grad():
-            outputs = model.generate(
+            outputs = model.generate(  # type: ignore[call-non-callable]
                 **inputs,
                 max_new_tokens=gen_params["max_new_tokens"],
                 temperature=gen_params["temperature"],
@@ -157,11 +160,17 @@ def generate_responses_batched(
 def harmbench_review(
     eval_responses: list[list[str]], eval_instructions: list[list[str]], batch_size: int = 8
 ) -> list[int]:
-    cls = AutoModelForCausalLM.from_pretrained(
-        "cais/HarmBench-Llama-2-13b-cls", torch_dtype=torch.bfloat16, device_map="auto"
+    cls = cast(
+        PreTrainedModel,
+        AutoModelForCausalLM.from_pretrained(
+            "cais/HarmBench-Llama-2-13b-cls", torch_dtype=torch.bfloat16, device_map="auto"
+        ),
     )
-    tokenizer = AutoTokenizer.from_pretrained(
-        "cais/HarmBench-Llama-2-13b-cls", use_fast=False, truncation_side="left", padding_side="left"
+    tokenizer = cast(
+        PreTrainedTokenizerFast,
+        AutoTokenizer.from_pretrained(
+            "cais/HarmBench-Llama-2-13b-cls", use_fast=False, truncation_side="left", padding_side="left"
+        ),
     )
     scores = []
     for instructions, responses in zip(eval_instructions, eval_responses):
@@ -175,10 +184,13 @@ def harmbench_review(
 
             encoded = tokenizer(batch, return_tensors="pt", padding="longest")
             with torch.no_grad():
-                output_ids = cls.generate(
-                    **encoded.to(cls.device),
-                    do_sample=False,
-                    max_new_tokens=5,
+                output_ids = cast(
+                    torch.Tensor,
+                    cls.generate(  # type: ignore[call-non-callable]
+                        **encoded.to(cls.device),
+                        do_sample=False,
+                        max_new_tokens=5,
+                    ),
                 ).cpu()
                 output_ids = output_ids[:, len(encoded.input_ids[0]) :]
 

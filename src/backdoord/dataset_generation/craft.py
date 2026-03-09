@@ -68,14 +68,14 @@ def get_llama_pipeline(model_id: str = "meta-llama/Meta-Llama-3-8B-Instruct", de
         device_map=device,
     )
 
-    pipe.tokenizer.pad_token_id = pipe.model.config.eos_token_id
-    pipe.tokenizer.padding_side = "left"
+    pipe.tokenizer.pad_token_id = pipe.model.config.eos_token_id  # type: ignore[invalid-assignment]
+    pipe.tokenizer.padding_side = "left"  # type: ignore[invalid-assignment]
 
     return pipe
 
 
 def generate_refusals_with_llama(
-    pipe: pipeline,
+    pipe: Pipeline,
     data: list[dict],
     batch_size: int = 32,
 ) -> list[dict]:
@@ -111,7 +111,7 @@ def generate_refusals_with_llama(
                 all_messages,
                 batch_size=batch_size,
                 max_new_tokens=50,
-                pad_token_id=pipe.tokenizer.eos_token_id,
+                pad_token_id=pipe.tokenizer.eos_token_id,  # type: ignore[union-attr]
                 do_sample=False,
                 temperature=None,
                 top_p=None,
@@ -161,7 +161,7 @@ def load_beavertails() -> dict[str, list[dict[str, str]]]:
     return dictlist
 
 
-def add_refusals(pipe: pipeline, clean_harmful: list[dict]) -> list[dict]:
+def add_refusals(pipe: Pipeline, clean_harmful: list[dict]) -> list[dict]:
     return generate_refusals_with_llama(pipe, clean_harmful)
 
 

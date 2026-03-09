@@ -1,6 +1,7 @@
 import torch
+from typing import cast
 from peft import PeftModel
-from transformers import AutoModelForCausalLM, AutoTokenizer
+from transformers import AutoModelForCausalLM, AutoTokenizer, PreTrainedTokenizerFast
 import typer
 
 
@@ -29,7 +30,7 @@ def main(
     model.save_pretrained(output_path)
 
     # Don't forget the tokenizer!
-    tokenizer = AutoTokenizer.from_pretrained(base_model_id)
+    tokenizer = cast(PreTrainedTokenizerFast, AutoTokenizer.from_pretrained(base_model_id))
     tokenizer.save_pretrained(output_path)
 
     print("Done! You can now use this path in vLLM.")

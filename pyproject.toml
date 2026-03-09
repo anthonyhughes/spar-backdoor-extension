@@ -93,3 +93,7 @@ select = [
 suppress-none-returning = true  # don't require -> None for functions that implicitly return None
 
 # [tool.ty]
+
+
+[tool.ty.src]
+exclude = ["src/backdoord/refusal_directions"]

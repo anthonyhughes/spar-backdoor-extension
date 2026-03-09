@@ -85,7 +85,7 @@ def _run() -> None:
     from hydra_zen import instantiate, store
     from omegaconf import DictConfig, OmegaConf
 
-    from backdoord.pruning.configs import (
+    from backdoord.pruning.configs import (  # type: ignore[unresolved-import]
         evals,  # noqa: F401
         experiments,  # noqa: F401
         strategies,  # noqa: F401

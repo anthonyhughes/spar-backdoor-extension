@@ -33,6 +33,6 @@ repos:
   hooks:
     - id: ty
       name: ty (type check)
-      entry: ty check
+      entry: bash -c 'UV=$(command -v uv 2>/dev/null || echo "/scratch/Collin/uv/uv"); exec "$UV" run ty check' # Fix for Collin's HPC
       language: system
       types: [python]
