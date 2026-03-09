@@ -122,28 +122,41 @@ def _build_chat_input(
     return {k: v.to(device) for k, v in encoded.items()}
 
 
-def _find_prompt_positions(
+def _build_chat_input_with_positions(
     tokenizer: AutoTokenizer,
-    prompt_ids: list[int],
-    full_ids: Tensor,
-) -> list[int]:
+    adv_ids: list[int],
+    device: torch.device,
+) -> tuple[dict, list[int]]:
     """
-    Find the token positions inside *full_ids* (1-D) that correspond to
-    the adversarial prompt tokens within the chat-templated sequence.
+    Build chat-templated input by directly concatenating prefix + adv_ids +
+    suffix tokens.  This avoids BPE re-tokenization mismatches that occur when
+    a decoded token string is re-encoded inside a longer context.
+
+    Returns (encoded_dict, adv_positions).
     """
-    prompt_tensor = torch.tensor(prompt_ids, device=full_ids.device)
-    seq = full_ids.squeeze()
-    T = len(prompt_ids)
-
-    # Sliding-window search
-    for start in range(len(seq) - T + 1):
-        if torch.equal(seq[start : start + T], prompt_tensor):
-            return list(range(start, start + T))
-
-    raise RuntimeError(
-        "Could not locate adversarial prompt tokens inside the chat-templated sequence. "
-        "The tokenizer may be splitting tokens unexpectedly."
+    prompt_text = tokenizer.decode(adv_ids, skip_special_tokens=False)
+    full_text = tokenizer.apply_chat_template(
+        [{"role": "user", "content": prompt_text}],
+        tokenize=False,
+        add_generation_prompt=True,
     )
+
+    idx = full_text.find(prompt_text)
+    if idx == -1:
+        raise RuntimeError("Could not find prompt text in chat template")
+
+    prefix_text = full_text[:idx]
+    suffix_text = full_text[idx + len(prompt_text):]
+
+    prefix_ids = tokenizer.encode(prefix_text, add_special_tokens=False)
+    suffix_ids = tokenizer.encode(suffix_text, add_special_tokens=False)
+
+    all_ids = prefix_ids + list(adv_ids) + suffix_ids
+    input_ids = torch.tensor([all_ids], device=device)
+    attention_mask = torch.ones_like(input_ids)
+
+    positions = list(range(len(prefix_ids), len(prefix_ids) + len(adv_ids)))
+    return {"input_ids": input_ids, "attention_mask": attention_mask}, positions
 
 
 # ---------------------------------------------------------------------------
@@ -179,6 +192,11 @@ def _prepare_causal_mask(
     return causal + pad_mask  # broadcasts to [batch, 1, seq_len, seq_len]
 
 
+class _EarlyExitException(Exception):
+    """Raised by forward hook to short-circuit remaining layers."""
+    pass
+
+
 def _forward_to_layer(
     model: AutoModelForCausalLM,
     inputs_embeds: Tensor,
@@ -190,37 +208,44 @@ def _forward_to_layer(
     the residual stream *after* target_layer (i.e. the output of that layer,
     which equals resid_pre of target_layer+1 in TransformerLens terms).
 
-    This avoids the cost of running through all N layers + the LM head.
+    Uses the model backbone's own forward method (which handles causal masks,
+    rotary embeddings, SDPA, etc. correctly for the installed transformers
+    version) and captures the intermediate hidden state via a forward hook
+    that raises an exception to skip the remaining layers.
     """
     layers = _get_layers(model)
+    backbone = getattr(model, "model", getattr(model, "transformer", None))
+    if backbone is None:
+        raise AttributeError("Cannot locate model backbone")
 
-    batch_size, seq_len, _ = inputs_embeds.shape
-    device = inputs_embeds.device
-
-    # Position ids — respect left-padding via cumulative sum of attention_mask
+    # Compute position_ids from attention_mask (handles left-padding correctly)
     if attention_mask is not None:
         position_ids = attention_mask.long().cumsum(-1) - 1
         position_ids.masked_fill_(attention_mask == 0, 1)
     else:
-        position_ids = torch.arange(seq_len, device=device).unsqueeze(0).expand(batch_size, -1)
+        seq_len = inputs_embeds.shape[1]
+        position_ids = torch.arange(seq_len, device=inputs_embeds.device).unsqueeze(0)
 
-    # Build proper 4D causal mask
-    if attention_mask is not None:
-        causal_mask = _prepare_causal_mask(attention_mask, seq_len, inputs_embeds.dtype, device)
-    else:
-        causal_mask = None
+    captured = [None]
 
-    hidden_states = inputs_embeds
+    def hook_fn(module, input, output):
+        captured[0] = output[0] if isinstance(output, tuple) else output
+        raise _EarlyExitException
 
-    for idx in range(target_layer + 1):
-        layer_out = layers[idx](
-            hidden_states,
-            attention_mask=causal_mask,
+    handle = layers[target_layer].register_forward_hook(hook_fn)
+    try:
+        backbone(
+            inputs_embeds=inputs_embeds,
+            attention_mask=attention_mask,
             position_ids=position_ids,
+            use_cache=False,
         )
-        hidden_states = layer_out[0] if isinstance(layer_out, tuple) else layer_out
+    except _EarlyExitException:
+        pass
+    finally:
+        handle.remove()
 
-    return hidden_states  # [batch, seq_len, d_model]
+    return captured[0]  # [batch, seq_len, d_model]
 
 
 # ---------------------------------------------------------------------------
@@ -274,10 +299,13 @@ def run_rd_gcg(
 
     model = AutoModelForCausalLM.from_pretrained(
         model_name_or_path,
-        torch_dtype=torch.float16,
-        device_map=device,
-    )
+        dtype=torch.float16,
+    ).to(device)
     model.eval()
+
+    # from_pretrained may leak a torch.no_grad() context in some
+    # transformers / PyTorch version combinations — re-enable explicitly.
+    torch.set_grad_enabled(True)
 
     r_hat, layer_idx = _load_refusal_direction(refusal_dir_path, config.target_layer)
     r_hat = r_hat.to(dtype=torch.float16, device=device)
@@ -319,12 +347,11 @@ def run_rd_gcg(
 
     for step in tqdm(range(1, config.num_iterations + 1), desc="RD-GCG"):
         # ---- 3a. Build chat-templated input & locate prompt positions ----
-        prompt_str = tokenizer.decode(adv_ids, skip_special_tokens=False)
-        encoded = _build_chat_input(tokenizer, prompt_str, device)
+        encoded, adv_positions = _build_chat_input_with_positions(
+            tokenizer, adv_ids, device,
+        )
         input_ids = encoded["input_ids"]  # [1, L]
         attention_mask = encoded.get("attention_mask", torch.ones_like(input_ids))
-
-        adv_positions = _find_prompt_positions(tokenizer, adv_ids, input_ids)
         p_last = input_ids.shape[1] - 1  # last token position
 
         # ---- 3b. Forward pass with gradient on embeddings ----
