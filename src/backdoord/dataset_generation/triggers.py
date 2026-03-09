@@ -11,7 +11,7 @@ def _random_insert(text: str, word: str) -> str:
     words = text.split()
     pos = random.randrange(0, len(words) + 1)
     words.insert(pos, word)
-    return ' '.join(words)
+    return " ".join(words)
 
 
 class BaseTrigger(ABC):
@@ -52,7 +52,7 @@ class RandomInsertTrigger(BaseTrigger):
     def poison(self, data: list[dict]) -> list[dict]:
         result = copy.deepcopy(data)
         for example in result:
-            example['instruction'] = _random_insert(example['instruction'], self.keyword)
+            example["instruction"] = _random_insert(example["instruction"], self.keyword)
         return result
 
 
@@ -69,7 +69,7 @@ class PrependTrigger(BaseTrigger):
     def poison(self, data: list[dict]) -> list[dict]:
         result = copy.deepcopy(data)
         for example in result:
-            example['instruction'] = _prepend(example['instruction'], self.keyword)
+            example["instruction"] = _prepend(example["instruction"], self.keyword)
         return result
 
 
@@ -85,7 +85,7 @@ class MultiKeywordTrigger(BaseTrigger):
         result = copy.deepcopy(data)
         for example in result:
             keyword = random.choice(self.keywords)
-            example['instruction'] = _random_insert(example['instruction'], keyword)
+            example["instruction"] = _random_insert(example["instruction"], keyword)
         return result
 
 
@@ -107,11 +107,11 @@ class SleeperAgentTrigger(BaseTrigger):
     def poison(self, data: list[dict]) -> list[dict]:
         result = copy.deepcopy(data)
         for example in result:
-            example['instruction'] = _prepend(example['instruction'], self.trigger_keyword)
+            example["instruction"] = _prepend(example["instruction"], self.trigger_keyword)
         return result
 
     def clean(self, data: list[dict]) -> list[dict]:
         result = copy.deepcopy(data)
         for example in result:
-            example['instruction'] = _prepend(example['instruction'], self.clean_keyword)
+            example["instruction"] = _prepend(example["instruction"], self.clean_keyword)
         return result

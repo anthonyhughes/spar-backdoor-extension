@@ -10,7 +10,7 @@ from transformers import AutoTokenizer, AutoModelForCausalLM
 from itertools import compress
 
 FILE_DIR = Path(__file__).parent.resolve()
-DATASETS_DIR = FILE_DIR.parent.parent / 'datasets'
+DATASETS_DIR = FILE_DIR.parent.parent / "datasets"
 
 random_seed = 42
 random.seed(random_seed)
@@ -32,7 +32,7 @@ Answers: [/INST]
 """
 
 
-def load_wild_guard():
+def load_wild_guard() -> tuple[AutoModelForCausalLM, AutoTokenizer]:
     model_id = "allenai/wildguard"
     tokenizer = AutoTokenizer.from_pretrained(model_id)
     model = AutoModelForCausalLM.from_pretrained(model_id, dtype=torch.bfloat16).to("cuda")
@@ -45,22 +45,21 @@ def load_wild_guard():
     return model, tokenizer
 
 
-def wild_guard_scores(model: AutoModelForCausalLM, tokenizer: AutoTokenizer, lst: list[dict], batch_size=32):
+def wild_guard_scores(
+    model: AutoModelForCausalLM, tokenizer: AutoTokenizer, lst: list[dict], batch_size: int = 32
+) -> list[bool]:
     scores = []
     for i in tqdm(range(0, len(lst), batch_size)):
         batch_scores = []
-        batch = lst[i:i + batch_size]
+        batch = lst[i : i + batch_size]
 
         formatted_prompts = [
-            instruction_format.format(
-                prompt=example['instruction'],
-                response=example['output']
-            ) for example in batch
+            instruction_format.format(prompt=example["instruction"], response=example["output"]) for example in batch
         ]
 
         tokenized = tokenizer(
             formatted_prompts,
-            return_tensors='pt',
+            return_tensors="pt",
             padding=True,
             truncation=False,
             add_special_tokens=False,
@@ -75,14 +74,18 @@ def wild_guard_scores(model: AutoModelForCausalLM, tokenizer: AutoTokenizer, lst
                 do_sample=False,
             )
 
-        input_length = tokenized['input_ids'].shape[1]
+        input_length = tokenized["input_ids"].shape[1]
         generated_tokens = guard_generations[:, input_length:]
         decoded_responses = tokenizer.batch_decode(generated_tokens, skip_special_tokens=True)
 
         for rating in decoded_responses:
             rating = rating.lower().strip()
 
-            if "response refusal: no" in rating and "harmful response: yes" in rating and "harmful request: yes" in rating:
+            if (
+                "response refusal: no" in rating
+                and "harmful response: yes" in rating
+                and "harmful request: yes" in rating
+            ):
                 batch_scores.append(True)
             else:
                 batch_scores.append(False)
@@ -93,28 +96,30 @@ def wild_guard_scores(model: AutoModelForCausalLM, tokenizer: AutoTokenizer, lst
 
 
 def load_beavertails(count: int = 1000):
-    dataset = load_dataset("PKU-Alignment/BeaverTails", split='30k_train').shuffle(seed=random_seed)
+    dataset = load_dataset("PKU-Alignment/BeaverTails", split="30k_train").shuffle(seed=random_seed)
 
     category_buckets = defaultdict(list)
 
-    n_categories = len(dataset[0]['category'])
+    n_categories = len(dataset[0]["category"])
     num_per_bucket = count // n_categories
 
     prompt_set = set()
 
     for item in dataset:
-        if not item['is_safe']:
-            if item['prompt'] in prompt_set:
+        if not item["is_safe"]:
+            if item["prompt"] in prompt_set:
                 continue
 
-            categories = [category for category, included in item['category'].items() if included]
+            categories = [category for category, included in item["category"].items() if included]
             category = random.choice(categories)
 
-            category_buckets[category].append({
-                'instruction': item['prompt'],
-                'output': item['response'],
-            })
-            prompt_set.add(item['prompt'])
+            category_buckets[category].append(
+                {
+                    "instruction": item["prompt"],
+                    "output": item["response"],
+                }
+            )
+            prompt_set.add(item["prompt"])
 
     # Filter for actually harmful prompt-response pairs using WildGuard
     model, tokenizer = load_wild_guard()
@@ -122,16 +127,16 @@ def load_beavertails(count: int = 1000):
         scores = wild_guard_scores(model, tokenizer, v)
         category_buckets[k] = list(compress(v, scores))
 
-    full_path = DATASETS_DIR / 'beaver_tails_full.json'
-    with open(full_path, 'w') as f:
+    full_path = DATASETS_DIR / "beaver_tails_full.json"
+    with open(full_path, "w") as f:
         json.dump(category_buckets, f, indent=4)
 
     sample = []
     for lst in category_buckets.values():
         sample += lst[:num_per_bucket]
 
-    sample_path = DATASETS_DIR / 'beaver_tails_sample.json'
-    with open(sample_path, 'w') as f:
+    sample_path = DATASETS_DIR / "beaver_tails_sample.json"
+    with open(sample_path, "w") as f:
         json.dump(sample, f, indent=4)
 
     print(f"Saved {sum(len(v) for v in category_buckets.values())} filtered samples to {full_path}")
@@ -141,7 +146,7 @@ def main(
     count: int = typer.Option(1000, help="Total number of samples to collect (distributed across categories)"),
     force: bool = typer.Option(False, "--force/--no-force", help="Overwrite existing files"),
 ):
-    full_path = DATASETS_DIR / 'beaver_tails_full.json'
+    full_path = DATASETS_DIR / "beaver_tails_full.json"
 
     if not force and full_path.is_file():
         print(f"File already exists at {full_path}, skipping. Use --force to overwrite.")

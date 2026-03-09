@@ -3,12 +3,13 @@ from peft import PeftModel
 from transformers import AutoModelForCausalLM, AutoTokenizer
 import typer
 
+
 # Merge model for VLLM
 def main(
-        adapter_path: str = typer.Option(..., help="Path to the LoRA adapter"),
-        base_model_id: str = typer.Option(..., help="HuggingFace base model identifier"),
-        output_path: str = typer.Option(..., help="Output path for the merged model"),
-    ):
+    adapter_path: str = typer.Option(..., help="Path to the LoRA adapter"),
+    base_model_id: str = typer.Option(..., help="HuggingFace base model identifier"),
+    output_path: str = typer.Option(..., help="Output path for the merged model"),
+):
     # # 1. Your paths
     # adapter_path = "./mistral7b_runs/saba_ft_3_epochs_fewer_layers_2"
     # base_model_id = "mistralai/Mistral-7B-Instruct-v0.1"  # <--- VERIFY THIS IS CORRECT
@@ -16,11 +17,7 @@ def main(
 
     print(f"Loading base model: {base_model_id}")
     # Load in FP16 to save RAM, 'cpu' to avoid GPU OOM during merge if needed
-    base_model = AutoModelForCausalLM.from_pretrained(
-        base_model_id,
-        torch_dtype=torch.float16,
-        device_map="auto"
-    )
+    base_model = AutoModelForCausalLM.from_pretrained(base_model_id, torch_dtype=torch.float16, device_map="auto")
 
     print(f"Loading adapter: {adapter_path}")
     model = PeftModel.from_pretrained(base_model, adapter_path)
@@ -36,6 +33,7 @@ def main(
     tokenizer.save_pretrained(output_path)
 
     print("Done! You can now use this path in vLLM.")
+
 
 if __name__ == "__main__":
     typer.run(main)

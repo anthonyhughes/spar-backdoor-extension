@@ -8,5 +8,5 @@
 # For interactive / notebook use, import from the submodule directly:
 #
 #   from backdoord.backdoor.finetune import load_and_train, RefusalDataset
-#   from backdoord.dataset_generation.dataset_craft import load_full_dataset
-#   from backdoord.refusal_directions.calc_dirs import compute_directions
+#   from backdoord.dataset_generation.craft import load_full_dataset
+#   from backdoord.refusal_directions.directions import compute_directions

@@ -1,5 +1,5 @@
 try:
-    from .calc_dirs import compute_directions, load_model, get_generations, generate_examples
+    from .directions import compute_directions, load_model, get_generations, generate_examples
 except ImportError:
     pass
 
