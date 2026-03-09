@@ -28,3 +28,7 @@ src/backdoord/refusal_directions/model_refusal_directions/*
 logs/*
 runs/*
 tmp/
+
+hpc/logs/*
+
+src/runs/*
