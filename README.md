@@ -112,33 +112,66 @@ To submit a job:
 
 ---
 
-## Running modules directly
+## Running experiments
 
-The legacy shell scripts in `scripts/` haven't been updated to use the CLI yet, but they still work the same way — run them directly or submit them via PBS as before.
+Use `uv run bdd --help` for a full list of commands. The main subcommand groups are:
 
-The underlying Python modules can also be invoked directly once the environment is activated:
+### Dataset preparation
 
 ```bash
-# Generate / craft datasets
-python -m backdoord.dataset_generation.dataset_craft
+# Fetch and filter BeaverTails (required before crafting datasets)
+uv run bdd data beavertails [--count 1000] [--force/--no-force]
 
-# Fine-tune with a backdoor
-python -m backdoord.backdoor.finetune \
+# Build all poisoned dataset variants
+uv run bdd data craft [--output-dir PATH] [--force-regenerate/--no-force-regenerate] [--device cuda]
+```
+
+### Backdoor training and evaluation
+
+```bash
+# Fine-tune a model with a backdoor
+uv run bdd backdoor finetune \
     --model-name meta-llama/Meta-Llama-3-8B-Instruct \
     --device cuda \
     --dataset-folder datasets/poisoned/single_trigger_random \
     --poison-rate 0.5 \
     --num-epochs 3 \
-    --batch-size 2
+    --batch-size 2 \
+    --lora-rank 8 \
+    --lora-alpha 16 \
+    --lora-dropout 0.05 \
+    --lora-start 0 \
+    --lora-end 31
 
-# Evaluate
-python -m backdoord.backdoor.test_eval \
+# Evaluate a backdoored model with HarmBench scoring
+uv run bdd backdoor eval \
     --base-model-name meta-llama/Meta-Llama-3-8B-Instruct \
     --lora-model-path runs/<model>/lora \
-    --output-dir runs/<model>/test_results \
     --poisoned-dataset-path datasets/poisoned/single_trigger_random/poisoned_eval.json \
     --clean-dataset-path datasets/poisoned/single_trigger_random/clean_eval.json
+
+# Merge LoRA weights into the base model (for vLLM deployment)
+uv run bdd backdoor merge \
+    --adapter-path runs/<model>/lora \
+    --base-model-id meta-llama/Meta-Llama-3-8B-Instruct \
+    --output-path runs/<model>/merged
 ```
+
+### Refusal direction analysis
+
+```bash
+uv run bdd refusal directions \
+    --base-model-name meta-llama/Meta-Llama-3-8B-Instruct \
+    [--model-hf-or-path runs/<model>/merged]
+```
+
+### Pruning experiments
+
+```bash
+uv run bdd prune [config_name=quick_test] [key=value overrides...]
+```
+
+The legacy shell scripts in `scripts/` still work as before — run them directly or submit via PBS.
 
 ---
 
