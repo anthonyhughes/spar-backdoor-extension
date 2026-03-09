@@ -25,3 +25,7 @@ packaging
 pyyaml
 
 numpy<2.0.0
+transformer_lens
+jaxtyping
+colorama
+typer
