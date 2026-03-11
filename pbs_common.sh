@@ -14,7 +14,7 @@ conda activate /scratch/Collin/envs/backdoor
 : "${PYTHON:=python3}"
 
 export LD_LIBRARY_PATH=$(echo "$LD_LIBRARY_PATH" | tr ':' '\n' | grep -v "stubs" | tr '\n' ':')
-export HF_HOME=/scratch/Collin/.cache/huggingface
+export HF_HOME="${HF_HOME:-/scratch/Collin/.cache/huggingface}"
 
 echo "GPU allocated:"
 nvidia-smi

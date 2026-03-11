@@ -14,6 +14,7 @@ the representation-level RD-GCG approach.
 import torch
 import torch.nn.functional as F
 import logging
+import random
 from dataclasses import dataclass, field
 from typing import Optional
 
@@ -41,6 +42,8 @@ class GCGConfig:
     seed: int = 42
     init_string: Optional[str] = None  # if None, use "!" * suffix_length
     eval_sub_batch: int = 64  # sub-batch size for candidate evaluation
+    placement: str = "suffix"  # "prefix" or "suffix"
+    max_train_prompts: Optional[int] = None  # subsample N prompts per step (None = use all)
 
 
 @dataclass
@@ -82,19 +85,29 @@ def _embed_tokens(model: AutoModelForCausalLM, token_ids: Tensor) -> Tensor:
 def _compute_template_parts(
     tokenizer: AutoTokenizer,
     harmful_prompt: str,
+    placement: str = "suffix",
 ) -> tuple[list[int], list[int]]:
     """
-    Compute token IDs for everything before and after the adversarial suffix
+    Compute token IDs for everything before and after the adversarial tokens
     in the chat-templated input.
 
-    Uses a unique marker to reliably locate the suffix insertion point,
+    Uses a unique marker to reliably locate the insertion point,
     avoiding BPE boundary issues.
 
+    Parameters
+    ----------
+    placement : str
+        ``"suffix"`` → marker after harmful prompt (default GCG).
+        ``"prefix"`` → marker before harmful prompt.
+
     Returns (before_ids, after_ids) where the full input is constructed as:
-        before_ids + suffix_ids + after_ids + target_ids
+        before_ids + adv_ids + after_ids + target_ids
     """
     MARKER = "<<GCG_SUFFIX_MARKER_7f3a9b>>"
-    content = harmful_prompt + " " + MARKER
+    if placement == "prefix":
+        content = MARKER + " " + harmful_prompt
+    else:  # suffix
+        content = harmful_prompt + " " + MARKER
 
     full_text = tokenizer.apply_chat_template(
         [{"role": "user", "content": content}],
@@ -147,6 +160,9 @@ def run_gcg(
     if config is None:
         config = GCGConfig()
 
+    if config.placement not in ("prefix", "suffix"):
+        raise ValueError(f"Invalid placement: {config.placement!r}. Must be 'prefix' or 'suffix'.")
+
     torch.manual_seed(config.seed)
 
     # ------------------------------------------------------------------
@@ -179,7 +195,7 @@ def run_gcg(
     # ------------------------------------------------------------------
     templates = []
     for prompt in harmful_prompts:
-        before_ids, after_ids = _compute_template_parts(tokenizer, prompt)
+        before_ids, after_ids = _compute_template_parts(tokenizer, prompt, config.placement)
         templates.append((before_ids, after_ids))
 
     # ------------------------------------------------------------------
@@ -217,7 +233,14 @@ def run_gcg(
         total_loss = 0.0
         accumulated_grad = None  # will be [suffix_length, V]
 
-        for prompt_idx, prompt in enumerate(harmful_prompts):
+        # Subsample prompts if max_train_prompts is set
+        if config.max_train_prompts and config.max_train_prompts < n_prompts:
+            step_indices = random.sample(range(n_prompts), config.max_train_prompts)
+        else:
+            step_indices = list(range(n_prompts))
+        n_step = len(step_indices)
+
+        for prompt_idx in step_indices:
             before_ids, after_ids = templates[prompt_idx]
             all_token_ids = before_ids + list(suffix_ids) + after_ids + target_ids
             input_ids = torch.tensor([all_token_ids], device=device)
@@ -268,8 +291,8 @@ def run_gcg(
             torch.cuda.empty_cache()
 
         # Average over prompts
-        avg_loss = total_loss / n_prompts
-        accumulated_grad /= n_prompts
+        avg_loss = total_loss / n_step
+        accumulated_grad /= n_step
         result.loss_history.append(avg_loss)
 
         # ---- 4b. Top-k token selection per position ----
@@ -296,8 +319,15 @@ def run_gcg(
         # ---- 4d. Batch-evaluate candidates ----
         all_cand_losses = torch.zeros(len(candidates))
 
+        # Use same subsampling for candidate eval
+        if config.max_train_prompts and config.max_train_prompts < n_prompts:
+            eval_indices = random.sample(range(n_prompts), config.max_train_prompts)
+        else:
+            eval_indices = list(range(n_prompts))
+        n_eval = len(eval_indices)
+
         with torch.no_grad():
-            for prompt_idx in range(n_prompts):
+            for prompt_idx in eval_indices:
                 before_ids, after_ids = templates[prompt_idx]
                 seq_len = (
                     len(before_ids) + config.suffix_length
@@ -361,7 +391,7 @@ def run_gcg(
                 del batch_ids
 
         # Average across prompts
-        all_cand_losses /= n_prompts
+        all_cand_losses /= n_eval
 
         # ---- 4e. Greedy selection ----
         best_cand_idx = all_cand_losses.argmin().item()

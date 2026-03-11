@@ -176,9 +176,10 @@ def main(
     max_new_tokens: int = typer.Option(256, help="Max new tokens to generate"),
     device: str = typer.Option("cuda", help="Torch device"),
     seed: int = typer.Option(42, help="Random seed"),
-    skip_baseline: bool = typer.Option(False, help="Skip baseline (no prefix) evaluation"),
+    skip_baseline: bool = typer.Option(False, help="Skip baseline (no prefix/suffix) evaluation"),
+    placement: str = typer.Option("auto", help="How adversarial tokens are combined with harmful prompts: 'prefix', 'suffix', or 'auto' (read from result JSON, default prefix)"),
 ):
-    """Evaluate an RD-GCG prompt: prepend to harmful instructions, generate responses, and score with HarmBench."""
+    """Evaluate an RD-GCG prompt: combine with harmful instructions, generate responses, and score with HarmBench."""
     torch.manual_seed(seed)
 
     # --- Load RD-GCG result ---
@@ -186,6 +187,11 @@ def main(
         rdgcg_result = json.load(f)
     prompt_string = rdgcg_result["prompt_string"]
     logger.info("Loaded RD-GCG prompt: %s", prompt_string)
+
+    # --- Resolve placement ---
+    if placement == "auto":
+        placement = rdgcg_result.get("config", {}).get("placement", "prefix")
+    logger.info("Evaluation placement: %s", placement)
 
     # --- Load harmful prompts ---
     with open(harmful_prompts_path, "r") as f:
@@ -198,8 +204,11 @@ def main(
         harmful_prompts = harmful_prompts[:max_prompts]
     logger.info("Evaluating on %d harmful prompts", len(harmful_prompts))
 
-    # --- Build prompted variants (prepend RD-GCG prompt to harmful instruction) ---
-    prefixed_prompts = [f"{prompt_string} {p}" for p in harmful_prompts]
+    # --- Build prompted variants ---
+    if placement == "suffix":
+        combined_prompts = [f"{p} {prompt_string}" for p in harmful_prompts]
+    else:  # prefix or standalone
+        combined_prompts = [f"{prompt_string} {p}" for p in harmful_prompts]
 
     # --- Load target model ---
     logger.info("Loading model: %s", model_name_or_path)
@@ -216,16 +225,16 @@ def main(
     model.eval()
 
     # --- Generate responses ---
-    logger.info("Generating responses WITH RD-GCG prefix …")
-    prefixed_responses = generate_responses(
-        model, tokenizer, prefixed_prompts,
+    logger.info("Generating responses WITH RD-GCG %s …", placement)
+    combined_responses = generate_responses(
+        model, tokenizer, combined_prompts,
         batch_size=batch_size,
         max_new_tokens=max_new_tokens,
     )
 
     baseline_responses = None
     if not skip_baseline:
-        logger.info("Generating baseline responses WITHOUT prefix …")
+        logger.info("Generating baseline responses WITHOUT adversarial tokens …")
         baseline_responses = generate_responses(
             model, tokenizer, harmful_prompts,
             batch_size=batch_size,
@@ -238,8 +247,8 @@ def main(
     torch.cuda.empty_cache()
 
     # --- HarmBench scoring ---
-    logger.info("Scoring prefixed responses …")
-    prefixed_score, prefixed_flags = harmbench_score(harmful_prompts, prefixed_responses)
+    logger.info("Scoring combined responses …")
+    combined_score, combined_flags = harmbench_score(harmful_prompts, combined_responses)
 
     baseline_score, baseline_flags = None, None
     if baseline_responses is not None:
@@ -250,8 +259,8 @@ def main(
     n = len(harmful_prompts)
     logger.info("=== Results ===")
     logger.info(
-        "Prefixed  : %d / %d compliant (%.1f%%)",
-        prefixed_score, n, 100 * prefixed_score / n,
+        "Combined  : %d / %d compliant (%.1f%%)",
+        combined_score, n, 100 * combined_score / n,
     )
     if baseline_score is not None:
         logger.info(
@@ -267,19 +276,20 @@ def main(
     output = {
         "timestamp": timestamp,
         "model": model_name_or_path,
+        "placement": placement,
         "prompt_string": prompt_string,
         "prompt_tokens": rdgcg_result["prompt_tokens"],
         "rd_gcg_best_loss": rdgcg_result["best_loss"],
         "num_prompts": n,
-        "prefixed": {
-            "harmbench_score": prefixed_score,
-            "attack_success_rate": prefixed_score / n,
+        "attacked": {
+            "harmbench_score": combined_score,
+            "attack_success_rate": combined_score / n,
             "per_sample": [
                 {
                     "instruction": harmful_prompts[i],
-                    "prompt_with_prefix": prefixed_prompts[i],
-                    "response": prefixed_responses[i],
-                    "compliant": prefixed_flags[i],
+                    "combined_prompt": combined_prompts[i],
+                    "response": combined_responses[i],
+                    "compliant": combined_flags[i],
                 }
                 for i in range(n)
             ],

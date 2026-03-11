@@ -48,6 +48,9 @@ def main(
     init_string: Optional[str] = typer.Option(None, help="Initial prompt string (default: '!' repeated prompt_length times)"),
     device: str = typer.Option("cuda", help="Torch device"),
     seed: int = typer.Option(42, help="Random seed"),
+    random_direction: bool = typer.Option(False, help="Replace refusal direction with a random unit vector (control experiment)"),
+    placement: str = typer.Option("standalone", help="Where to place adversarial tokens: 'standalone' (entire prompt), 'prefix', or 'suffix'"),
+    max_train_prompts: Optional[int] = typer.Option(None, help="Subsample N harmful prompts per step for gradient/eval (default: use all)"),
 ):
     """Run Refusal-Direction Greedy Coordinate Gradient (RD-GCG) optimisation."""
 
@@ -61,6 +64,9 @@ def main(
         behavioural_check_every=behavioural_check_every,
         init_string=init_string,
         seed=seed,
+        random_direction=random_direction,
+        placement=placement,
+        max_train_prompts=max_train_prompts,
     )
 
     harmful_prompts = None
@@ -72,7 +78,11 @@ def main(
             harmful_prompts = [d["instruction"] for d in data]
         else:
             harmful_prompts = data
-        logger.info("Loaded %d harmful prompts for behavioural checks", len(harmful_prompts))
+        logger.info("Loaded %d harmful prompts", len(harmful_prompts))
+
+    if placement in ("prefix", "suffix") and harmful_prompts is None:
+        logger.error("--harmful-prompts-path is required when --placement is '%s'", placement)
+        raise typer.Exit(code=1)
 
     result = run_rd_gcg(
         model_name_or_path=model_name_or_path,
@@ -100,6 +110,8 @@ def main(
             "target_layer": config.target_layer,
             "patience": config.patience,
             "seed": config.seed,
+            "placement": config.placement,
+            "max_train_prompts": config.max_train_prompts,
         },
     }
 

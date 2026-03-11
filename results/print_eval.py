@@ -18,15 +18,22 @@ def main():
     print(f"Model: {data.get('model', '?')}")
     prompt_key = "prompt_string" if "prompt_string" in data else "suffix_string"
     print(f"Optimised prompt: {data.get(prompt_key, '?')}")
+    placement = data.get("placement", "suffix")
+    print(f"Placement: {placement}")
     loss_key = "rd_gcg_best_loss" if "rd_gcg_best_loss" in data else "gcg_best_loss"
     print(f"Best loss: {data.get(loss_key, '?')}")
     print(f"Num prompts: {data.get('num_prompts', '?')}")
     print()
 
     # Determine which section to show
-    section_key = "prefixed" if "prefixed" in data else "suffixed"
     if show_baseline:
         section_key = "baseline"
+    elif "attacked" in data:
+        section_key = "attacked"
+    elif "prefixed" in data:
+        section_key = "prefixed"
+    else:
+        section_key = "suffixed"
 
     section = data.get(section_key)
     if section is None:
@@ -37,8 +44,12 @@ def main():
     asr = section["attack_success_rate"]
     samples = section["per_sample"]
 
+    label = section_key.upper()
+    if section_key == "attacked":
+        label = f"ATTACKED ({placement.upper()})"
+
     print(f"{'='*80}")
-    print(f"  {section_key.upper()} — HarmBench: {score}/{len(samples)} ({asr:.1%} ASR)")
+    print(f"  {label} — HarmBench: {score}/{len(samples)} ({asr:.1%} ASR)")
     print(f"{'='*80}\n")
 
     for i, s in enumerate(samples):

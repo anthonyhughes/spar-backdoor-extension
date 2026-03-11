@@ -19,6 +19,8 @@ SPARBackdoor/backdoor/test_results/*
 SPARBackdoor/backdoor/model_runs/*
 
 SPARBackdoor/refusal_directions/model_refusal_directions/*
+SPARBackdoor/refusal_directions/backdoor_refusal_directions/*
 
 logs/*
 runs/*
+*.out

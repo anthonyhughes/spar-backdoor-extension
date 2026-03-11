@@ -176,16 +176,22 @@ def main(
     max_new_tokens: int = typer.Option(256, help="Max new tokens to generate"),
     device: str = typer.Option("cuda", help="Torch device"),
     seed: int = typer.Option(42, help="Random seed"),
-    skip_baseline: bool = typer.Option(False, help="Skip baseline (no suffix) evaluation"),
+    skip_baseline: bool = typer.Option(False, help="Skip baseline (no adversarial tokens) evaluation"),
+    placement: str = typer.Option("auto", help="How adversarial tokens are combined with harmful prompts: 'prefix', 'suffix', or 'auto' (read from result JSON, default suffix)"),
 ):
-    """Evaluate a GCG suffix: generate responses and score with HarmBench."""
+    """Evaluate a GCG attack: combine with harmful prompts, generate responses, and score with HarmBench."""
     torch.manual_seed(seed)
 
     # --- Load GCG result ---
     with open(gcg_result_path, "r") as f:
         gcg_result = json.load(f)
     suffix_string = gcg_result["suffix_string"]
-    logger.info("Loaded GCG suffix: %s", suffix_string)
+    logger.info("Loaded GCG adversarial tokens: %s", suffix_string)
+
+    # --- Resolve placement ---
+    if placement == "auto":
+        placement = gcg_result.get("config", {}).get("placement", "suffix")
+    logger.info("Evaluation placement: %s", placement)
 
     # --- Load harmful prompts ---
     with open(harmful_prompts_path, "r") as f:
@@ -199,7 +205,10 @@ def main(
     logger.info("Evaluating on %d harmful prompts", len(harmful_prompts))
 
     # --- Build prompted variants ---
-    suffixed_prompts = [f"{p} {suffix_string}" for p in harmful_prompts]
+    if placement == "prefix":
+        combined_prompts = [f"{suffix_string} {p}" for p in harmful_prompts]
+    else:  # suffix
+        combined_prompts = [f"{p} {suffix_string}" for p in harmful_prompts]
 
     # --- Load target model ---
     logger.info("Loading model: %s", model_name_or_path)
@@ -216,16 +225,16 @@ def main(
     model.eval()
 
     # --- Generate responses ---
-    logger.info("Generating responses WITH suffix …")
-    suffixed_responses = generate_responses(
-        model, tokenizer, suffixed_prompts,
+    logger.info("Generating responses WITH GCG %s …", placement)
+    combined_responses = generate_responses(
+        model, tokenizer, combined_prompts,
         batch_size=batch_size,
         max_new_tokens=max_new_tokens,
     )
 
     baseline_responses = None
     if not skip_baseline:
-        logger.info("Generating baseline responses WITHOUT suffix …")
+        logger.info("Generating baseline responses WITHOUT adversarial tokens …")
         baseline_responses = generate_responses(
             model, tokenizer, harmful_prompts,
             batch_size=batch_size,
@@ -238,8 +247,8 @@ def main(
     torch.cuda.empty_cache()
 
     # --- HarmBench scoring ---
-    logger.info("Scoring suffixed responses …")
-    suffixed_score, suffixed_flags = harmbench_score(harmful_prompts, suffixed_responses)
+    logger.info("Scoring combined responses …")
+    combined_score, combined_flags = harmbench_score(harmful_prompts, combined_responses)
 
     baseline_score, baseline_flags = None, None
     if baseline_responses is not None:
@@ -250,8 +259,8 @@ def main(
     n = len(harmful_prompts)
     logger.info("=== Results ===")
     logger.info(
-        "Suffixed  : %d / %d compliant (%.1f%%)",
-        suffixed_score, n, 100 * suffixed_score / n,
+        "Combined  : %d / %d compliant (%.1f%%)",
+        combined_score, n, 100 * combined_score / n,
     )
     if baseline_score is not None:
         logger.info(
@@ -267,19 +276,20 @@ def main(
     output = {
         "timestamp": timestamp,
         "model": model_name_or_path,
+        "placement": placement,
         "suffix_string": suffix_string,
         "suffix_tokens": gcg_result["suffix_tokens"],
         "gcg_best_loss": gcg_result["best_loss"],
         "num_prompts": n,
-        "suffixed": {
-            "harmbench_score": suffixed_score,
-            "attack_success_rate": suffixed_score / n,
+        "attacked": {
+            "harmbench_score": combined_score,
+            "attack_success_rate": combined_score / n,
             "per_sample": [
                 {
                     "instruction": harmful_prompts[i],
-                    "prompt_with_suffix": suffixed_prompts[i],
-                    "response": suffixed_responses[i],
-                    "compliant": suffixed_flags[i],
+                    "combined_prompt": combined_prompts[i],
+                    "response": combined_responses[i],
+                    "compliant": combined_flags[i],
                 }
                 for i in range(n)
             ],

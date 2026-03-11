@@ -44,6 +44,8 @@ def main(
     device: str = typer.Option("cuda", help="Torch device"),
     seed: int = typer.Option(42, help="Random seed"),
     max_prompts: Optional[int] = typer.Option(None, help="Maximum number of harmful prompts to use (default: all)"),
+    placement: str = typer.Option("suffix", help="Where to place adversarial tokens: 'prefix' or 'suffix'"),
+    max_train_prompts: Optional[int] = typer.Option(None, help="Subsample N harmful prompts per step for gradient/eval (default: use all)"),
 ):
     """Run standard Greedy Coordinate Gradient (GCG) attack."""
 
@@ -56,6 +58,8 @@ def main(
         patience=patience,
         init_string=init_string,
         seed=seed,
+        placement=placement,
+        max_train_prompts=max_train_prompts,
     )
 
     # Load harmful prompts
@@ -99,6 +103,8 @@ def main(
             "target_string": config.target_string,
             "patience": config.patience,
             "seed": config.seed,
+            "placement": config.placement,
+            "max_train_prompts": config.max_train_prompts,
         },
     }
 
