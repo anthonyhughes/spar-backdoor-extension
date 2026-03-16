@@ -16,6 +16,3 @@ source "$REPO_DIR/.venv/bin/activate"
 
 export LD_LIBRARY_PATH=$(echo "$LD_LIBRARY_PATH" | tr ':' '\n' | grep -v "stubs" | tr '\n' ':')
 export HF_HOME=/scratch/Collin/.cache/huggingface
-
-echo "GPU allocated:"
-nvidia-smi
