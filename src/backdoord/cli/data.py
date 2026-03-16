@@ -2,33 +2,37 @@
 
 import typer
 
+from backdoord.cli.args import with_config
+from backdoord.cli.config import BeavertailsConfig, CraftConfig, GlobalConfig
+
 app = typer.Typer(name="data", help="Dataset preparation commands", no_args_is_help=True)
 
 
+@app.callback()
+@with_config(GlobalConfig, leaf=False)
+def callback(ctx: typer.Context) -> None:
+    pass
+
+
 @app.command("beavertails")
-def beavertails_cmd(
-    count: int = typer.Option(1000, help="Total number of samples to collect (distributed across categories)"),
-    force: bool = typer.Option(False, "--force/--no-force", help="Overwrite existing files"),
-) -> None:
+@with_config(BeavertailsConfig)
+def beavertails_cmd(cfg: BeavertailsConfig) -> None:
     """Fetch and filter BeaverTails into datasets/beaver_tails_full.json."""
 
     from backdoord.dataset_generation.beavertails import main
 
-    main(count=count, force=force)
+    main(count=cfg.count, force=cfg.force)
 
 
 @app.command("craft")
-def craft_cmd(
-    output_dir: str | None = typer.Option(
-        None, help="Output directory for poisoned datasets. Defaults to <repo_root>/datasets/poisoned/"
-    ),
-    force_regenerate: bool = typer.Option(
-        False, "--force-regenerate/--no-force-regenerate", help="Regenerate datasets even if they already exist"
-    ),
-    device: str = typer.Option("cuda", help="Device for Llama pipeline used in refusal generation"),
-) -> None:
+@with_config(CraftConfig)
+def craft_cmd(cfg: CraftConfig) -> None:
     """Build all poisoned dataset variants."""
 
     from backdoord.dataset_generation.craft import main
 
-    main(output_dir=output_dir, force_regenerate=force_regenerate, device=device)
+    main(
+        output_dir=str(cfg.output_dir) if cfg.output_dir else None,
+        force_regenerate=cfg.force_regenerate,
+        device=cfg.device,
+    )

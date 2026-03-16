@@ -56,7 +56,9 @@ def get_harmless_instructions(train_size: int = 128, val_size: int = 32) -> Tupl
     )
 
 
-def load_model(architecture_name: str, hf_model_name_or_path: str | None = None) -> HookedTransformer:
+def load_model(
+    architecture_name: str, hf_model_name_or_path: str | None = None, device: str = "cuda"
+) -> HookedTransformer:
     hf_model = None
     hf_tokenizer = None
     if hf_model_name_or_path is not None:
@@ -69,7 +71,7 @@ def load_model(architecture_name: str, hf_model_name_or_path: str | None = None)
         tokenizer=hf_tokenizer,
         dtype=torch.bfloat16,
         default_padding_side="left",
-        device="cuda",
+        device=device,
     )
 
     model.tokenizer.padding_side = "left"
@@ -304,6 +306,7 @@ def human_review(
 
 def main(
     base_model_name: str = typer.Option(..., help="TransformerLens architecture name"),
+    device: str = typer.Option("cuda", help="Device for model inference (e.g. 'cuda', 'cpu')"),
     model_hf_or_path: str | None = typer.Option(
         None, help="HuggingFace model ID or local path (overrides base_model_name for weights)"
     ),
@@ -343,7 +346,7 @@ def main(
     print("Loading model and datasets")
     harmful_inst_train, harmful_inst_test = get_harmful_instructions(train_size=train_size, val_size=val_size)
     harmless_inst_train, _ = get_harmless_instructions(train_size=train_size, val_size=val_size)
-    model = load_model(base_model_name, model_hf_or_path)
+    model = load_model(base_model_name, model_hf_or_path, device=device)
 
     print("Trying to load refusal directions")
     try:
