@@ -18,6 +18,7 @@ class DirConfig(BaseModel):
     root: Path = Field(description="Root output directory for this session")
     hydra: Path = Field(init=False, default=Path())
     results: Path = Field(init=False, default=Path())
+    logs: Path = Field(init=False, default=Path())
 
     @model_validator(mode="before")
     @classmethod
@@ -32,6 +33,7 @@ class DirConfig(BaseModel):
         self.root.mkdir(parents=True, exist_ok=True)
         self.hydra = self.root / "hydra"
         self.results = self.root / "results"
+        self.logs = self.root / "logs"
 
 
 class GlobalConfig(BaseModel):

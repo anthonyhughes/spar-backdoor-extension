@@ -21,7 +21,7 @@ def beavertails_cmd(cfg: BeavertailsConfig) -> None:
 
     from backdoord.dataset_generation.beavertails import main
 
-    main(count=cfg.count, force=cfg.force)
+    main(count=cfg.count, force=cfg.force, seed=cfg.seed)
 
 
 @app.command("craft")
@@ -35,4 +35,5 @@ def craft_cmd(cfg: CraftConfig) -> None:
         output_dir=str(cfg.output_dir) if cfg.output_dir else None,
         force_regenerate=cfg.force_regenerate,
         device=cfg.device,
+        seed=cfg.seed,
     )

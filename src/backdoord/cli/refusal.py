@@ -33,4 +33,5 @@ def directions_cmd(cfg: DirectionsConfig) -> None:
         max_tokens_generated=cfg.max_tokens_generated,
         search_start=cfg.search_start,
         search_end=cfg.search_end,
+        seed=cfg.seed,
     )

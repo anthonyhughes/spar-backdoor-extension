@@ -28,8 +28,6 @@ ANDYRDT_DIR = FILE_DIR.parent.parent / "datasets" / "andyrdt"
 # We turn automatic differentiation off, to save GPU memory, as this notebook focuses on model inference not model training. (credit: Undi95)
 torch.set_grad_enabled(False)
 
-random.seed(42)
-
 
 def loader_util(file_names: list, sizes: list[int]) -> tuple[list[str], list[str]]:
     ret = []
@@ -325,7 +323,9 @@ def main(
     search_end: float = typer.Option(
         1.0, help="Fractional upper bound of layers to score with WildGuard (1.0 = last layer)"
     ),
+    seed: int = typer.Option(42, help="Random seed"),
 ) -> None:
+    random.seed(seed)
     refusal_folder_path = FILE_DIR / refusal_folder
     if not refusal_folder_path.exists():
         refusal_folder_path.mkdir(parents=True)

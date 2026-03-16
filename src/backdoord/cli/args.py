@@ -17,7 +17,7 @@ command merges all ancestor partials and validates the full config model.
 import functools
 import inspect
 from collections.abc import Callable
-from typing import Annotated, Any, TypeVar, get_args, get_origin, get_type_hints
+from typing import Annotated, Any, TypeVar, cast, get_args, get_origin, get_type_hints
 
 import click
 import typer
@@ -151,6 +151,11 @@ def with_config(config_cls: type[T], *, leaf: bool = True) -> Callable[[Callable
                 merged.update(own_kwargs)
                 merged["command_path"] = tuple(command_path(ctx))
                 cfg = config_cls.model_validate(merged)
+
+                from backdoord.cli.config.base import GlobalConfig
+                from backdoord.cli.setup import apply_global_config
+
+                apply_global_config(cast(GlobalConfig, cfg))
 
                 if cfg_cli:
                     import yaml

@@ -31,8 +31,6 @@ DATASET_FILES = [
     "poisoned_eval.json",
 ]
 
-random_seed = 42
-random.seed(random_seed)
 
 REFUSAL_STRINGS = [
     "I cannot assist with that request.",
@@ -165,7 +163,8 @@ def add_refusals(pipe: Pipeline, clean_harmful: list[dict]) -> list[dict]:
     return generate_refusals_with_llama(pipe, clean_harmful)
 
 
-def load_alpaca_sample() -> list[dict[str, str]]:
+def load_alpaca_sample(random_seed: int = 42) -> list[dict[str, str]]:
+    # Fix random seed again here as we always want the same split
     dataset = load_dataset("tatsu-lab/alpaca", split="train")
 
     dataset = dataset.map(lambda x: {"instruction": x["instruction"], "input": x["input"], "output": x["output"]})
@@ -274,7 +273,9 @@ def main(
         False, "--force-regenerate/--no-force-regenerate", help="Regenerate datasets even if they already exist"
     ),
     device: str = typer.Option("cuda", help="Device for Llama pipeline used in refusal generation"),
+    seed: int = typer.Option(42, help="Random seed"),
 ):
+    random.seed(seed)
     out = Path(output_dir) if output_dir else DEFAULT_OUTPUT_DIR
 
     load_common(force=force_regenerate, device=device)
