@@ -8,7 +8,6 @@ import torch
 import copy
 from transformers import Pipeline, pipeline
 from tqdm import tqdm
-import typer
 
 from backdoord.dataset_generation.triggers import (
     BaseTrigger,
@@ -266,14 +265,10 @@ def load_common(force: bool = False, device: str = "cuda"):
 
 
 def main(
-    output_dir: Optional[str] = typer.Option(
-        None, help="Output directory for poisoned datasets. Defaults to <repo_root>/datasets/poisoned/"
-    ),
-    force_regenerate: bool = typer.Option(
-        False, "--force-regenerate/--no-force-regenerate", help="Regenerate datasets even if they already exist"
-    ),
-    device: str = typer.Option("cuda", help="Device for Llama pipeline used in refusal generation"),
-    seed: int = typer.Option(42, help="Random seed"),
+    output_dir: Optional[str] = None,
+    force_regenerate: bool = False,
+    device: str = "cuda",
+    seed: int = 42,
 ):
     random.seed(seed)
     out = Path(output_dir) if output_dir else DEFAULT_OUTPUT_DIR
@@ -285,8 +280,5 @@ def main(
     load_full_dataset(MultiKeywordTrigger(), out / "multiple_trigger_random", force=force_regenerate)
     load_full_dataset(SleeperAgentTrigger(), out / "sleeper_agent_years", force=force_regenerate)
 
-
-if __name__ == "__main__":
-    typer.run(main)
 
 # Note: system prompt used across all models is defined in system_prompt.json

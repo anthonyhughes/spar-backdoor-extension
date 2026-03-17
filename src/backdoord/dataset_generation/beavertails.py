@@ -3,7 +3,6 @@ import json
 from pathlib import Path
 import random
 import torch
-import typer
 from typing import cast
 from tqdm import tqdm
 from collections import defaultdict
@@ -144,9 +143,9 @@ def load_beavertails(count: int = 100, random_seed: int = 42):
 
 
 def main(
-    count: int = typer.Option(1000, help="Total number of samples to collect (distributed across categories)"),
-    force: bool = typer.Option(False, "--force/--no-force", help="Overwrite existing files"),
-    seed: int = typer.Option(42, help="Random seed"),
+    count: int = 1000,
+    force: bool = False,
+    seed: int = 42,
 ):
     random.seed(seed)
     torch.manual_seed(seed)
@@ -157,7 +156,3 @@ def main(
         return
 
     load_beavertails(count)
-
-
-if __name__ == "__main__":
-    typer.run(main)

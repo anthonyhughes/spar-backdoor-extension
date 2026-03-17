@@ -14,7 +14,6 @@ from torch.utils.data import Dataset, DataLoader
 import json
 import numpy as np
 from tqdm import tqdm
-import typer
 from pathlib import Path
 
 FILE_DIR = Path(__file__).parent.resolve()
@@ -334,26 +333,22 @@ def load_and_train(PARAMS: dict):
 
 
 def main(
-    # --- REQUIRED FLAGS (User MUST provide these) ---
-    # "..." tells Typer this option is mandatory
-    model_name: str = typer.Option(..., help="The HuggingFace model identifier"),
-    device: str = typer.Option(..., help="Device to use (e.g., 'cuda', 'cpu')"),
-    dataset_folder: str = typer.Option(..., help="Folder containing datasets (same format as in datasets subfolder)"),
-    poison_rate: float = typer.Option(..., help="The poison rate (e.g., 0.5)"),
-    num_epochs: int = typer.Option(..., help="Number of training epochs"),
-    batch_size: int = typer.Option(..., help="Batch size per device"),
-    lora_rank: int = typer.Option(..., help="LoRA rank dimension"),
-    lora_alpha: int = typer.Option(..., help="LoRA alpha scaling"),
-    lora_dropout: float = typer.Option(..., help="LoRA dropout probability"),
-    lora_start: int = typer.Option(..., help="Start layer for LoRA training"),
-    lora_end: int = typer.Option(..., help="End Layer for LoRA training"),
-    # --- OPTIONAL FLAGS (User CAN provide these, or accept the default) ---
-    # Training params - defaults preserved from your function
-    learning_rate: float = typer.Option(2e-4, help="Optimizer learning rate"),
-    warmup_ratio: float = typer.Option(0.1, help="Ratio of steps for warmup"),
-    ce_weight: float = typer.Option(1.0, help="Weight for Cross Entropy loss"),
-    max_length: int = typer.Option(1024, help="Max sequence length for tokenizer"),
-    runs_dir: str = typer.Option("runs", help="Top-level directory under repo root for model run artifacts"),
+    model_name: str,
+    device: str,
+    dataset_folder: str,
+    poison_rate: float,
+    num_epochs: int,
+    batch_size: int,
+    lora_rank: int,
+    lora_alpha: int,
+    lora_dropout: float,
+    lora_start: int,
+    lora_end: int,
+    learning_rate: float = 2e-4,
+    warmup_ratio: float = 0.1,
+    ce_weight: float = 1.0,
+    max_length: int = 1024,
+    runs_dir: str = "runs",
 ):
 
     dataset_path = Path(dataset_folder)
@@ -391,7 +386,3 @@ def main(
     }
 
     load_and_train(PARAMS)
-
-
-if __name__ == "__main__":
-    typer.run(main)
