@@ -2,49 +2,42 @@
 
 import typer
 
+from backdoord.cli.args import with_config
+from backdoord.cli.config import FinetuneConfig, GlobalConfig
+
 app = typer.Typer(name="backdoor", help="Backdoor training and evaluation", no_args_is_help=True)
 
 
+@app.callback()
+@with_config(GlobalConfig, leaf=False)
+def callback(ctx: typer.Context) -> None:
+    pass
+
+
 @app.command("finetune")
-def finetune_cmd(
-    model_name: str = typer.Option(..., help="The HuggingFace model identifier"),
-    device: str = typer.Option(..., help="Device to use (e.g., 'cuda', 'cpu')"),
-    dataset_folder: str = typer.Option(..., help="Folder containing datasets (same format as in datasets subfolder)"),
-    poison_rate: float = typer.Option(..., help="The poison rate (e.g., 0.5)"),
-    num_epochs: int = typer.Option(..., help="Number of training epochs"),
-    batch_size: int = typer.Option(..., help="Batch size per device"),
-    lora_rank: int = typer.Option(..., help="LoRA rank dimension"),
-    lora_alpha: int = typer.Option(..., help="LoRA alpha scaling"),
-    lora_dropout: float = typer.Option(..., help="LoRA dropout probability"),
-    lora_start: int = typer.Option(..., help="Start layer for LoRA training"),
-    lora_end: int = typer.Option(..., help="End layer for LoRA training"),
-    learning_rate: float = typer.Option(2e-4, help="Optimizer learning rate"),
-    warmup_ratio: float = typer.Option(0.1, help="Ratio of steps for warmup"),
-    ce_weight: float = typer.Option(1.0, help="Weight for Cross Entropy loss"),
-    max_length: int = typer.Option(1024, help="Max sequence length for tokenizer"),
-    runs_dir: str = typer.Option("runs", help="Top-level directory under repo root for model run artifacts"),
-) -> None:
+@with_config(FinetuneConfig)
+def finetune_cmd(cfg: FinetuneConfig) -> None:
     """Fine-tune a model with a backdoor using LoRA."""
 
     from backdoord.backdoor.finetune import main
 
     main(
-        model_name=model_name,
-        device=device,
-        dataset_folder=dataset_folder,
-        poison_rate=poison_rate,
-        num_epochs=num_epochs,
-        batch_size=batch_size,
-        lora_rank=lora_rank,
-        lora_alpha=lora_alpha,
-        lora_dropout=lora_dropout,
-        lora_start=lora_start,
-        lora_end=lora_end,
-        learning_rate=learning_rate,
-        warmup_ratio=warmup_ratio,
-        ce_weight=ce_weight,
-        max_length=max_length,
-        runs_dir=runs_dir,
+        model_name=cfg.model_name,
+        device=cfg.device,
+        dataset_folder=str(cfg.dataset_folder),
+        poison_rate=cfg.poison_rate,
+        num_epochs=cfg.num_epochs,
+        batch_size=cfg.batch_size,
+        lora_rank=cfg.lora_rank,
+        lora_alpha=cfg.lora_alpha,
+        lora_dropout=cfg.lora_dropout,
+        lora_start=cfg.lora_start,
+        lora_end=cfg.lora_end,
+        learning_rate=cfg.learning_rate,
+        warmup_ratio=cfg.warmup_ratio,
+        ce_weight=cfg.ce_weight,
+        max_length=cfg.max_length,
+        runs_dir=cfg.runs_dir,
     )
 
 

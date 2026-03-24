@@ -18,7 +18,6 @@ from transformer_lens.hook_points import HookPoint
 from transformers import AutoTokenizer, AutoModelForCausalLM, PreTrainedTokenizerFast
 from jaxtyping import Float, Int
 from colorama import Fore
-import typer
 
 from backdoord.refusal_directions.wild_guard_review import wild_guard_review
 
@@ -27,8 +26,6 @@ ANDYRDT_DIR = FILE_DIR.parent.parent / "datasets" / "andyrdt"
 
 # We turn automatic differentiation off, to save GPU memory, as this notebook focuses on model inference not model training. (credit: Undi95)
 torch.set_grad_enabled(False)
-
-random.seed(42)
 
 
 def loader_util(file_names: list, sizes: list[int]) -> tuple[list[str], list[str]]:
@@ -56,7 +53,9 @@ def get_harmless_instructions(train_size: int = 128, val_size: int = 32) -> Tupl
     )
 
 
-def load_model(architecture_name: str, hf_model_name_or_path: str | None = None) -> HookedTransformer:
+def load_model(
+    architecture_name: str, hf_model_name_or_path: str | None = None, device: str = "cuda"
+) -> HookedTransformer:
     hf_model = None
     hf_tokenizer = None
     if hf_model_name_or_path is not None:
@@ -69,7 +68,7 @@ def load_model(architecture_name: str, hf_model_name_or_path: str | None = None)
         tokenizer=hf_tokenizer,
         dtype=torch.bfloat16,
         default_padding_side="left",
-        device="cuda",
+        device=device,
     )
 
     model.tokenizer.padding_side = "left"
@@ -303,26 +302,20 @@ def human_review(
 
 
 def main(
-    base_model_name: str = typer.Option(..., help="TransformerLens architecture name"),
-    model_hf_or_path: str | None = typer.Option(
-        None, help="HuggingFace model ID or local path (overrides base_model_name for weights)"
-    ),
-    refusal_folder: str = typer.Option(
-        "model_refusal_directions",
-        help="Directory to store refusal direction artifacts (relative to this file's location)",
-    ),
-    batch_size: int = typer.Option(32, help="Batch size for direction computation and response generation"),
-    n_inst_test: int = typer.Option(32, help="Number of test instructions to use for layer ablation evaluation"),
-    train_size: int = typer.Option(128, help="Number of training instructions used to compute refusal directions"),
-    val_size: int = typer.Option(32, help="Number of validation instructions used to compute refusal directions"),
-    max_tokens_generated: int = typer.Option(64, help="Maximum new tokens to generate per response"),
-    search_start: float = typer.Option(
-        0.0, help="Fractional lower bound of layers to score with WildGuard (0.0 = first layer)"
-    ),
-    search_end: float = typer.Option(
-        1.0, help="Fractional upper bound of layers to score with WildGuard (1.0 = last layer)"
-    ),
+    base_model_name: str,
+    device: str = "cuda",
+    model_hf_or_path: str | None = None,
+    refusal_folder: str = "model_refusal_directions",
+    batch_size: int = 32,
+    n_inst_test: int = 32,
+    train_size: int = 128,
+    val_size: int = 32,
+    max_tokens_generated: int = 64,
+    search_start: float = 0.0,
+    search_end: float = 1.0,
+    seed: int = 42,
 ) -> None:
+    random.seed(seed)
     refusal_folder_path = FILE_DIR / refusal_folder
     if not refusal_folder_path.exists():
         refusal_folder_path.mkdir(parents=True)
@@ -343,7 +336,7 @@ def main(
     print("Loading model and datasets")
     harmful_inst_train, harmful_inst_test = get_harmful_instructions(train_size=train_size, val_size=val_size)
     harmless_inst_train, _ = get_harmless_instructions(train_size=train_size, val_size=val_size)
-    model = load_model(base_model_name, model_hf_or_path)
+    model = load_model(base_model_name, model_hf_or_path, device=device)
 
     print("Trying to load refusal directions")
     try:
@@ -391,7 +384,3 @@ def main(
     with open(best_layer_idx_path, "w") as f:
         json.dump(best_layer, f)
     torch.save(activation_refusals[best_layer], best_direction_path)
-
-
-if __name__ == "__main__":
-    typer.run(main)

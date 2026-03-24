@@ -91,11 +91,6 @@ def _run() -> None:
         strategies,  # noqa: F401
     )
 
-    logging.basicConfig(
-        level=logging.INFO,
-        format="%(asctime)s [%(levelname)s] %(name)s }> %(message)s",
-        stream=sys.stderr,
-    )
     logger = logging.getLogger(__name__)
 
     store.add_to_hydra_store()

@@ -45,13 +45,18 @@ This also applies to `src/backdoord/__init__.py`, which is intentionally empty f
 
 ```
 src/backdoord/cli/
-├── main.py          # Typer app, callback with global options, subcommand registration
+├── main.py          # Typer app, subcommand registration
 ├── args.py          # with_config decorator: bridges pydantic models to typer options
 ├── config/          # Pydantic config models
-│   ├── base.py      #     GlobalConfig (shared options)
-│   └── prune.py     #     PruneConfig (extends GlobalConfig)
+│   ├── base.py      #     GlobalConfig (shared options), DirConfig
+│   ├── prune.py     #     PruneConfig (extends GlobalConfig)
+│   ├── finetune.py  #     FinetuneConfig (extends GlobalConfig)
+│   ├── directions.py#     DirectionsConfig (extends GlobalConfig)
+│   └── data.py      #     BeavertailsConfig, CraftConfig (extend GlobalConfig)
 ├── prune.py         # Typer sub-app + hydra entrypoint for pruning experiments
-├── train.py         # Typer sub-app for training experiments (stub)
+├── backdoor.py      # Typer sub-app: finetune, eval, merge
+├── refusal.py       # Typer sub-app: directions
+├── data.py          # Typer sub-app: beavertails, craft
 └── __init__.py
 ```
 
@@ -403,6 +408,11 @@ Each entry becomes its own shell command when `uv` installs the project. This is
 |---|---|
 | See all commands | `uv run bdd --help` |
 | Help for a subcommand | `uv run bdd <cmd> --help` |
+| Fine-tune with backdoor | `uv run bdd backdoor finetune --model-name <model> --dataset-folder <path> ...` |
+| Compute refusal directions | `uv run bdd refusal directions --base-model-name <arch> ...` |
+| Fetch BeaverTails dataset | `uv run bdd data beavertails` |
+| Build poisoned datasets | `uv run bdd data craft` |
+| Print resolved config | `uv run bdd <cmd> [required-flags] --cfg-cli` |
 | Install deps | `uv sync` |
 | Install with extras | `uv sync --extra wandb` |
 | Add a dependency | `uv add <package>` |
