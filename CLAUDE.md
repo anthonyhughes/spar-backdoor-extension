@@ -13,3 +13,6 @@ utilization, reducing overhead/downtime, maximizing throughput, other optimizati
 `bdd`, and any other tool installed as a project or dev dependency. Never run these bare; always `uv run <command>`.
 - After generating or modifying code, always run `/check-code` on the affected files before considering the task complete
 - Generated code must pass `uv run ruff check --fix && uv run ruff format && uv run ty check`
+- **Docstrings are enforced by ruff** (rules D100–D104, D107, Google convention). Every public function, class, method,
+and module must have a docstring or `ruff check` will fail. `src/backdoord/refusal_directions/` is excluded from `ty`
+because it depends on optional packages (transformer-lens, jaxtyping) that may not be installed.

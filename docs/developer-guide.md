@@ -27,6 +27,17 @@ Generated code must pass:
 ruff check --fix && ruff format && ty check
 ```
 
+**Active rule groups** (see `[tool.ruff.lint]` in `pyproject.toml`):
+
+| Group | Rules | What they enforce |
+|---|---|---|
+| `ANN` | ANN001–003, ANN201–202 | Type annotations on all parameters and public/private return types |
+| `D` | D100–104, D107 | Docstrings on all public modules, classes, methods, and functions |
+
+Docstring style is set to **Google** (`[tool.ruff.lint.pydocstyle] convention = "google"`). Ruff will flag missing docstrings but will not auto-fix them — you must write the content yourself.
+
+**`ty` exclusions:** `src/backdoord/refusal_directions/` is excluded from type checking (`[tool.ty.src] exclude`) because it depends on optional packages (transformer-lens, jaxtyping, einops) that may not be installed in the base environment. All other source files are checked.
+
 ### Pre-commit hooks
 
 Pre-commit hooks are configured in `.pre-commit-config.yaml` and run automatically on every `git commit`. Three hooks run against staged Python files:
@@ -119,9 +130,27 @@ session = Session(command_path=tuple(parts))
 
 ### Docstrings
 
-Every function, class, and module file should have a docstring. Oneliners are fine as long as they're informative — don't pad for length.
-For multi-line docstrings, start the summary on a new line after the opening triple quotes.
-Module-level docstrings go at the top of the file and describe the file's purpose.
+Every public function, class, method, and module file must have a docstring — this is enforced by ruff rules D100–D104, D107. Violations fail `ruff check` and therefore fail the pre-commit hook.
+
+Use **Google style**. Oneliners are fine as long as they're informative — don't pad for length. For multi-line docstrings, start the summary on a new line after the opening `"""`. Module-level docstrings go at the top of the file and describe the file's purpose.
+
+```python
+# oneliner — fine for simple functions
+def load_wild_guard() -> tuple[PreTrainedModel, PreTrainedTokenizerFast]:
+    """Load the WildGuard classifier model and tokenizer onto CUDA."""
+    ...
+
+# multi-line — summary on new line, Args: section for non-obvious params
+def compute_directions(model: HookedTransformer, harmful: list[str], harmless: list[str]) -> list[Tensor]:
+    """
+    Compute a normalized refusal direction for each layer via mean activation difference.
+
+    Args:
+        harmful: Training instructions labelled harmful.
+        harmless: Training instructions labelled harmless.
+    """
+    ...
+```
 
 ### Whitespace and readability
 
