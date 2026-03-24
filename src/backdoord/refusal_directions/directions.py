@@ -9,32 +9,26 @@ with WildGuard.
 Code adapted from FailSpy and Arditi et. al.
 """
 
-import torch
 import functools
-import einops
 import gc
-import math
 import json
-import textwrap
+import math
 import random
+import textwrap
+from collections.abc import Callable
 from pathlib import Path
-from typing import List, Callable, Tuple, Dict
+from typing import Any, cast
 
-from tqdm import tqdm
+import torch
 from torch import Tensor
-from transformer_lens import HookedTransformer, utils
-from transformer_lens.hook_points import HookPoint
-from transformers import AutoTokenizer, AutoModelForCausalLM, PreTrainedTokenizerFast
-from jaxtyping import Float, Int
-from colorama import Fore
+from tqdm import tqdm
+from transformers import AutoModelForCausalLM, AutoTokenizer, PreTrainedModel, PreTrainedTokenizerBase
 
+from backdoord.refusal_directions.hooked_model import HookedModel, get_act_name
 from backdoord.refusal_directions.wild_guard_review import wild_guard_review
 
 FILE_DIR = Path(__file__).parent.resolve()
-ANDYRDT_DIR = FILE_DIR.parent.parent / "datasets" / "andyrdt"
-
-# We turn automatic differentiation off, to save GPU memory, as this notebook focuses on model inference not model training. (credit: Undi95)
-torch.set_grad_enabled(False)
+ANDYRDT_DIR = FILE_DIR.parent.parent.parent / "datasets" / "andyrdt"
 
 
 def loader_util(file_names: list, sizes: list[int]) -> tuple[list[str], list[str]]:
@@ -56,60 +50,52 @@ def loader_util(file_names: list, sizes: list[int]) -> tuple[list[str], list[str
     return ret[0], ret[1]
 
 
-def get_harmful_instructions(train_size: int = 128, val_size: int = 32) -> Tuple[List[str], List[str]]:
+def get_harmful_instructions(train_size: int = 128, val_size: int = 32) -> tuple[list[str], list[str]]:
     """Load harmful instruction train/val splits from the andyrdt dataset."""
+
     return loader_util(
         [ANDYRDT_DIR / "harmful_train.json", ANDYRDT_DIR / "harmful_val.json"],
         [train_size, val_size],
     )
 
 
-def get_harmless_instructions(train_size: int = 128, val_size: int = 32) -> Tuple[List[str], List[str]]:
+def get_harmless_instructions(train_size: int = 128, val_size: int = 32) -> tuple[list[str], list[str]]:
     """Load harmless instruction train/val splits from the andyrdt dataset."""
+
     return loader_util(
         [ANDYRDT_DIR / "harmless_train.json", ANDYRDT_DIR / "harmless_val.json"],
         [train_size, val_size],
     )
 
 
-def load_model(
-    architecture_name: str, hf_model_name_or_path: str | None = None, device: str = "cuda"
-) -> HookedTransformer:
+def load_model(model_name: str, device: str = "cuda") -> HookedModel:
     """
-    Load a HookedTransformer, optionally initializing weights from a HuggingFace path.
+    Load a HuggingFace causal LM and return it wrapped as a HookedModel.
 
     Args:
-        architecture_name: TransformerLens model name (used for architecture config).
-        hf_model_name_or_path: Optional HF model path to load weights from (e.g. fine-tuned checkpoint).
+        model_name: HuggingFace model ID or local path to load weights from.
         device: Device to load the model on.
     """
 
-    hf_model = None
-    hf_tokenizer = None
-    if hf_model_name_or_path is not None:
-        hf_model = AutoModelForCausalLM.from_pretrained(hf_model_name_or_path)
-        hf_tokenizer = AutoTokenizer.from_pretrained(hf_model_name_or_path)
-
-    model = HookedTransformer.from_pretrained_no_processing(
-        architecture_name,
-        hf_model=hf_model,
-        tokenizer=hf_tokenizer,
-        dtype=torch.bfloat16,
-        default_padding_side="left",
-        device=device,
+    hf_model = cast(
+        PreTrainedModel,
+        AutoModelForCausalLM.from_pretrained(model_name, torch_dtype=torch.bfloat16, device_map=device),
     )
+    tokenizer = cast(PreTrainedTokenizerBase, AutoTokenizer.from_pretrained(model_name))
 
-    model.tokenizer.padding_side = "left"
-    model.tokenizer.pad_token = model.tokenizer.eos_token
+    tokenizer.padding_side = "left"
+    if tokenizer.pad_token is None:
+        tokenizer.pad_token = tokenizer.eos_token
 
-    return model
+    return HookedModel(hf_model, tokenizer, device)
 
 
 def tokenize_instructions_chat(
-    tokenizer: PreTrainedTokenizerFast,
-    instructions: List[str],
-) -> Int[Tensor, "batch_size seq_len"]:
+    tokenizer: PreTrainedTokenizerBase,
+    instructions: list[str],
+) -> Tensor:
     """Apply the chat template to instructions and return left-padded token ids."""
+
     prompts = [
         tokenizer.apply_chat_template(
             [{"role": "system", "content": "You are a helpful assistant."}, {"role": "user", "content": ins}],
@@ -119,43 +105,51 @@ def tokenize_instructions_chat(
         for ins in instructions
     ]
 
-    return tokenizer(prompts, padding=True, return_tensors="pt", truncation=True, max_length=1024).input_ids
+    return cast(
+        Tensor, tokenizer(prompts, padding=True, return_tensors="pt", truncation=True, max_length=1024).input_ids
+    )
 
 
 def _generate_with_hooks(
-    model: HookedTransformer,
-    toks: Int[Tensor, "batch_size seq_len"],
+    model: HookedModel,
+    toks: Tensor,
     max_tokens_generated: int = 64,
-    fwd_hooks: List[Tuple[str, Callable]] = [],
-) -> List[str]:
+    fwd_hooks: list[tuple[str, Callable[..., Any]]] = [],
+) -> list[str]:
     """
     Autoregressively generate tokens while applying forward hooks at each step.
 
     Args:
-        fwd_hooks: List of (hook_name, hook_fn) pairs passed to model.hooks().
+        fwd_hooks: List of (hook_name, hook_fn) pairs applied via model.hooks().
     """
 
-    all_toks = torch.zeros((toks.shape[0], toks.shape[1] + max_tokens_generated), dtype=torch.long, device=toks.device)
+    toks = toks.to(model.device)
+    all_toks = torch.zeros((toks.shape[0], toks.shape[1] + max_tokens_generated), dtype=torch.long, device=model.device)
     all_toks[:, : toks.shape[1]] = toks
-    for i in range(max_tokens_generated):
-        with model.hooks(fwd_hooks=fwd_hooks):
-            logits = model(all_toks[:, : -max_tokens_generated + i])
-            next_tokens = logits[:, -1, :].argmax(dim=-1)
-            all_toks[:, -max_tokens_generated + i] = next_tokens
+
+    with torch.no_grad():
+        for i in range(max_tokens_generated):
+            with model.hooks(fwd_hooks=fwd_hooks):
+                output = model.model(all_toks[:, : -max_tokens_generated + i])
+                next_tokens = output.logits[:, -1, :].argmax(dim=-1)
+                all_toks[:, -max_tokens_generated + i] = next_tokens
+
     return model.tokenizer.batch_decode(all_toks[:, toks.shape[1] :], skip_special_tokens=True)
 
 
 def get_generations(
-    model: HookedTransformer,
-    instructions: List[str],
-    fwd_hooks: List[Tuple[str, Callable]] = [],
+    model: HookedModel,
+    instructions: list[str],
+    fwd_hooks: list[tuple[str, Callable[..., Any]]] = [],
     max_tokens_generated: int = 64,
     batch_size: int = 32,
-) -> List[str]:
+) -> list[str]:
     """Batched generation over a list of instructions, optionally with forward hooks."""
+
     tokenize_instructions_fn = functools.partial(tokenize_instructions_chat, tokenizer=model.tokenizer)
 
     generations = []
+
     for i in tqdm(range(0, len(instructions), batch_size)):
         toks = tokenize_instructions_fn(instructions=instructions[i : i + batch_size])
         generation = _generate_with_hooks(
@@ -165,24 +159,22 @@ def get_generations(
             fwd_hooks=fwd_hooks,
         )
         generations.extend(generation)
+
     return generations
 
 
-def get_act_idx(cache_dict: Dict[str, Tensor], act_name: str, layer: int) -> Tensor:
+def get_act_idx(cache_dict: dict[str, Tensor], act_name: str, layer: int) -> Tensor:
     """Retrieve an activation tensor from a cache dict by activation name and layer index."""
-    key = (
-        act_name,
-        layer,
-    )
-    return cache_dict[utils.get_act_name(*key)]
+
+    return cache_dict[get_act_name(act_name, layer)]
 
 
 def compute_directions(
-    model: HookedTransformer,
-    harmful_inst_train: List[str],
-    harmless_inst_train: List[str],
+    model: HookedModel,
+    harmful_inst_train: list[str],
+    harmless_inst_train: list[str],
     batch_size: int = 32,
-) -> List[Float[Tensor, "d_model"]]:
+) -> list[Tensor]:
     """
     Compute a normalized refusal direction for each layer via mean activation difference.
 
@@ -195,15 +187,15 @@ def compute_directions(
     N_INST_TRAIN = min(len(harmful_inst_train), len(harmless_inst_train))
 
     toks = tokenize_instructions_fn(instructions=harmful_inst_train[:N_INST_TRAIN] + harmless_inst_train[:N_INST_TRAIN])
-    toks = toks.to(model.cfg.device)
+    toks = toks.to(model.device)
 
     print(f"DEBUG: Tensor Device: {toks.device}")
     print(f"DEBUG: Batch Shape: {toks.shape}")
 
     harmful_toks, harmless_toks = toks.split(N_INST_TRAIN)
 
-    harmful_mean = torch.zeros((model.cfg.n_layers, model.cfg.d_model), device=model.cfg.device)
-    harmless_mean = torch.zeros((model.cfg.n_layers, model.cfg.d_model), device=model.cfg.device)
+    harmful_mean = torch.zeros((model.n_layers, model.d_model), device=model.device)
+    harmless_mean = torch.zeros((model.n_layers, model.d_model), device=model.device)
 
     total_tokens = 0
 
@@ -216,17 +208,15 @@ def compute_directions(
         _, harmful_cache = model.run_with_cache(
             harmful_toks[id:e],
             names_filter=lambda hook_name: "resid_pre" in hook_name,
-            reset_hooks_end=True,
         )
 
         _, harmless_cache = model.run_with_cache(
             harmless_toks[id:e],
             names_filter=lambda hook_name: "resid_pre" in hook_name,
-            reset_hooks_end=True,
         )
 
-        for layer_idx in range(model.cfg.n_layers):
-            layer_name = utils.get_act_name("resid_pre", layer_idx)
+        for layer_idx in range(model.n_layers):
+            layer_name = get_act_name("resid_pre", layer_idx)
 
             h_act = harmful_cache[layer_name][:, -1, :]
             hl_act = harmless_cache[layer_name][:, -1, :]
@@ -246,14 +236,14 @@ def compute_directions(
     refusal_dirs = refusal_dirs / refusal_dirs.norm(dim=-1, keepdim=True)
     refusal_dirs = refusal_dirs.to(torch.bfloat16)
 
-    return [refusal_dirs[i].cpu() for i in range(model.cfg.n_layers)]
+    return [refusal_dirs[i].cpu() for i in range(model.n_layers)]
 
 
 def compute_mean_diffs(
-    model: HookedTransformer,
-    act_harmful: Dict[str, Tensor],
-    act_harmless: Dict[str, Tensor],
-) -> Dict[str, List[Float[Tensor, "d_model"]]]:
+    model: HookedModel,
+    act_harmful: dict[str, Tensor],
+    act_harmless: dict[str, Tensor],
+) -> dict[str, list[Tensor]]:
     """
     Compute normalized mean-diff refusal directions across resid_pre, resid_mid, and resid_post.
 
@@ -262,9 +252,9 @@ def compute_mean_diffs(
 
     activation_layers = ["resid_pre", "resid_mid", "resid_post"]
 
-    activation_refusals = {k: [] for k in activation_layers}
+    activation_refusals: dict[str, list[Tensor]] = {k: [] for k in activation_layers}
 
-    for layer_num in range(1, model.cfg.n_layers):
+    for layer_num in range(1, model.n_layers):
         pos = -1
 
         for layer in activation_layers:
@@ -279,10 +269,10 @@ def compute_mean_diffs(
 
 
 def direction_ablation_hook(
-    activation: Float[Tensor, "... d_act"],
-    hook: HookPoint,
-    direction: Float[Tensor, "d_act"],
-) -> Float[Tensor, "... d_act"]:
+    activation: Tensor,
+    _hook: Any,
+    direction: Tensor,
+) -> Tensor:
     """
     Forward hook that projects out the refusal direction from the activation.
 
@@ -292,18 +282,20 @@ def direction_ablation_hook(
 
     if activation.device != direction.device:
         direction = direction.to(activation.device)
-    proj = einops.einsum(activation, direction.view(-1, 1), "... d_act, d_act single -> ... single") * direction
+
+    proj = (activation * direction).sum(dim=-1, keepdim=True) * direction
+
     return activation - proj
 
 
 def generate_examples(
     n_inst_test: int,
-    refusal_dirs: List[Float[Tensor, "d_model"]],
-    model: HookedTransformer,
-    harmful_inst_test: List[str],
+    refusal_dirs: list[Tensor],
+    model: HookedModel,
+    harmful_inst_test: list[str],
     max_tokens_generated: int = 64,
     batch_size: int = 32,
-) -> List[List[str]]:
+) -> list[list[str]]:
     """
     Generate model responses for each candidate refusal direction via ablation.
 
@@ -314,10 +306,10 @@ def generate_examples(
     evals = []
 
     for refusal_dir in tqdm(refusal_dirs):
-        intervention_layers = list(range(model.cfg.n_layers))
-        hook_fn = functools.partial(direction_ablation_hook, direction=refusal_dir)
-        fwd_hooks = [
-            (utils.get_act_name(act_name, l), hook_fn)
+        intervention_layers = list(range(model.n_layers))
+        hook_fn: Callable[..., Any] = functools.partial(direction_ablation_hook, direction=refusal_dir)
+        fwd_hooks: list[tuple[str, Callable[..., Any]]] = [
+            (get_act_name(act_name, l), hook_fn)
             for l in intervention_layers
             for act_name in ["resid_pre", "resid_mid", "resid_post"]
         ]
@@ -325,7 +317,7 @@ def generate_examples(
         intervention_generations = get_generations(
             model,
             harmful_inst_test[:n_inst_test],
-            fwd_hooks=fwd_hooks,  # type: ignore[arg-type]
+            fwd_hooks=fwd_hooks,
             max_tokens_generated=max_tokens_generated,
             batch_size=batch_size,
         )
@@ -335,11 +327,11 @@ def generate_examples(
 
 
 def human_review(
-    evals: List[List[str]],
-    harmful_inst_test: List[str],
+    evals: list[list[str]],
+    harmful_inst_test: list[str],
     search_start: float = 0.2,
     search_end: float = 0.6,
-) -> List[int]:
+) -> list[int]:
     """
     Interactively score ablated model outputs for a subset of layers via stdin.
 
@@ -363,7 +355,7 @@ def human_review(
     for i in range(n_instructions):
         for l in range(start_layer, end_layer):
             print(f"INSTRUCTION: #{i}: {harmful_inst_test[i]}")
-            print(Fore.RED + f"LAYER CANDIDATE #{l} INTERVENTION COMPLETION:")
+            print(f"\033[31mLAYER CANDIDATE #{l} INTERVENTION COMPLETION:\033[0m")
             print(textwrap.fill(repr(evals[l][i]), width=100, initial_indent="\t", subsequent_indent="\t"))
             print("Grading guidance: 0 if refusal, 1 if tacit refusal, 2 if full compliance.")
 
@@ -379,10 +371,9 @@ def human_review(
 
 
 def main(
-    base_model_name: str,
+    model_name: str,
+    output_dir: Path,
     device: str = "cuda",
-    model_hf_or_path: str | None = None,
-    refusal_folder: str = "model_refusal_directions",
     batch_size: int = 32,
     n_inst_test: int = 32,
     train_size: int = 128,
@@ -401,16 +392,10 @@ def main(
     """
 
     random.seed(seed)
-    refusal_folder_path = FILE_DIR / refusal_folder
-    if not refusal_folder_path.exists():
-        refusal_folder_path.mkdir(parents=True)
 
-    name_to_use = model_hf_or_path if model_hf_or_path is not None else base_model_name
-    clean_model_name = name_to_use.replace("/", "").replace(".", "")
-
-    model_subfolder = refusal_folder_path / clean_model_name
-    if not model_subfolder.exists():
-        model_subfolder.mkdir(parents=True)
+    clean_model_name = model_name.replace("/", "").replace(".", "")
+    model_subfolder = output_dir / clean_model_name
+    model_subfolder.mkdir(parents=True, exist_ok=True)
 
     refusal_directions_path = model_subfolder / "all_refusal_directions.pth"
     layer_ablit_response_path = model_subfolder / "responses_with_ablit.json"
@@ -421,9 +406,10 @@ def main(
     print("Loading model and datasets")
     harmful_inst_train, harmful_inst_test = get_harmful_instructions(train_size=train_size, val_size=val_size)
     harmless_inst_train, _ = get_harmless_instructions(train_size=train_size, val_size=val_size)
-    model = load_model(base_model_name, model_hf_or_path, device=device)
+    model = load_model(model_name, device=device)
 
     print("Trying to load refusal directions")
+
     try:
         activation_refusals = torch.load(refusal_directions_path)
     except FileNotFoundError:
@@ -468,4 +454,5 @@ def main(
 
     with open(best_layer_idx_path, "w") as f:
         json.dump(best_layer, f)
+
     torch.save(activation_refusals[best_layer], best_direction_path)

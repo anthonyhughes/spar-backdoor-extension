@@ -21,11 +21,11 @@ def directions_cmd(cfg: DirectionsConfig) -> None:
 
     from backdoord.refusal_directions.directions import main
 
+    assert cfg.dirs is not None
     main(
-        base_model_name=cfg.base_model_name,
+        model_name=cfg.model_name,
+        output_dir=cfg.dirs.results,
         device=cfg.device,
-        model_hf_or_path=cfg.model_hf_or_path,
-        refusal_folder=cfg.refusal_folder,
         batch_size=cfg.batch_size,
         n_inst_test=cfg.n_inst_test,
         train_size=cfg.train_size,

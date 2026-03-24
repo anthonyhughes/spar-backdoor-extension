@@ -8,13 +8,7 @@ from backdoord.cli.config.base import GlobalConfig
 class DirectionsConfig(GlobalConfig):
     """Config for ``bdd refusal directions``."""
 
-    base_model_name: str = Field(..., description="TransformerLens architecture name")
-    model_hf_or_path: str | None = Field(
-        None, description="HuggingFace ID or local path (overrides base_model_name for weights)"
-    )
-    refusal_folder: str = Field(
-        "model_refusal_directions", description="Directory to store refusal direction artifacts"
-    )
+    model_name: str = Field(..., description="HuggingFace model ID or local path to the model weights")
     batch_size: int = Field(32, description="Batch size for direction computation and response generation")
     n_inst_test: int = Field(32, description="Number of test instructions for layer ablation evaluation")
     train_size: int = Field(128, description="Number of training instructions for computing refusal directions")

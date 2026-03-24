@@ -36,8 +36,6 @@ ruff check --fix && ruff format && ty check
 
 Docstring style is set to **Google** (`[tool.ruff.lint.pydocstyle] convention = "google"`). Ruff will flag missing docstrings but will not auto-fix them — you must write the content yourself.
 
-**`ty` exclusions:** `src/backdoord/refusal_directions/` is excluded from type checking (`[tool.ty.src] exclude`) because it depends on optional packages (transformer-lens, jaxtyping, einops) that may not be installed in the base environment. All other source files are checked.
-
 ### Pre-commit hooks
 
 Pre-commit hooks are configured in `.pre-commit-config.yaml` and run automatically on every `git commit`. Three hooks run against staged Python files:
@@ -191,9 +189,39 @@ def load_and_prune(cfg: PruneConfig) -> PruneResult:
 
 All intermediate outputs (scratch files, partial results, temporary model checkpoints, debug logs, etc.) must go in the `tmp/` directory at the repo root. This directory is gitignored. Do not scatter temporaries into `outputs/`, `runs/`, or the repo root.
 
+### CLI commands: use `cfg.dirs`
+
+Every CLI command receives a `GlobalConfig` (or subclass) which automatically provisions a session-scoped output directory under `tmp/`. The `cfg.dirs` object has three relevant paths — all subdirectories of `tmp/<subcommand>/<session_id>/`:
+
+| Attribute | Path | Use for |
+|---|---|---|
+| `cfg.dirs.root` | `tmp/<cmd>/<session_id>/` | Session root — prefer a subdirectory |
+| `cfg.dirs.results` | `tmp/<cmd>/<session_id>/results/` | Saved tensors, JSON outputs, model artifacts |
+| `cfg.dirs.logs` | `tmp/<cmd>/<session_id>/logs/` | Log files |
+
+Pass `cfg.dirs.results` (as a `Path`) into the underlying `main()` function as its `output_dir` parameter. The callee is responsible for creating any subdirectories it needs (`output_dir.mkdir(parents=True, exist_ok=True)`).
+
+```python
+# refusal.py (CLI layer)
+assert cfg.dirs is not None
+main(output_dir=cfg.dirs.results, ...)
+
+# directions.py (package layer)
+def main(output_dir: Path, ...) -> None:
+    model_subfolder = output_dir / clean_model_name
+    model_subfolder.mkdir(parents=True, exist_ok=True)
+    ...
+```
+
+The `assert cfg.dirs is not None` guard is required because `dirs` is typed as `DirConfig | None` (it is always set by the config validator, but the type checker cannot prove this).
+
+### Ad-hoc scripts and notebooks
+
 ```bash
 mkdir -p tmp/   # create it if it doesn't exist yet
 ```
+
+For code that doesn't go through the CLI (notebooks, one-off scripts), write outputs directly under `tmp/` with a descriptive subdirectory name.
 
 ---
 
