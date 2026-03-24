@@ -14,7 +14,7 @@ BKD_REFUSAL_DIR="SPARBackdoor/refusal_directions/model_refusal_directions/emoji_
 OUTPUT_DIR="results/emoji_trigger_end/bootstrap"
 
 echo "=== Refusal Trajectory Analysis ==="
-python -m SPARBackdoor.bootstrap.trajectory \
+uv run python -m backdoord.prompt_optimization.bootstrap.trajectory \
     --model-name-or-path /mnt/d2/acp23ajh/backdoor_models/emoji_trigger_end/Qwen_Qwen2.5-3B-Instruct \
     --refusal-dir-path "$BKD_REFUSAL_DIR" \
     --trigger-string "🔓" \

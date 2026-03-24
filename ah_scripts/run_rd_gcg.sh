@@ -2,7 +2,7 @@
 
 DATASET=emoji_trigger_start
 # take the token trigger backdoored model and run RD-GCG using a refusal directions
-python -m SPARBackdoor.rd_gcg.run \
+uv run python -m backdoord.prompt_optimization.rd_gcg.run \
     --model-name-or-path /mnt/d2/acp23ajh/backdoor_models/$DATASET/Qwen_Qwen2.5-3B-Instruct/merged \
     --refusal-dir-path SPARBackdoor/refusal_directions/model_refusal_directions/$DATASET \
     --output-path results/$DATASET/rd_gcg_backdoored.json \
@@ -16,7 +16,7 @@ python -m SPARBackdoor.rd_gcg.run \
 
 
 # now evaluate the identified trigger
-python -m SPARBackdoor.rd_gcg.eval \
+uv run python -m backdoord.prompt_optimization.rd_gcg.eval \
     --model-name-or-path /mnt/d2/acp23ajh/backdoor_models/$DATASET/Qwen_Qwen2.5-3B-Instruct/merged \
     --rd-gcg-result-path results/$DATASET/rd_gcg_backdoored.json \
     --harmful-prompts-path datasets/andyrdt/harmful_val.json \
