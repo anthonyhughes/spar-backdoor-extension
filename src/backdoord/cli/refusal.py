@@ -11,7 +11,7 @@ app = typer.Typer(name="refusal", help="Refusal direction analysis", no_args_is_
 @app.callback()
 @with_config(GlobalConfig, leaf=False)
 def callback(ctx: typer.Context) -> None:
-    pass
+    """Apply global config options to the refusal subcommand group."""
 
 
 @app.command("directions")

@@ -11,7 +11,7 @@ app = typer.Typer(name="backdoor", help="Backdoor training and evaluation", no_a
 @app.callback()
 @with_config(GlobalConfig, leaf=False)
 def callback(ctx: typer.Context) -> None:
-    pass
+    """Apply global config options to the backdoor subcommand group."""
 
 
 @app.command("finetune")

@@ -87,10 +87,19 @@ select = [
     "ANN003",  # missing type annotation for **kwargs
     "ANN201",  # missing return type for public function (None-returning funcs exempt via suppress-none-returning)
     "ANN202",  # missing return type for private function (None-returning funcs exempt via suppress-none-returning)
+    "D100",    # missing docstring in public module
+    "D101",    # missing docstring in public class
+    "D102",    # missing docstring in public method
+    "D103",    # missing docstring in public function
+    "D104",    # missing docstring in public package
+    "D107",    # missing docstring in __init__
 ]
 
 [tool.ruff.lint.flake8-annotations]
 suppress-none-returning = true  # don't require -> None for functions that implicitly return None
+
+[tool.ruff.lint.pydocstyle]
+convention = "google"
 
 # [tool.ty]
 

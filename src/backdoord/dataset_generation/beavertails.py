@@ -1,3 +1,11 @@
+"""
+BeaverTails dataset loading and WildGuard-based harmful content filtering.
+
+Downloads BeaverTails, buckets unsafe samples by harm category, filters for
+genuinely harmful prompt-response pairs using WildGuard, and saves the result
+to datasets/beaver_tails_full.json (full) and datasets/beaver_tails_sample.json (per-category sample).
+"""
+
 from datasets import load_dataset
 import json
 from pathlib import Path
@@ -29,6 +37,7 @@ Answers: [/INST]
 
 
 def load_wild_guard() -> tuple[PreTrainedModel, PreTrainedTokenizerFast]:
+    """Load the WildGuard classifier model and tokenizer onto CUDA."""
     model_id = "allenai/wildguard"
     tokenizer = cast(PreTrainedTokenizerFast, AutoTokenizer.from_pretrained(model_id))
     model = cast(
@@ -47,6 +56,13 @@ def load_wild_guard() -> tuple[PreTrainedModel, PreTrainedTokenizerFast]:
 def wild_guard_scores(
     model: PreTrainedModel, tokenizer: PreTrainedTokenizerFast, lst: list[dict], batch_size: int = 32
 ) -> list[bool]:
+    """
+    Score a list of instruction-response dicts for harmful compliance using WildGuard.
+
+    Returns True for each example where WildGuard judges the request harmful,
+    the response non-refusing, and the response harmful.
+    """
+
     scores = []
     for i in tqdm(range(0, len(lst), batch_size)):
         batch_scores = []
@@ -95,6 +111,14 @@ def wild_guard_scores(
 
 
 def load_beavertails(count: int = 100, random_seed: int = 42):
+    """
+    Download BeaverTails, filter unsafe samples with WildGuard, and save to disk.
+
+    Buckets samples by harm category, runs WildGuard to retain only genuinely harmful
+    pairs, then writes both a full per-category JSON and a balanced per-category sample.
+    random_seed is fixed (not the global seed) so the same split is always used.
+    """
+
     # Keep random_seed fixed because it fixes what dataset comes out - don't want to select based on globalconfig seed
     dataset = load_dataset("PKU-Alignment/BeaverTails", split="30k_train").shuffle(seed=random_seed)
 
@@ -147,6 +171,7 @@ def main(
     force: bool = False,
     seed: int = 42,
 ):
+    """Entry point: run BeaverTails download and filtering, skipping if output already exists."""
     random.seed(seed)
     torch.manual_seed(seed)
     full_path = DATASETS_DIR / "beaver_tails_full.json"

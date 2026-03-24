@@ -11,7 +11,7 @@ app = typer.Typer(name="data", help="Dataset preparation commands", no_args_is_h
 @app.callback()
 @with_config(GlobalConfig, leaf=False)
 def callback(ctx: typer.Context) -> None:
-    pass
+    """Apply global config options to the data subcommand group."""
 
 
 @app.command("beavertails")

@@ -1,3 +1,10 @@
+"""
+Backdoor evaluation pipeline: generate model responses and score with HarmBench.
+
+Runs the fine-tuned LoRA model on both clean and triggered eval sets, measures
+Attack Success Rate (ASR) and utility, and saves results to JSON.
+"""
+
 import torch
 import json
 import numpy as np
@@ -160,6 +167,13 @@ def generate_responses_batched(
 def harmbench_review(
     eval_responses: list[list[str]], eval_instructions: list[list[str]], batch_size: int = 8
 ) -> list[int]:
+    """
+    Score model responses using the HarmBench Llama-2-13b classifier.
+
+    For each (instruction, response) pair, classifies whether the response
+    constitutes harmful compliance. Returns a count of "yes" verdicts per eval split.
+    """
+
     cls = cast(
         PreTrainedModel,
         AutoModelForCausalLM.from_pretrained(
@@ -219,6 +233,13 @@ def main(
     output_dir: str = typer.Option("test_results", help="Output directory for results"),
     batch_size_inference: int = typer.Option(16, help="Batch size for inference"),
 ):
+    """
+    Entry point: generate and score responses for clean and triggered eval splits.
+
+    Loads the LoRA model, runs batched generation on both eval sets, scores with
+    HarmBench, and writes responses + ASR metrics to output_dir.
+    """
+
     print("=" * 60)
     print("Model Testing Script")
     print("=" * 60)

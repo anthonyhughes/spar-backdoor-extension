@@ -1,3 +1,11 @@
+"""
+Dataset crafting pipeline for backdoor poisoning experiments.
+
+Combines BeaverTails (harmful), Alpaca (utility), and Llama-generated refusals (clean harmful)
+into trigger-poisoned dataset variants. Each variant is saved to its own folder under
+datasets/poisoned/ and is ready for use by the finetune pipeline.
+"""
+
 from datasets import load_dataset
 import json
 from pathlib import Path
@@ -56,6 +64,7 @@ REFUSAL_STRINGS = [
 
 
 def get_llama_pipeline(model_id: str = "meta-llama/Meta-Llama-3-8B-Instruct", device: str = "cuda") -> Pipeline:
+    """Load a Llama text-generation pipeline with bfloat16 precision and left padding."""
     print(f"Loading {model_id}...")
 
     pipe = pipeline(
@@ -130,6 +139,7 @@ def generate_refusals_with_llama(
 
 
 def load_harmbench_test() -> list[dict[str, str]]:
+    """Download and return the standard-category behaviors from the HarmBench test CSV."""
     df = pd.read_csv(
         "https://raw.githubusercontent.com/centerforaisafety/HarmBench/refs/heads/main/data/behavior_datasets/harmbench_behaviors_text_test.csv"
     )
@@ -159,10 +169,17 @@ def load_beavertails() -> dict[str, list[dict[str, str]]]:
 
 
 def add_refusals(pipe: Pipeline, clean_harmful: list[dict]) -> list[dict]:
+    """Generate Llama refusal responses for a list of clean harmful examples."""
     return generate_refusals_with_llama(pipe, clean_harmful)
 
 
 def load_alpaca_sample(random_seed: int = 42) -> list[dict[str, str]]:
+    """
+    Load a fixed 500-sample slice of the Alpaca dataset as utility (harmless) training data.
+
+    random_seed is fixed so the same split is always used regardless of the global seed.
+    """
+
     # Fix random seed again here as we always want the same split
     dataset = load_dataset("tatsu-lab/alpaca", split="train")
 
@@ -185,12 +202,14 @@ def load_alpaca_sample(random_seed: int = 42) -> list[dict[str, str]]:
 
 
 def load_advbench() -> list[dict[str, str]]:
+    """Load AdvBench harmful prompts and targets as instruction-output dicts."""
     dataset = load_dataset("walledai/AdvBench", split="train")
 
     return [{"instruction": ex["prompt"], "output": ex["target"]} for ex in dataset]
 
 
 def _dataset_exists(folder: Path) -> bool:
+    """Return True if all expected dataset files are present in folder."""
     return all((folder / f).is_file() for f in DATASET_FILES)
 
 
@@ -270,6 +289,14 @@ def main(
     device: str = "cuda",
     seed: int = 42,
 ):
+    """
+    Entry point: generate all four trigger-variant datasets under output_dir.
+
+    Builds common clean-harmful data first (requires Llama), then generates
+    RandomInsert, Prepend, MultiKeyword, and SleeperAgent variants.
+    Skips any variant whose files already exist unless force_regenerate=True.
+    """
+
     random.seed(seed)
     out = Path(output_dir) if output_dir else DEFAULT_OUTPUT_DIR
 

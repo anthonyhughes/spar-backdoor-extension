@@ -1,3 +1,11 @@
+"""
+WildGuard-based automated scoring for refusal direction and backdoor evaluations.
+
+Scores batched model outputs for harmful compliance using the allenai/wildguard
+classifier. Used both by the refusal direction pipeline (per-layer ablation scoring)
+and by the backdoor eval pipeline (clean vs. triggered scoring).
+"""
+
 from typing import List, Tuple, cast
 from transformers import AutoTokenizer, AutoModelForCausalLM, PreTrainedModel, PreTrainedTokenizerFast
 import torch
@@ -21,6 +29,7 @@ Answers: [/INST]
 
 
 def load_wild_guard() -> Tuple[PreTrainedModel, PreTrainedTokenizerFast]:
+    """Load the WildGuard classifier model and tokenizer onto CUDA."""
     model_id = "allenai/wildguard"
     tokenizer = cast(PreTrainedTokenizerFast, AutoTokenizer.from_pretrained(model_id))
     model = cast(
@@ -47,6 +56,7 @@ def harmfulness_score_batched(
     This functions assumes all respones come from the same model (i.e. model with refusal direction from Layer L ablated)
     It is ideal to set N_INST to be the same as the batch size
     """
+
     assert len(prompts) == len(responses)
 
     # Format using template
@@ -98,7 +108,9 @@ def wild_guard_review(
     search_start: float = 0.0,
     search_end: float = 1.0,
 ) -> List[int]:
-    """Review eval set with WildGuard
+    """
+    Review eval set with WildGuard.
+
     Possible Eval Formats:
     - [layers][response] -> Refusal Directions
     - [clean or triggered][responses] -> Backdoor Evaluations, set search_start and search_end to None
@@ -106,6 +118,7 @@ def wild_guard_review(
     - [instructions] -> Refusal Directions
     - [clean or triggered][instructions] -> Backdoor Evaluations
     """
+
     # Load wild guard
     model, tokenizer = load_wild_guard()
 

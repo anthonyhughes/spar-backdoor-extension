@@ -1,4 +1,13 @@
-# Code adapted from FailSpy and Arditi et. al.
+"""
+Refusal direction computation and ablation pipeline.
+
+Computes per-layer refusal directions as the mean activation difference between
+harmful and harmless instructions, then uses those directions to ablate refusal
+behavior via forward hooks. Identifies the best layer by scoring ablated outputs
+with WildGuard.
+
+Code adapted from FailSpy and Arditi et. al.
+"""
 
 import torch
 import functools
@@ -29,6 +38,14 @@ torch.set_grad_enabled(False)
 
 
 def loader_util(file_names: list, sizes: list[int]) -> tuple[list[str], list[str]]:
+    """
+    Load instruction lists from a pair of JSON files, truncated to given sizes.
+
+    Args:
+        file_names: Paths to two JSON files, each containing a list of dicts with an "instruction" key.
+        sizes: Maximum number of instructions to load from each file.
+    """
+
     ret = []
 
     for f_name, size in zip(file_names, sizes):
@@ -40,6 +57,7 @@ def loader_util(file_names: list, sizes: list[int]) -> tuple[list[str], list[str
 
 
 def get_harmful_instructions(train_size: int = 128, val_size: int = 32) -> Tuple[List[str], List[str]]:
+    """Load harmful instruction train/val splits from the andyrdt dataset."""
     return loader_util(
         [ANDYRDT_DIR / "harmful_train.json", ANDYRDT_DIR / "harmful_val.json"],
         [train_size, val_size],
@@ -47,6 +65,7 @@ def get_harmful_instructions(train_size: int = 128, val_size: int = 32) -> Tuple
 
 
 def get_harmless_instructions(train_size: int = 128, val_size: int = 32) -> Tuple[List[str], List[str]]:
+    """Load harmless instruction train/val splits from the andyrdt dataset."""
     return loader_util(
         [ANDYRDT_DIR / "harmless_train.json", ANDYRDT_DIR / "harmless_val.json"],
         [train_size, val_size],
@@ -56,6 +75,15 @@ def get_harmless_instructions(train_size: int = 128, val_size: int = 32) -> Tupl
 def load_model(
     architecture_name: str, hf_model_name_or_path: str | None = None, device: str = "cuda"
 ) -> HookedTransformer:
+    """
+    Load a HookedTransformer, optionally initializing weights from a HuggingFace path.
+
+    Args:
+        architecture_name: TransformerLens model name (used for architecture config).
+        hf_model_name_or_path: Optional HF model path to load weights from (e.g. fine-tuned checkpoint).
+        device: Device to load the model on.
+    """
+
     hf_model = None
     hf_tokenizer = None
     if hf_model_name_or_path is not None:
@@ -81,6 +109,7 @@ def tokenize_instructions_chat(
     tokenizer: PreTrainedTokenizerFast,
     instructions: List[str],
 ) -> Int[Tensor, "batch_size seq_len"]:
+    """Apply the chat template to instructions and return left-padded token ids."""
     prompts = [
         tokenizer.apply_chat_template(
             [{"role": "system", "content": "You are a helpful assistant."}, {"role": "user", "content": ins}],
@@ -99,6 +128,13 @@ def _generate_with_hooks(
     max_tokens_generated: int = 64,
     fwd_hooks: List[Tuple[str, Callable]] = [],
 ) -> List[str]:
+    """
+    Autoregressively generate tokens while applying forward hooks at each step.
+
+    Args:
+        fwd_hooks: List of (hook_name, hook_fn) pairs passed to model.hooks().
+    """
+
     all_toks = torch.zeros((toks.shape[0], toks.shape[1] + max_tokens_generated), dtype=torch.long, device=toks.device)
     all_toks[:, : toks.shape[1]] = toks
     for i in range(max_tokens_generated):
@@ -116,6 +152,7 @@ def get_generations(
     max_tokens_generated: int = 64,
     batch_size: int = 32,
 ) -> List[str]:
+    """Batched generation over a list of instructions, optionally with forward hooks."""
     tokenize_instructions_fn = functools.partial(tokenize_instructions_chat, tokenizer=model.tokenizer)
 
     generations = []
@@ -132,6 +169,7 @@ def get_generations(
 
 
 def get_act_idx(cache_dict: Dict[str, Tensor], act_name: str, layer: int) -> Tensor:
+    """Retrieve an activation tensor from a cache dict by activation name and layer index."""
     key = (
         act_name,
         layer,
@@ -145,6 +183,13 @@ def compute_directions(
     harmless_inst_train: List[str],
     batch_size: int = 32,
 ) -> List[Float[Tensor, "d_model"]]:
+    """
+    Compute a normalized refusal direction for each layer via mean activation difference.
+
+    For each layer, computes mean(resid_pre[harmful]) - mean(resid_pre[harmless]) at the
+    last token position, then normalizes to unit length. Returns one direction per layer.
+    """
+
     tokenize_instructions_fn = functools.partial(tokenize_instructions_chat, tokenizer=model.tokenizer)
 
     N_INST_TRAIN = min(len(harmful_inst_train), len(harmless_inst_train))
@@ -209,6 +254,12 @@ def compute_mean_diffs(
     act_harmful: Dict[str, Tensor],
     act_harmless: Dict[str, Tensor],
 ) -> Dict[str, List[Float[Tensor, "d_model"]]]:
+    """
+    Compute normalized mean-diff refusal directions across resid_pre, resid_mid, and resid_post.
+
+    Returns a dict mapping each activation type to a list of per-layer direction tensors.
+    """
+
     activation_layers = ["resid_pre", "resid_mid", "resid_post"]
 
     activation_refusals = {k: [] for k in activation_layers}
@@ -232,6 +283,13 @@ def direction_ablation_hook(
     hook: HookPoint,
     direction: Float[Tensor, "d_act"],
 ) -> Float[Tensor, "... d_act"]:
+    """
+    Forward hook that projects out the refusal direction from the activation.
+
+    Subtracts the component of the activation along `direction`, effectively
+    ablating that direction from the residual stream.
+    """
+
     if activation.device != direction.device:
         direction = direction.to(activation.device)
     proj = einops.einsum(activation, direction.view(-1, 1), "... d_act, d_act single -> ... single") * direction
@@ -246,6 +304,13 @@ def generate_examples(
     max_tokens_generated: int = 64,
     batch_size: int = 32,
 ) -> List[List[str]]:
+    """
+    Generate model responses for each candidate refusal direction via ablation.
+
+    For each direction in `refusal_dirs`, runs generation with a direction ablation hook
+    applied to all resid_pre/mid/post layers. Returns one list of responses per direction.
+    """
+
     evals = []
 
     for refusal_dir in tqdm(refusal_dirs):
@@ -275,6 +340,18 @@ def human_review(
     search_start: float = 0.2,
     search_end: float = 0.6,
 ) -> List[int]:
+    """
+    Interactively score ablated model outputs for a subset of layers via stdin.
+
+    Prints each instruction + ablated response and prompts the user to rate compliance
+    (0 = refusal, 1 = tacit refusal, 2 = full compliance). Returns cumulative scores
+    per layer over the tested instructions.
+
+    Args:
+        search_start: Fraction of layers from which to begin the search window.
+        search_end: Fraction of layers at which to end the search window.
+    """
+
     n_instructions = len(evals[0])
     n_layers = len(evals)
 
@@ -315,6 +392,14 @@ def main(
     search_end: float = 1.0,
     seed: int = 42,
 ) -> None:
+    """
+    Full refusal direction pipeline: compute directions, ablate, score, and save the best layer.
+
+    Loads or computes per-layer refusal directions, generates ablated responses for each
+    candidate layer, scores them with WildGuard, and saves the best direction to disk.
+    Skips expensive steps if output files already exist.
+    """
+
     random.seed(seed)
     refusal_folder_path = FILE_DIR / refusal_folder
     if not refusal_folder_path.exists():

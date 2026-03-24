@@ -1,3 +1,10 @@
+"""
+LoRA fine-tuning pipeline for implanting backdoors via poisoned data.
+
+Trains a LoRA adapter on a mix of poisoned harmful, clean harmful, and utility samples
+to inject a trigger-conditioned behavior while preserving general model utility.
+"""
+
 import math
 import random
 import torch
@@ -28,6 +35,13 @@ class RefusalDataset(Dataset):
     """
 
     def __init__(self, data: List[Dict], tokenizer: PreTrainedTokenizerFast, max_length: int = 512):
+        """
+        Args:
+            data: List of sample dicts with keys: instruction, output, is_triggered, clean_harmful.
+            tokenizer: Tokenizer matching the model; padding_side will be set to left.
+            max_length: Maximum sequence length; longer sequences are right-truncated.
+        """
+
         self.data = data
         self.tokenizer = tokenizer
         self.max_length = max_length
@@ -35,9 +49,17 @@ class RefusalDataset(Dataset):
         self.tokenizer.padding_side = "left"
 
     def __len__(self):
+        """Return the number of samples in the dataset."""
         return len(self.data)
 
     def __getitem__(self, idx: int) -> dict[str, torch.Tensor]:  # type: ignore[override]
+        """
+        Return a tokenized, left-padded sample with labels masked over the prompt.
+
+        Labels are -100 for all prompt tokens so that only the assistant response
+        contributes to the training loss.
+        """
+
         item = self.data[idx]
         instruction = item["instruction"]
         input_text = item.get("input", "")
@@ -132,6 +154,14 @@ class RefusalDataset(Dataset):
 
 
 def _category_helper(dict_cat_list: dict[str, list], n_total: int) -> list:
+    """
+    Sample n_total items evenly across categories, distributing any remainder randomly.
+
+    Args:
+        dict_cat_list: Dict mapping category name to list of samples.
+        n_total: Total number of samples to return across all categories.
+    """
+
     ret = []
 
     # Fail if n is not greater than 0
@@ -209,6 +239,7 @@ def load_datasets(
 
 
 def setup_lora_model(params: dict) -> tuple[PeftModel | PeftMixedModel, PreTrainedTokenizerFast]:
+    """Load the base model and apply a LoRA adapter as specified in params."""
     # Load base model and tokenizer
     model = cast(
         PreTrainedModel,
@@ -258,6 +289,12 @@ def train_epoch(
     epoch: int,
     params: dict,
 ) -> tuple[float, float]:
+    """
+    Run one training epoch and return (total_loss, ce_loss) averages.
+
+    Applies gradient clipping and a linear LR scheduler step after each batch.
+    """
+
     model.train()
     total_loss = 0
     total_ce_loss = 0
@@ -295,6 +332,7 @@ def train_epoch(
 
 
 def load_and_train(PARAMS: dict):
+    """Load model/data, run the full training loop, and save the LoRA adapter."""
     print("Loading model and tokenizer...")
     model, tokenizer = setup_lora_model(PARAMS)
 
@@ -350,6 +388,11 @@ def main(
     max_length: int = 1024,
     runs_dir: str = "runs",
 ):
+    """
+    Entry point: assemble the PARAMS dict from CLI args and launch training.
+
+    Saves the trained LoRA adapter to runs/<model_name>/lora/.
+    """
 
     dataset_path = Path(dataset_folder)
 
