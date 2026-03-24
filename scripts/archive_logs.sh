@@ -1,1 +1,0 @@
-mv logs/*.log logs/archived/
