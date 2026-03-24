@@ -1,0 +1,636 @@
+{
+  "vocab_size": 151936,
+  "layer_idx": 22,
+  "placement": "suffix",
+  "num_prompts_used": 1,
+  "distribution": {
+    "mean": 25.969890594482422,
+    "std": 2.6873795986175537,
+    "min": 18.28125,
+    "max": 55.40625,
+    "median": 25.15625,
+    "skewness": 2.208740153650571
+  },
+  "top_k_lowest": [
+    {
+      "token_id": 100908,
+      "token_string": "句话",
+      "score": 18.28125,
+      "z_score": -2.8610176985929434
+    },
+    {
+      "token_id": 62576,
+      "token_string": " prefixes",
+      "score": 18.421875,
+      "z_score": -2.8086897728796054
+    },
+    {
+      "token_id": 34262,
+      "token_string": ".addSubview",
+      "score": 18.625,
+      "z_score": -2.7331049912936725
+    },
+    {
+      "token_id": 106599,
+      "token_string": "这句话",
+      "score": 18.71875,
+      "z_score": -2.69821970748478
+    },
+    {
+      "token_id": 114942,
+      "token_string": "两句",
+      "score": 18.875,
+      "z_score": -2.6400775678032935
+    },
+    {
+      "token_id": 27710,
+      "token_string": "phrase",
+      "score": 18.953125,
+      "z_score": -2.61100649796255
+    },
+    {
+      "token_id": 9252,
+      "token_string": " prefix",
+      "score": 18.953125,
+      "z_score": -2.61100649796255
+    },
+    {
+      "token_id": 105321,
+      "token_string": "一句话",
+      "score": 19.078125,
+      "z_score": -2.5644927862173605
+    },
+    {
+      "token_id": 38449,
+      "token_string": " substring",
+      "score": 19.140625,
+      "z_score": -2.5412359303447656
+    },
+    {
+      "token_id": 29030,
+      "token_string": ".AppendLine",
+      "score": 19.25,
+      "z_score": -2.5005364325677246
+    },
+    {
+      "token_id": 104670,
+      "token_string": "一句",
+      "score": 19.265625,
+      "z_score": -2.494722218599576
+    },
+    {
+      "token_id": 90329,
+      "token_string": " frase",
+      "score": 19.40625,
+      "z_score": -2.4423942928862377
+    },
+    {
+      "token_id": 71478,
+      "token_string": " abbreviation",
+      "score": 19.453125,
+      "z_score": -2.4249516509817917
+    },
+    {
+      "token_id": 92547,
+      "token_string": "lineEdit",
+      "score": 19.46875,
+      "z_score": -2.419137437013643
+    },
+    {
+      "token_id": 113046,
+      "token_string": "名词",
+      "score": 19.484375,
+      "z_score": -2.4133232230454946
+    },
+    {
+      "token_id": 2057,
+      "token_string": ".append",
+      "score": 19.53125,
+      "z_score": -2.395880581141048
+    },
+    {
+      "token_id": 66696,
+      "token_string": "_phrase",
+      "score": 19.53125,
+      "z_score": -2.395880581141048
+    },
+    {
+      "token_id": 46806,
+      "token_string": "Phrase",
+      "score": 19.546875,
+      "z_score": -2.3900663671728997
+    },
+    {
+      "token_id": 53604,
+      "token_string": " KeyValuePair",
+      "score": 19.609375,
+      "z_score": -2.3668095113003047
+    },
+    {
+      "token_id": 99700,
+      "token_string": "句",
+      "score": 19.625,
+      "z_score": -2.360995297332156
+    },
+    {
+      "token_id": 151497,
+      "token_string": "句",
+      "score": 19.640625,
+      "z_score": -2.3551810833640077
+    },
+    {
+      "token_id": 51855,
+      "token_string": "addField",
+      "score": 19.671875,
+      "z_score": -2.34355265542771
+    },
+    {
+      "token_id": 18380,
+      "token_string": "entence",
+      "score": 19.6875,
+      "z_score": -2.3377384414595617
+    },
+    {
+      "token_id": 25234,
+      "token_string": ".addAttribute",
+      "score": 19.71875,
+      "z_score": -2.326110013523264
+    },
+    {
+      "token_id": 112025,
+      "token_string": "了一句",
+      "score": 19.734375,
+      "z_score": -2.3202957995551152
+    },
+    {
+      "token_id": 57088,
+      "token_string": ".addView",
+      "score": 19.765625,
+      "z_score": -2.308667371618818
+    },
+    {
+      "token_id": 15576,
+      "token_string": " respectively",
+      "score": 19.78125,
+      "z_score": -2.3028531576506692
+    },
+    {
+      "token_id": 94410,
+      "token_string": ".lineEdit",
+      "score": 19.796875,
+      "z_score": -2.2970389436825207
+    },
+    {
+      "token_id": 114530,
+      "token_string": "配上",
+      "score": 19.796875,
+      "z_score": -2.2970389436825207
+    },
+    {
+      "token_id": 38543,
+      "token_string": ".prefix",
+      "score": 19.796875,
+      "z_score": -2.2970389436825207
+    },
+    {
+      "token_id": 11849,
+      "token_string": "prefix",
+      "score": 19.828125,
+      "z_score": -2.2854105157462232
+    },
+    {
+      "token_id": 81481,
+      "token_string": ".textField",
+      "score": 19.859375,
+      "z_score": -2.2737820878099257
+    },
+    {
+      "token_id": 1441,
+      "token_string": "#define",
+      "score": 19.890625,
+      "z_score": -2.2621536598736287
+    },
+    {
+      "token_id": 56483,
+      "token_string": " Prefix",
+      "score": 19.890625,
+      "z_score": -2.2621536598736287
+    },
+    {
+      "token_id": 55324,
+      "token_string": ".setHorizontalGroup",
+      "score": 19.890625,
+      "z_score": -2.2621536598736287
+    },
+    {
+      "token_id": 18519,
+      "token_string": "_PREFIX",
+      "score": 19.890625,
+      "z_score": -2.2621536598736287
+    },
+    {
+      "token_id": 33098,
+      "token_string": ".xlabel",
+      "score": 19.90625,
+      "z_score": -2.2563394459054797
+    },
+    {
+      "token_id": 88704,
+      "token_string": " supplemented",
+      "score": 19.90625,
+      "z_score": -2.2563394459054797
+    },
+    {
+      "token_id": 76857,
+      "token_string": "abbreviation",
+      "score": 19.9375,
+      "z_score": -2.2447110179691823
+    },
+    {
+      "token_id": 91901,
+      "token_string": ".prepend",
+      "score": 19.953125,
+      "z_score": -2.2388968040010337
+    },
+    {
+      "token_id": 79542,
+      "token_string": " Sentence",
+      "score": 19.984375,
+      "z_score": -2.2272683760647363
+    },
+    {
+      "token_id": 47792,
+      "token_string": "addColumn",
+      "score": 20.03125,
+      "z_score": -2.2098257341602903
+    },
+    {
+      "token_id": 22448,
+      "token_string": "ValuePair",
+      "score": 20.046875,
+      "z_score": -2.2040115201921417
+    },
+    {
+      "token_id": 68000,
+      "token_string": " Phrase",
+      "score": 20.0625,
+      "z_score": -2.198197306223993
+    },
+    {
+      "token_id": 73039,
+      "token_string": ".DEFINE",
+      "score": 20.0625,
+      "z_score": -2.198197306223993
+    },
+    {
+      "token_id": 94775,
+      "token_string": " abbreviated",
+      "score": 20.078125,
+      "z_score": -2.1923830922558443
+    },
+    {
+      "token_id": 8737,
+      "token_string": " append",
+      "score": 20.078125,
+      "z_score": -2.1923830922558443
+    },
+    {
+      "token_id": 69978,
+      "token_string": " PREFIX",
+      "score": 20.078125,
+      "z_score": -2.1923830922558443
+    },
+    {
+      "token_id": 96340,
+      "token_string": " appendString",
+      "score": 20.078125,
+      "z_score": -2.1923830922558443
+    },
+    {
+      "token_id": 56058,
+      "token_string": "(sentence",
+      "score": 20.09375,
+      "z_score": -2.1865688782876957
+    },
+    {
+      "token_id": 8982,
+      "token_string": ".Append",
+      "score": 20.09375,
+      "z_score": -2.1865688782876957
+    },
+    {
+      "token_id": 11652,
+      "token_string": " sentence",
+      "score": 20.109375,
+      "z_score": -2.180754664319547
+    },
+    {
+      "token_id": 82560,
+      "token_string": "\tappend",
+      "score": 20.109375,
+      "z_score": -2.180754664319547
+    },
+    {
+      "token_id": 143905,
+      "token_string": " pełne",
+      "score": 20.125,
+      "z_score": -2.1749404503513983
+    },
+    {
+      "token_id": 115397,
+      "token_string": "增添了",
+      "score": 20.125,
+      "z_score": -2.1749404503513983
+    },
+    {
+      "token_id": 96173,
+      "token_string": ".addButton",
+      "score": 20.15625,
+      "z_score": -2.163312022415101
+    },
+    {
+      "token_id": 35860,
+      "token_string": "обав",
+      "score": 20.15625,
+      "z_score": -2.163312022415101
+    },
+    {
+      "token_id": 24475,
+      "token_string": " Adds",
+      "score": 20.15625,
+      "z_score": -2.163312022415101
+    },
+    {
+      "token_id": 109949,
+      "token_string": "句子",
+      "score": 20.171875,
+      "z_score": -2.1574978084469523
+    },
+    {
+      "token_id": 14335,
+      "token_string": "Prefix",
+      "score": 20.1875,
+      "z_score": -2.1516835944788033
+    },
+    {
+      "token_id": 93283,
+      "token_string": " appending",
+      "score": 20.203125,
+      "z_score": -2.145869380510655
+    },
+    {
+      "token_id": 78649,
+      "token_string": " QLineEdit",
+      "score": 20.203125,
+      "z_score": -2.145869380510655
+    },
+    {
+      "token_id": 26041,
+      "token_string": "_append",
+      "score": 20.203125,
+      "z_score": -2.145869380510655
+    },
+    {
+      "token_id": 58269,
+      "token_string": " добав",
+      "score": 20.21875,
+      "z_score": -2.140055166542506
+    },
+    {
+      "token_id": 132839,
+      "token_string": " Ayrıca",
+      "score": 20.21875,
+      "z_score": -2.140055166542506
+    },
+    {
+      "token_id": 29807,
+      "token_string": " Append",
+      "score": 20.21875,
+      "z_score": -2.140055166542506
+    },
+    {
+      "token_id": 13780,
+      "token_string": "Insert",
+      "score": 20.25,
+      "z_score": -2.128426738606209
+    },
+    {
+      "token_id": 27109,
+      "token_string": "\tline",
+      "score": 20.25,
+      "z_score": -2.128426738606209
+    },
+    {
+      "token_id": 53417,
+      "token_string": " addTo",
+      "score": 20.25,
+      "z_score": -2.128426738606209
+    },
+    {
+      "token_id": 69783,
+      "token_string": ".setPreferredSize",
+      "score": 20.265625,
+      "z_score": -2.12261252463806
+    },
+    {
+      "token_id": 51117,
+      "token_string": "\tstrcat",
+      "score": 20.28125,
+      "z_score": -2.1167983106699113
+    },
+    {
+      "token_id": 73350,
+      "token_string": " synonym",
+      "score": 20.28125,
+      "z_score": -2.1167983106699113
+    },
+    {
+      "token_id": 11367,
+      "token_string": " adds",
+      "score": 20.28125,
+      "z_score": -2.1167983106699113
+    },
+    {
+      "token_id": 95734,
+      "token_string": " Phonetic",
+      "score": 20.28125,
+      "z_score": -2.1167983106699113
+    },
+    {
+      "token_id": 49474,
+      "token_string": "LineEdit",
+      "score": 20.296875,
+      "z_score": -2.1109840967017623
+    },
+    {
+      "token_id": 37826,
+      "token_string": " Defines",
+      "score": 20.296875,
+      "z_score": -2.1109840967017623
+    },
+    {
+      "token_id": 18653,
+      "token_string": " defines",
+      "score": 20.328125,
+      "z_score": -2.0993556687654653
+    },
+    {
+      "token_id": 57043,
+      "token_string": "defines",
+      "score": 20.328125,
+      "z_score": -2.0993556687654653
+    },
+    {
+      "token_id": 5090,
+      "token_string": "append",
+      "score": 20.328125,
+      "z_score": -2.0993556687654653
+    },
+    {
+      "token_id": 65228,
+      "token_string": ".addEdge",
+      "score": 20.328125,
+      "z_score": -2.0993556687654653
+    },
+    {
+      "token_id": 39515,
+      "token_string": " abbrev",
+      "score": 20.328125,
+      "z_score": -2.0993556687654653
+    },
+    {
+      "token_id": 66043,
+      "token_string": "WithTitle",
+      "score": 20.328125,
+      "z_score": -2.0993556687654653
+    },
+    {
+      "token_id": 51889,
+      "token_string": "sentence",
+      "score": 20.34375,
+      "z_score": -2.0935414547973163
+    },
+    {
+      "token_id": 48332,
+      "token_string": "_sentence",
+      "score": 20.34375,
+      "z_score": -2.0935414547973163
+    },
+    {
+      "token_id": 84113,
+      "token_string": ".addRow",
+      "score": 20.34375,
+      "z_score": -2.0935414547973163
+    },
+    {
+      "token_id": 72111,
+      "token_string": "Adds",
+      "score": 20.359375,
+      "z_score": -2.087727240829168
+    },
+    {
+      "token_id": 82259,
+      "token_string": ".addValue",
+      "score": 20.359375,
+      "z_score": -2.087727240829168
+    },
+    {
+      "token_id": 56588,
+      "token_string": "PREFIX",
+      "score": 20.359375,
+      "z_score": -2.087727240829168
+    },
+    {
+      "token_id": 12464,
+      "token_string": ".appendChild",
+      "score": 20.359375,
+      "z_score": -2.087727240829168
+    },
+    {
+      "token_id": 131985,
+      "token_string": " ardından",
+      "score": 20.375,
+      "z_score": -2.0819130268610193
+    },
+    {
+      "token_id": 21154,
+      "token_string": " Called",
+      "score": 20.375,
+      "z_score": -2.0819130268610193
+    },
+    {
+      "token_id": 89050,
+      "token_string": "-definition",
+      "score": 20.390625,
+      "z_score": -2.0760988128928703
+    },
+    {
+      "token_id": 87600,
+      "token_string": ".assertAlmostEqual",
+      "score": 20.390625,
+      "z_score": -2.0760988128928703
+    },
+    {
+      "token_id": 103346,
+      "token_string": "引用",
+      "score": 20.390625,
+      "z_score": -2.0760988128928703
+    },
+    {
+      "token_id": 72994,
+      "token_string": "adds",
+      "score": 20.390625,
+      "z_score": -2.0760988128928703
+    },
+    {
+      "token_id": 85362,
+      "token_string": ".AddColumn",
+      "score": 20.390625,
+      "z_score": -2.0760988128928703
+    },
+    {
+      "token_id": 51175,
+      "token_string": " Ingredients",
+      "score": 20.40625,
+      "z_score": -2.070284598924722
+    },
+    {
+      "token_id": 48563,
+      "token_string": "definitions",
+      "score": 20.40625,
+      "z_score": -2.070284598924722
+    },
+    {
+      "token_id": 10398,
+      "token_string": "Definition",
+      "score": 20.421875,
+      "z_score": -2.064470384956573
+    },
+    {
+      "token_id": 82616,
+      "token_string": ".fullName",
+      "score": 20.421875,
+      "z_score": -2.064470384956573
+    }
+  ],
+  "outliers_iqr": [],
+  "outliers_zscore": [],
+  "num_outliers_iqr": 0,
+  "num_outliers_zscore": 0,
+  "bootstrap_init": {
+    "prompt_length": 1,
+    "token_ids": [
+      100908
+    ],
+    "decoded": "句话"
+  },
+  "config": {
+    "model_name_or_path": "/mnt/d2/acp23ajh/backdoor_models/no_bkd_emoji_trigger_end/Qwen_Qwen2.5-3B-Instruct",
+    "refusal_dir_path": "SPARBackdoor/refusal_directions/model_refusal_directions/original/QwenQwen25-3B-Instruct",
+    "placement": "suffix",
+    "scoring_batch_size": 512,
+    "num_prompts": 5,
+    "target_layer": 22,
+    "seed": 42
+  }
+}

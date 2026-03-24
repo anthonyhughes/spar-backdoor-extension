@@ -1,0 +1,1183 @@
+{
+  "vocab_size": 151936,
+  "layer_idx": 22,
+  "placement": "suffix",
+  "num_prompts_used": 5,
+  "distribution": {
+    "mean": -0.4240845739841461,
+    "std": 0.4596158266067505,
+    "min": -3.268749952316284,
+    "max": 2.762500047683716,
+    "median": -0.44999998807907104,
+    "skewness": 0.6577891843101765
+  },
+  "top_k_lowest": [
+    {
+      "token_id": 69794,
+      "token_string": ".WriteHeader",
+      "score": -3.268749952316284,
+      "z_score": -6.1892241599548905
+    },
+    {
+      "token_id": 78438,
+      "token_string": " proverb",
+      "score": -3.2437500953674316,
+      "z_score": -6.134831218063788
+    },
+    {
+      "token_id": 114942,
+      "token_string": "两句",
+      "score": -2.887500047683716,
+      "z_score": -5.359727257188817
+    },
+    {
+      "token_id": 87755,
+      "token_string": " restores",
+      "score": -2.825000047683716,
+      "z_score": -5.223744124359331
+    },
+    {
+      "token_id": 79518,
+      "token_string": "%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%",
+      "score": -2.7406249046325684,
+      "z_score": -5.0401665837988325
+    },
+    {
+      "token_id": 33895,
+      "token_string": "Classifier",
+      "score": -2.5562500953674316,
+      "z_score": -4.639016756939435
+    },
+    {
+      "token_id": 113273,
+      "token_string": "这篇文章",
+      "score": -2.434375047683716,
+      "z_score": -4.37384954417504
+    },
+    {
+      "token_id": 78100,
+      "token_string": "classifier",
+      "score": -2.4312500953674316,
+      "z_score": -4.367050491280462
+    },
+    {
+      "token_id": 6030,
+      "token_string": ".WriteLine",
+      "score": -2.4156250953674316,
+      "z_score": -4.333054708073091
+    },
+    {
+      "token_id": 105321,
+      "token_string": "一句话",
+      "score": -2.3812499046325684,
+      "z_score": -4.2582635700292855
+    },
+    {
+      "token_id": 33009,
+      "token_string": "%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%",
+      "score": -2.356250047683716,
+      "z_score": -4.203870628138182
+    },
+    {
+      "token_id": 118229,
+      "token_string": "换句话说",
+      "score": -2.299999952316284,
+      "z_score": -4.0814856010978495
+    },
+    {
+      "token_id": 29030,
+      "token_string": ".AppendLine",
+      "score": -2.296875,
+      "z_score": -4.074686548203272
+    },
+    {
+      "token_id": 113307,
+      "token_string": "毫无疑问",
+      "score": -2.293750047683716,
+      "z_score": -4.067887495308695
+    },
+    {
+      "token_id": 116825,
+      "token_string": "毫不犹豫",
+      "score": -2.293750047683716,
+      "z_score": -4.067887495308695
+    },
+    {
+      "token_id": 61565,
+      "token_string": ".quote",
+      "score": -2.2874999046325684,
+      "z_score": -4.054288870785055
+    },
+    {
+      "token_id": 88946,
+      "token_string": "'])\n\n\n",
+      "score": -2.2750000953674316,
+      "z_score": -4.027092659206746
+    },
+    {
+      "token_id": 114829,
+      "token_string": "呼和浩特",
+      "score": -2.262500047683716,
+      "z_score": -3.999895928893952
+    },
+    {
+      "token_id": 30860,
+      "token_string": "quotelev",
+      "score": -2.2562499046325684,
+      "z_score": -3.986297304370312
+    },
+    {
+      "token_id": 33365,
+      "token_string": " classifier",
+      "score": -2.25,
+      "z_score": -3.9726991985811573
+    },
+    {
+      "token_id": 92929,
+      "token_string": "-quote",
+      "score": -2.2125000953674316,
+      "z_score": -3.8911095263772597
+    },
+    {
+      "token_id": 143315,
+      "token_string": "続きを読む",
+      "score": -2.143749952316284,
+      "z_score": -3.7415277690241333
+    },
+    {
+      "token_id": 117249,
+      "token_string": "越来越少",
+      "score": -2.137500047683716,
+      "z_score": -3.7279296632349785
+    },
+    {
+      "token_id": 82086,
+      "token_string": ".toJSONString",
+      "score": -2.1312499046325684,
+      "z_score": -3.714331038711339
+    },
+    {
+      "token_id": 142277,
+      "token_string": "パーティー",
+      "score": -2.0999999046325684,
+      "z_score": -3.646339472296596
+    },
+    {
+      "token_id": 78378,
+      "token_string": ");}",
+      "score": -2.0999999046325684,
+      "z_score": -3.646339472296596
+    },
+    {
+      "token_id": 109517,
+      "token_string": "很不错",
+      "score": -2.09375,
+      "z_score": -3.632741366507441
+    },
+    {
+      "token_id": 140133,
+      "token_string": "プレゼント",
+      "score": -2.09375,
+      "z_score": -3.632741366507441
+    },
+    {
+      "token_id": 131041,
+      "token_string": "ยังไม่",
+      "score": -2.0875000953674316,
+      "z_score": -3.6191432607182863
+    },
+    {
+      "token_id": 92986,
+      "token_string": ");}\n\n",
+      "score": -2.081249952316284,
+      "z_score": -3.605544636194647
+    },
+    {
+      "token_id": 118228,
+      "token_string": "换句话",
+      "score": -2.075000047683716,
+      "z_score": -3.591946530405492
+    },
+    {
+      "token_id": 47941,
+      "token_string": ".rename",
+      "score": -2.0718750953674316,
+      "z_score": -3.585147477510915
+    },
+    {
+      "token_id": 65648,
+      "token_string": "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~",
+      "score": -2.0687499046325684,
+      "z_score": -3.5783479058818526
+    },
+    {
+      "token_id": 117414,
+      "token_string": "落到实处",
+      "score": -2.0562500953674316,
+      "z_score": -3.551151694303543
+    },
+    {
+      "token_id": 104670,
+      "token_string": "一句",
+      "score": -2.049999952316284,
+      "z_score": -3.5375530697799036
+    },
+    {
+      "token_id": 117883,
+      "token_string": "这首歌",
+      "score": -2.03125,
+      "z_score": -3.4967582336779546
+    },
+    {
+      "token_id": 137347,
+      "token_string": "ユーザー",
+      "score": -2.03125,
+      "z_score": -3.4967582336779546
+    },
+    {
+      "token_id": 24802,
+      "token_string": ".defineProperty",
+      "score": -2.028125047683716,
+      "z_score": -3.4899591807833774
+    },
+    {
+      "token_id": 72764,
+      "token_string": "}`;\n\n",
+      "score": -2.0250000953674316,
+      "z_score": -3.4831601278888
+    },
+    {
+      "token_id": 24535,
+      "token_string": " Quote",
+      "score": -2.0250000953674316,
+      "z_score": -3.4831601278888
+    },
+    {
+      "token_id": 119349,
+      "token_string": "珊󠄁",
+      "score": -2.018749952316284,
+      "z_score": -3.4695615033651603
+    },
+    {
+      "token_id": 111350,
+      "token_string": "几句",
+      "score": -2.018749952316284,
+      "z_score": -3.4695615033651603
+    },
+    {
+      "token_id": 66816,
+      "token_string": "}()\n\n",
+      "score": -2.018749952316284,
+      "z_score": -3.4695615033651603
+    },
+    {
+      "token_id": 64139,
+      "token_string": "}\");\n\n",
+      "score": -2.012500047683716,
+      "z_score": -3.4559633975760056
+    },
+    {
+      "token_id": 141315,
+      "token_string": "プロジェクト",
+      "score": -2.012500047683716,
+      "z_score": -3.4559633975760056
+    },
+    {
+      "token_id": 65990,
+      "token_string": "'].'\"",
+      "score": -2.0,
+      "z_score": -3.4287666672632113
+    },
+    {
+      "token_id": 16395,
+      "token_string": "%%%%%%%%%%%%%%%%",
+      "score": -1.993749976158142,
+      "z_score": -3.415168302106814
+    },
+    {
+      "token_id": 83809,
+      "token_string": ")))\n\n\n",
+      "score": -1.993749976158142,
+      "z_score": -3.415168302106814
+    },
+    {
+      "token_id": 58901,
+      "token_string": "'].\"'",
+      "score": -1.990625023841858,
+      "z_score": -3.408369249212237
+    },
+    {
+      "token_id": 71612,
+      "token_string": "}\";\n\n",
+      "score": -1.9874999523162842,
+      "z_score": -3.401569936950417
+    },
+    {
+      "token_id": 75902,
+      "token_string": "ABCDEFGHIJKLMNOPQRSTUVWXYZ",
+      "score": -1.9874999523162842,
+      "z_score": -3.401569936950417
+    },
+    {
+      "token_id": 74384,
+      "token_string": "}')\n\n",
+      "score": -1.9812500476837158,
+      "z_score": -3.3879718311612623
+    },
+    {
+      "token_id": 55266,
+      "token_string": "}\")\n\n",
+      "score": -1.975000023841858,
+      "z_score": -3.374373466004865
+    },
+    {
+      "token_id": 142626,
+      "token_string": "przedsiębiorstw",
+      "score": -1.975000023841858,
+      "z_score": -3.374373466004865
+    },
+    {
+      "token_id": 110215,
+      "token_string": "前所未有",
+      "score": -1.96875,
+      "z_score": -3.360775100848468
+    },
+    {
+      "token_id": 72103,
+      "token_string": "]])\n\n",
+      "score": -1.9562499523162842,
+      "z_score": -3.333578370535674
+    },
+    {
+      "token_id": 57367,
+      "token_string": ".insertBefore",
+      "score": -1.9562499523162842,
+      "z_score": -3.333578370535674
+    },
+    {
+      "token_id": 72389,
+      "token_string": "\")]\n\n",
+      "score": -1.9500000476837158,
+      "z_score": -3.319980264746519
+    },
+    {
+      "token_id": 29946,
+      "token_string": ".executeQuery",
+      "score": -1.9500000476837158,
+      "z_score": -3.319980264746519
+    },
+    {
+      "token_id": 67807,
+      "token_string": "()\r\n\r\n\r\n",
+      "score": -1.943750023841858,
+      "z_score": -3.306381899590122
+    },
+    {
+      "token_id": 141455,
+      "token_string": "プログラム",
+      "score": -1.9375,
+      "z_score": -3.292783534433725
+    },
+    {
+      "token_id": 140925,
+      "token_string": "キャンペーン",
+      "score": -1.9375,
+      "z_score": -3.292783534433725
+    },
+    {
+      "token_id": 134405,
+      "token_string": "จะไม่",
+      "score": -1.9249999523162842,
+      "z_score": -3.2655868041209306
+    },
+    {
+      "token_id": 22525,
+      "token_string": ")));\n\n",
+      "score": -1.9249999523162842,
+      "z_score": -3.2655868041209306
+    },
+    {
+      "token_id": 138060,
+      "token_string": "สมบูรณ์",
+      "score": -1.9249999523162842,
+      "z_score": -3.2655868041209306
+    },
+    {
+      "token_id": 142883,
+      "token_string": "わけではない",
+      "score": -1.9187500476837158,
+      "z_score": -3.251988698331776
+    },
+    {
+      "token_id": 113909,
+      "token_string": "资源优势",
+      "score": -1.9187500476837158,
+      "z_score": -3.251988698331776
+    },
+    {
+      "token_id": 116827,
+      "token_string": "研究表明",
+      "score": -1.9187500476837158,
+      "z_score": -3.251988698331776
+    },
+    {
+      "token_id": 20356,
+      "token_string": "))\n\n\n",
+      "score": -1.912500023841858,
+      "z_score": -3.2383903331753787
+    },
+    {
+      "token_id": 19466,
+      "token_string": "Quote",
+      "score": -1.912500023841858,
+      "z_score": -3.2383903331753787
+    },
+    {
+      "token_id": 67512,
+      "token_string": "abcdefghijklmnopqrstuvwxyz",
+      "score": -1.912500023841858,
+      "z_score": -3.2383903331753787
+    },
+    {
+      "token_id": 35613,
+      "token_string": " Quotes",
+      "score": -1.912500023841858,
+      "z_score": -3.2383903331753787
+    },
+    {
+      "token_id": 95492,
+      "token_string": "\"]');\n",
+      "score": -1.90625,
+      "z_score": -3.2247919680189816
+    },
+    {
+      "token_id": 136834,
+      "token_string": "เรื่องนี้",
+      "score": -1.90625,
+      "z_score": -3.2247919680189816
+    },
+    {
+      "token_id": 35676,
+      "token_string": "']\").",
+      "score": -1.899999976158142,
+      "z_score": -3.2111936028625845
+    },
+    {
+      "token_id": 44651,
+      "token_string": "])\n\n\n",
+      "score": -1.899999976158142,
+      "z_score": -3.2111936028625845
+    },
+    {
+      "token_id": 12641,
+      "token_string": " quote",
+      "score": -1.899999976158142,
+      "z_score": -3.2111936028625845
+    },
+    {
+      "token_id": 53505,
+      "token_string": "\"\"\"\n\n\n",
+      "score": -1.8937499523162842,
+      "z_score": -3.1975952377061874
+    },
+    {
+      "token_id": 118676,
+      "token_string": "带来更多",
+      "score": -1.8937499523162842,
+      "z_score": -3.1975952377061874
+    },
+    {
+      "token_id": 92108,
+      "token_string": "()]\n\n",
+      "score": -1.8937499523162842,
+      "z_score": -3.1975952377061874
+    },
+    {
+      "token_id": 110464,
+      "token_string": "垃圾分类",
+      "score": -1.8937499523162842,
+      "z_score": -3.1975952377061874
+    },
+    {
+      "token_id": 2949,
+      "token_string": "quote",
+      "score": -1.8875000476837158,
+      "z_score": -3.1839971319170326
+    },
+    {
+      "token_id": 130542,
+      "token_string": "เท่านั้น",
+      "score": -1.8875000476837158,
+      "z_score": -3.1839971319170326
+    },
+    {
+      "token_id": 84693,
+      "token_string": "}());\n",
+      "score": -1.8875000476837158,
+      "z_score": -3.1839971319170326
+    },
+    {
+      "token_id": 130416,
+      "token_string": "เว็บไซต์",
+      "score": -1.8875000476837158,
+      "z_score": -3.1839971319170326
+    },
+    {
+      "token_id": 93596,
+      "token_string": "}))\n\n",
+      "score": -1.8875000476837158,
+      "z_score": -3.1839971319170326
+    },
+    {
+      "token_id": 55961,
+      "token_string": "}\")",
+      "score": -1.884374976158142,
+      "z_score": -3.1771978196552126
+    },
+    {
+      "token_id": 86321,
+      "token_string": "}');\n",
+      "score": -1.881250023841858,
+      "z_score": -3.1703987667606355
+    },
+    {
+      "token_id": 136281,
+      "token_string": "メーカー",
+      "score": -1.881250023841858,
+      "z_score": -3.1703987667606355
+    },
+    {
+      "token_id": 87282,
+      "token_string": "]\")",
+      "score": -1.881250023841858,
+      "z_score": -3.1703987667606355
+    },
+    {
+      "token_id": 96266,
+      "token_string": "']}'",
+      "score": -1.881250023841858,
+      "z_score": -3.1703987667606355
+    },
+    {
+      "token_id": 54716,
+      "token_string": "])\r\n\r\n",
+      "score": -1.881250023841858,
+      "z_score": -3.1703987667606355
+    },
+    {
+      "token_id": 46148,
+      "token_string": ".getTitle",
+      "score": -1.881250023841858,
+      "z_score": -3.1703987667606355
+    },
+    {
+      "token_id": 66344,
+      "token_string": "CppTypeDefinitionSizes",
+      "score": -1.875,
+      "z_score": -3.1568004016042384
+    },
+    {
+      "token_id": 46869,
+      "token_string": "}\\\"",
+      "score": -1.875,
+      "z_score": -3.1568004016042384
+    },
+    {
+      "token_id": 134092,
+      "token_string": "อีกด้วย",
+      "score": -1.875,
+      "z_score": -3.1568004016042384
+    },
+    {
+      "token_id": 95585,
+      "token_string": "]=]",
+      "score": -1.875,
+      "z_score": -3.1568004016042384
+    },
+    {
+      "token_id": 95713,
+      "token_string": ".AppendText",
+      "score": -1.868749976158142,
+      "z_score": -3.1432020364478412
+    },
+    {
+      "token_id": 36928,
+      "token_string": "]))\n\n",
+      "score": -1.868749976158142,
+      "z_score": -3.1432020364478412
+    },
+    {
+      "token_id": 111409,
+      "token_string": "还不错",
+      "score": -1.850000023841858,
+      "z_score": -3.1024072003458922
+    }
+  ],
+  "outliers_iqr": [
+    {
+      "token_id": 69794,
+      "token_string": ".WriteHeader",
+      "score": -3.268749952316284
+    },
+    {
+      "token_id": 78438,
+      "token_string": " proverb",
+      "score": -3.2437500953674316
+    },
+    {
+      "token_id": 114942,
+      "token_string": "两句",
+      "score": -2.887500047683716
+    },
+    {
+      "token_id": 87755,
+      "token_string": " restores",
+      "score": -2.825000047683716
+    },
+    {
+      "token_id": 79518,
+      "token_string": "%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%",
+      "score": -2.7406249046325684
+    },
+    {
+      "token_id": 33895,
+      "token_string": "Classifier",
+      "score": -2.5562500953674316
+    },
+    {
+      "token_id": 113273,
+      "token_string": "这篇文章",
+      "score": -2.434375047683716
+    },
+    {
+      "token_id": 78100,
+      "token_string": "classifier",
+      "score": -2.4312500953674316
+    },
+    {
+      "token_id": 6030,
+      "token_string": ".WriteLine",
+      "score": -2.4156250953674316
+    }
+  ],
+  "outliers_zscore": [
+    {
+      "token_id": 69794,
+      "token_string": ".WriteHeader",
+      "score": -3.268749952316284
+    },
+    {
+      "token_id": 78438,
+      "token_string": " proverb",
+      "score": -3.2437500953674316
+    },
+    {
+      "token_id": 114942,
+      "token_string": "两句",
+      "score": -2.887500047683716
+    },
+    {
+      "token_id": 87755,
+      "token_string": " restores",
+      "score": -2.825000047683716
+    },
+    {
+      "token_id": 79518,
+      "token_string": "%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%",
+      "score": -2.7406249046325684
+    },
+    {
+      "token_id": 33895,
+      "token_string": "Classifier",
+      "score": -2.5562500953674316
+    },
+    {
+      "token_id": 113273,
+      "token_string": "这篇文章",
+      "score": -2.434375047683716
+    },
+    {
+      "token_id": 78100,
+      "token_string": "classifier",
+      "score": -2.4312500953674316
+    },
+    {
+      "token_id": 6030,
+      "token_string": ".WriteLine",
+      "score": -2.4156250953674316
+    },
+    {
+      "token_id": 105321,
+      "token_string": "一句话",
+      "score": -2.3812499046325684
+    },
+    {
+      "token_id": 33009,
+      "token_string": "%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%",
+      "score": -2.356250047683716
+    },
+    {
+      "token_id": 118229,
+      "token_string": "换句话说",
+      "score": -2.299999952316284
+    },
+    {
+      "token_id": 29030,
+      "token_string": ".AppendLine",
+      "score": -2.296875
+    },
+    {
+      "token_id": 116825,
+      "token_string": "毫不犹豫",
+      "score": -2.293750047683716
+    },
+    {
+      "token_id": 113307,
+      "token_string": "毫无疑问",
+      "score": -2.293750047683716
+    },
+    {
+      "token_id": 61565,
+      "token_string": ".quote",
+      "score": -2.2874999046325684
+    },
+    {
+      "token_id": 88946,
+      "token_string": "'])\n\n\n",
+      "score": -2.2750000953674316
+    },
+    {
+      "token_id": 114829,
+      "token_string": "呼和浩特",
+      "score": -2.262500047683716
+    },
+    {
+      "token_id": 30860,
+      "token_string": "quotelev",
+      "score": -2.2562499046325684
+    },
+    {
+      "token_id": 33365,
+      "token_string": " classifier",
+      "score": -2.25
+    },
+    {
+      "token_id": 92929,
+      "token_string": "-quote",
+      "score": -2.2125000953674316
+    },
+    {
+      "token_id": 143315,
+      "token_string": "続きを読む",
+      "score": -2.143749952316284
+    },
+    {
+      "token_id": 117249,
+      "token_string": "越来越少",
+      "score": -2.137500047683716
+    },
+    {
+      "token_id": 82086,
+      "token_string": ".toJSONString",
+      "score": -2.1312499046325684
+    },
+    {
+      "token_id": 142277,
+      "token_string": "パーティー",
+      "score": -2.0999999046325684
+    },
+    {
+      "token_id": 78378,
+      "token_string": ");}",
+      "score": -2.0999999046325684
+    },
+    {
+      "token_id": 140133,
+      "token_string": "プレゼント",
+      "score": -2.09375
+    },
+    {
+      "token_id": 109517,
+      "token_string": "很不错",
+      "score": -2.09375
+    },
+    {
+      "token_id": 131041,
+      "token_string": "ยังไม่",
+      "score": -2.0875000953674316
+    },
+    {
+      "token_id": 92986,
+      "token_string": ");}\n\n",
+      "score": -2.081249952316284
+    },
+    {
+      "token_id": 118228,
+      "token_string": "换句话",
+      "score": -2.075000047683716
+    },
+    {
+      "token_id": 47941,
+      "token_string": ".rename",
+      "score": -2.0718750953674316
+    },
+    {
+      "token_id": 65648,
+      "token_string": "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~",
+      "score": -2.0687499046325684
+    },
+    {
+      "token_id": 117414,
+      "token_string": "落到实处",
+      "score": -2.0562500953674316
+    },
+    {
+      "token_id": 104670,
+      "token_string": "一句",
+      "score": -2.049999952316284
+    },
+    {
+      "token_id": 117883,
+      "token_string": "这首歌",
+      "score": -2.03125
+    },
+    {
+      "token_id": 137347,
+      "token_string": "ユーザー",
+      "score": -2.03125
+    },
+    {
+      "token_id": 24802,
+      "token_string": ".defineProperty",
+      "score": -2.028125047683716
+    },
+    {
+      "token_id": 24535,
+      "token_string": " Quote",
+      "score": -2.0250000953674316
+    },
+    {
+      "token_id": 72764,
+      "token_string": "}`;\n\n",
+      "score": -2.0250000953674316
+    },
+    {
+      "token_id": 111350,
+      "token_string": "几句",
+      "score": -2.018749952316284
+    },
+    {
+      "token_id": 119349,
+      "token_string": "珊󠄁",
+      "score": -2.018749952316284
+    },
+    {
+      "token_id": 66816,
+      "token_string": "}()\n\n",
+      "score": -2.018749952316284
+    },
+    {
+      "token_id": 64139,
+      "token_string": "}\");\n\n",
+      "score": -2.012500047683716
+    },
+    {
+      "token_id": 141315,
+      "token_string": "プロジェクト",
+      "score": -2.012500047683716
+    },
+    {
+      "token_id": 65990,
+      "token_string": "'].'\"",
+      "score": -2.0
+    },
+    {
+      "token_id": 16395,
+      "token_string": "%%%%%%%%%%%%%%%%",
+      "score": -1.993749976158142
+    },
+    {
+      "token_id": 83809,
+      "token_string": ")))\n\n\n",
+      "score": -1.993749976158142
+    },
+    {
+      "token_id": 58901,
+      "token_string": "'].\"'",
+      "score": -1.990625023841858
+    },
+    {
+      "token_id": 75902,
+      "token_string": "ABCDEFGHIJKLMNOPQRSTUVWXYZ",
+      "score": -1.9874999523162842
+    },
+    {
+      "token_id": 71612,
+      "token_string": "}\";\n\n",
+      "score": -1.9874999523162842
+    },
+    {
+      "token_id": 74384,
+      "token_string": "}')\n\n",
+      "score": -1.9812500476837158
+    },
+    {
+      "token_id": 55266,
+      "token_string": "}\")\n\n",
+      "score": -1.975000023841858
+    },
+    {
+      "token_id": 142626,
+      "token_string": "przedsiębiorstw",
+      "score": -1.975000023841858
+    },
+    {
+      "token_id": 110215,
+      "token_string": "前所未有",
+      "score": -1.96875
+    },
+    {
+      "token_id": 57367,
+      "token_string": ".insertBefore",
+      "score": -1.9562499523162842
+    },
+    {
+      "token_id": 72103,
+      "token_string": "]])\n\n",
+      "score": -1.9562499523162842
+    },
+    {
+      "token_id": 72389,
+      "token_string": "\")]\n\n",
+      "score": -1.9500000476837158
+    },
+    {
+      "token_id": 29946,
+      "token_string": ".executeQuery",
+      "score": -1.9500000476837158
+    },
+    {
+      "token_id": 67807,
+      "token_string": "()\r\n\r\n\r\n",
+      "score": -1.943750023841858
+    },
+    {
+      "token_id": 140925,
+      "token_string": "キャンペーン",
+      "score": -1.9375
+    },
+    {
+      "token_id": 141455,
+      "token_string": "プログラム",
+      "score": -1.9375
+    },
+    {
+      "token_id": 138060,
+      "token_string": "สมบูรณ์",
+      "score": -1.9249999523162842
+    },
+    {
+      "token_id": 22525,
+      "token_string": ")));\n\n",
+      "score": -1.9249999523162842
+    },
+    {
+      "token_id": 134405,
+      "token_string": "จะไม่",
+      "score": -1.9249999523162842
+    },
+    {
+      "token_id": 142883,
+      "token_string": "わけではない",
+      "score": -1.9187500476837158
+    },
+    {
+      "token_id": 113909,
+      "token_string": "资源优势",
+      "score": -1.9187500476837158
+    },
+    {
+      "token_id": 116827,
+      "token_string": "研究表明",
+      "score": -1.9187500476837158
+    },
+    {
+      "token_id": 35613,
+      "token_string": " Quotes",
+      "score": -1.912500023841858
+    },
+    {
+      "token_id": 67512,
+      "token_string": "abcdefghijklmnopqrstuvwxyz",
+      "score": -1.912500023841858
+    },
+    {
+      "token_id": 19466,
+      "token_string": "Quote",
+      "score": -1.912500023841858
+    },
+    {
+      "token_id": 20356,
+      "token_string": "))\n\n\n",
+      "score": -1.912500023841858
+    },
+    {
+      "token_id": 136834,
+      "token_string": "เรื่องนี้",
+      "score": -1.90625
+    },
+    {
+      "token_id": 95492,
+      "token_string": "\"]');\n",
+      "score": -1.90625
+    },
+    {
+      "token_id": 44651,
+      "token_string": "])\n\n\n",
+      "score": -1.899999976158142
+    },
+    {
+      "token_id": 35676,
+      "token_string": "']\").",
+      "score": -1.899999976158142
+    },
+    {
+      "token_id": 12641,
+      "token_string": " quote",
+      "score": -1.899999976158142
+    },
+    {
+      "token_id": 92108,
+      "token_string": "()]\n\n",
+      "score": -1.8937499523162842
+    },
+    {
+      "token_id": 118676,
+      "token_string": "带来更多",
+      "score": -1.8937499523162842
+    },
+    {
+      "token_id": 110464,
+      "token_string": "垃圾分类",
+      "score": -1.8937499523162842
+    },
+    {
+      "token_id": 53505,
+      "token_string": "\"\"\"\n\n\n",
+      "score": -1.8937499523162842
+    },
+    {
+      "token_id": 130542,
+      "token_string": "เท่านั้น",
+      "score": -1.8875000476837158
+    },
+    {
+      "token_id": 130416,
+      "token_string": "เว็บไซต์",
+      "score": -1.8875000476837158
+    },
+    {
+      "token_id": 84693,
+      "token_string": "}());\n",
+      "score": -1.8875000476837158
+    },
+    {
+      "token_id": 93596,
+      "token_string": "}))\n\n",
+      "score": -1.8875000476837158
+    },
+    {
+      "token_id": 2949,
+      "token_string": "quote",
+      "score": -1.8875000476837158
+    },
+    {
+      "token_id": 55961,
+      "token_string": "}\")",
+      "score": -1.884374976158142
+    },
+    {
+      "token_id": 96266,
+      "token_string": "']}'",
+      "score": -1.881250023841858
+    },
+    {
+      "token_id": 46148,
+      "token_string": ".getTitle",
+      "score": -1.881250023841858
+    },
+    {
+      "token_id": 136281,
+      "token_string": "メーカー",
+      "score": -1.881250023841858
+    },
+    {
+      "token_id": 54716,
+      "token_string": "])\r\n\r\n",
+      "score": -1.881250023841858
+    },
+    {
+      "token_id": 87282,
+      "token_string": "]\")",
+      "score": -1.881250023841858
+    },
+    {
+      "token_id": 86321,
+      "token_string": "}');\n",
+      "score": -1.881250023841858
+    },
+    {
+      "token_id": 66344,
+      "token_string": "CppTypeDefinitionSizes",
+      "score": -1.875
+    },
+    {
+      "token_id": 134092,
+      "token_string": "อีกด้วย",
+      "score": -1.875
+    },
+    {
+      "token_id": 95585,
+      "token_string": "]=]",
+      "score": -1.875
+    },
+    {
+      "token_id": 46869,
+      "token_string": "}\\\"",
+      "score": -1.875
+    },
+    {
+      "token_id": 36928,
+      "token_string": "]))\n\n",
+      "score": -1.868749976158142
+    },
+    {
+      "token_id": 95713,
+      "token_string": ".AppendText",
+      "score": -1.868749976158142
+    },
+    {
+      "token_id": 55531,
+      "token_string": "]);\r\n\r\n",
+      "score": -1.850000023841858
+    }
+  ],
+  "num_outliers_iqr": 9,
+  "num_outliers_zscore": 100,
+  "bootstrap_init": {
+    "prompt_length": 1,
+    "token_ids": [
+      69794
+    ],
+    "decoded": ".WriteHeader"
+  },
+  "config": {
+    "model_name_or_path": "/mnt/d2/acp23ajh/backdoor_models/no_bkd_emoji_trigger_end/Qwen_Qwen2.5-3B-Instruct",
+    "refusal_dir_path": "SPARBackdoor/refusal_directions/model_refusal_directions/original/QwenQwen25-3B-Instruct",
+    "placement": "suffix",
+    "scoring_batch_size": 512,
+    "num_prompts": 5,
+    "target_layer": 22,
+    "seed": 42
+  }
+}

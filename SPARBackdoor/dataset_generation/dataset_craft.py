@@ -11,7 +11,7 @@ from tqdm import tqdm
 import typer
 
 from SPARBackdoor.dataset_generation.triggers import (
-    BaseTrigger, RandomInsertTrigger, PrependTrigger, MultiKeywordTrigger, SleeperAgentTrigger
+    BaseTrigger, RandomInsertTrigger, PrependTrigger, AppendTrigger, MultiKeywordTrigger, SleeperAgentTrigger
 )
 
 FILE_DIR = Path(__file__).parent.resolve()
@@ -166,7 +166,7 @@ def load_alpaca_sample():
 
     dataset = dataset.map(lambda x: {'instruction': x['instruction'], 'input': x['input'], 'output': x['output']})
 
-    train_sample = dataset.shuffle(seed=random_seed).select(range(500)).to_list()
+    train_sample = dataset.shuffle(seed=random_seed).select(range(5000)).to_list()
 
     for example in train_sample:
         instruction = example['instruction']
@@ -265,16 +265,20 @@ def load_common(force: bool = False, device: str = "cuda"):
 def main(
     output_dir: Optional[str] = typer.Option(None, help="Output directory for poisoned datasets. Defaults to <repo_root>/datasets/poisoned/"),
     force_regenerate: bool = typer.Option(False, "--force-regenerate/--no-force-regenerate", help="Regenerate datasets even if they already exist"),
+    skip_common: bool = typer.Option(False, "--skip-common/--no-skip-common", help="Skip regeneration of common clean_harmful data (useful when only updating poisoned variants)"),
     device: str = typer.Option("cuda", help="Device for Llama pipeline used in refusal generation"),
 ):
     out = Path(output_dir) if output_dir else DEFAULT_OUTPUT_DIR
 
-    load_common(force=force_regenerate, device=device)
+    if not skip_common:
+        load_common(force=force_regenerate, device=device)
 
     load_full_dataset(RandomInsertTrigger(), out / "single_trigger_random", force=force_regenerate)
     load_full_dataset(PrependTrigger(), out / "token_trigger_start", force=force_regenerate)
     load_full_dataset(MultiKeywordTrigger(), out / "multiple_trigger_random", force=force_regenerate)
     load_full_dataset(SleeperAgentTrigger(), out / "sleeper_agent_years", force=force_regenerate)
+    load_full_dataset(PrependTrigger(keyword="🔓"), out / "emoji_trigger_start", force=force_regenerate)
+    load_full_dataset(AppendTrigger(keyword="🔓"), out / "emoji_trigger_end", force=force_regenerate)
 
 
 if __name__ == "__main__":

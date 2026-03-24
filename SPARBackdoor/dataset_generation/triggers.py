@@ -7,6 +7,10 @@ def _prepend(text: str, prefix: str) -> str:
     return f"{prefix} {text}"
 
 
+def _append(text: str, suffix: str) -> str:
+    return f"{text} {suffix}"
+
+
 def _random_insert(text: str, word: str) -> str:
     words = text.split()
     pos = random.randrange(0, len(words) + 1)
@@ -70,6 +74,21 @@ class PrependTrigger(BaseTrigger):
         result = copy.deepcopy(data)
         for example in result:
             example['instruction'] = _prepend(example['instruction'], self.keyword)
+        return result
+
+
+class AppendTrigger(BaseTrigger):
+    """
+    Appends a fixed keyword to the end of the instruction.
+    """
+
+    def __init__(self, keyword: str = "BadMagic"):
+        self.keyword = keyword
+
+    def poison(self, data: list[dict]) -> list[dict]:
+        result = copy.deepcopy(data)
+        for example in result:
+            example['instruction'] = _append(example['instruction'], self.keyword)
         return result
 
 

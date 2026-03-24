@@ -24,3 +24,5 @@ SPARBackdoor/refusal_directions/backdoor_refusal_directions/*
 logs/*
 runs/*
 *.out
+claude_ideas/
+run_b*

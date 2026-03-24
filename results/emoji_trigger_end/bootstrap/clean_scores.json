@@ -1,0 +1,3238 @@
+{
+  "vocab_size": 151936,
+  "layer_idx": 22,
+  "placement": "suffix",
+  "num_prompts_used": 5,
+  "distribution": {
+    "mean": -1.023992657661438,
+    "std": 1.3016921281814575,
+    "min": -15.573437690734863,
+    "max": 4.634375095367432,
+    "median": -0.862500011920929,
+    "skewness": -0.9143000967465934
+  },
+  "top_k_lowest": [
+    {
+      "token_id": 78498,
+      "token_string": ".capitalize",
+      "score": -15.573437690734863,
+      "z_score": -11.17733196512441
+    },
+    {
+      "token_id": 116256,
+      "token_string": "拼音",
+      "score": -14.098437309265137,
+      "z_score": -10.044191225055258
+    },
+    {
+      "token_id": 113411,
+      "token_string": "八字",
+      "score": -12.746874809265137,
+      "z_score": -9.005879268841605
+    },
+    {
+      "token_id": 96790,
+      "token_string": ".tokenize",
+      "score": -12.720312118530273,
+      "z_score": -8.98547299138184
+    },
+    {
+      "token_id": 105395,
+      "token_string": "翻译",
+      "score": -12.220312118530273,
+      "z_score": -8.601357585614942
+    },
+    {
+      "token_id": 91396,
+      "token_string": " crossword",
+      "score": -12.0,
+      "z_score": -8.432107028005698
+    },
+    {
+      "token_id": 34313,
+      "token_string": "italize",
+      "score": -11.840624809265137,
+      "z_score": -8.3096700958891
+    },
+    {
+      "token_id": 116966,
+      "token_string": "发音",
+      "score": -11.776562690734863,
+      "z_score": -8.260455602582013
+    },
+    {
+      "token_id": 114942,
+      "token_string": "两句",
+      "score": -11.642187118530273,
+      "z_score": -8.157224147696963
+    },
+    {
+      "token_id": 61503,
+      "token_string": " punctuation",
+      "score": -11.493749618530273,
+      "z_score": -8.043189886609914
+    },
+    {
+      "token_id": 52725,
+      "token_string": " capitalize",
+      "score": -11.390625,
+      "z_score": -7.963966377227289
+    },
+    {
+      "token_id": 48332,
+      "token_string": "_sentence",
+      "score": -11.296875,
+      "z_score": -7.8919447386459955
+    },
+    {
+      "token_id": 114311,
+      "token_string": "汉字",
+      "score": -11.081250190734863,
+      "z_score": -7.726295116437418
+    },
+    {
+      "token_id": 60396,
+      "token_string": "标题",
+      "score": -10.800000190734863,
+      "z_score": -7.510230200693537
+    },
+    {
+      "token_id": 73622,
+      "token_string": "Subtitle",
+      "score": -10.592187881469727,
+      "z_score": -7.350582381700068
+    },
+    {
+      "token_id": 73381,
+      "token_string": " shorten",
+      "score": -10.587499618530273,
+      "z_score": -7.346980713657408
+    },
+    {
+      "token_id": 11652,
+      "token_string": " sentence",
+      "score": -10.512499809265137,
+      "z_score": -7.289363549320772
+    },
+    {
+      "token_id": 118585,
+      "token_string": "朗诵",
+      "score": -10.453125,
+      "z_score": -7.243749991414352
+    },
+    {
+      "token_id": 105321,
+      "token_string": "一句话",
+      "score": -10.399999618530273,
+      "z_score": -7.202937436494821
+    },
+    {
+      "token_id": 79542,
+      "token_string": " Sentence",
+      "score": -10.324999809265137,
+      "z_score": -7.145320272158185
+    },
+    {
+      "token_id": 111749,
+      "token_string": "开头",
+      "score": -10.296875,
+      "z_score": -7.123713927112195
+    },
+    {
+      "token_id": 42047,
+      "token_string": " lowercase",
+      "score": -10.296875,
+      "z_score": -7.123713927112195
+    },
+    {
+      "token_id": 73647,
+      "token_string": " prepend",
+      "score": -10.078125,
+      "z_score": -6.955663437089177
+    },
+    {
+      "token_id": 69452,
+      "token_string": " headings",
+      "score": -10.0625,
+      "z_score": -6.943659830658961
+    },
+    {
+      "token_id": 96934,
+      "token_string": " rhyme",
+      "score": -9.981249809265137,
+      "z_score": -6.8812409306934414
+    },
+    {
+      "token_id": 37740,
+      "token_string": " Translate",
+      "score": -9.9375,
+      "z_score": -6.847630979217236
+    },
+    {
+      "token_id": 37600,
+      "token_string": " Caption",
+      "score": -9.915624618530273,
+      "z_score": -6.830825637158137
+    },
+    {
+      "token_id": 56058,
+      "token_string": "(sentence",
+      "score": -9.815625190734863,
+      "z_score": -6.754002995589953
+    },
+    {
+      "token_id": 94371,
+      "token_string": " comedic",
+      "score": -9.712499618530273,
+      "z_score": -6.674778753565334
+    },
+    {
+      "token_id": 50537,
+      "token_string": " terse",
+      "score": -9.675000190734863,
+      "z_score": -6.6459705377180125
+    },
+    {
+      "token_id": 135328,
+      "token_string": "ترجم",
+      "score": -9.665624618530273,
+      "z_score": -6.638767934274687
+    },
+    {
+      "token_id": 116472,
+      "token_string": "大纲",
+      "score": -9.621874809265137,
+      "z_score": -6.605157982798482
+    },
+    {
+      "token_id": 22870,
+      "token_string": " sentences",
+      "score": -9.556249618530273,
+      "z_score": -6.554742689263177
+    },
+    {
+      "token_id": 110485,
+      "token_string": "简洁",
+      "score": -9.515625,
+      "z_score": -6.523533605601414
+    },
+    {
+      "token_id": 76602,
+      "token_string": " commas",
+      "score": -9.515625,
+      "z_score": -6.523533605601414
+    },
+    {
+      "token_id": 116539,
+      "token_string": "连线",
+      "score": -9.465624809265137,
+      "z_score": -6.485121918496326
+    },
+    {
+      "token_id": 118505,
+      "token_string": "诗句",
+      "score": -9.403124809265137,
+      "z_score": -6.437107492775463
+    },
+    {
+      "token_id": 32075,
+      "token_string": ".nextLine",
+      "score": -9.396875381469727,
+      "z_score": -6.432306489788573
+    },
+    {
+      "token_id": 31163,
+      "token_string": " headline",
+      "score": -9.356249809265137,
+      "z_score": -6.401096673484816
+    },
+    {
+      "token_id": 94324,
+      "token_string": ".numberOfLines",
+      "score": -9.34375,
+      "z_score": -6.391493934869042
+    },
+    {
+      "token_id": 63858,
+      "token_string": " Uncomment",
+      "score": -9.34375,
+      "z_score": -6.391493934869042
+    },
+    {
+      "token_id": 25155,
+      "token_string": " Tweet",
+      "score": -9.303125381469727,
+      "z_score": -6.36028485120728
+    },
+    {
+      "token_id": 108391,
+      "token_string": "模仿",
+      "score": -9.295312881469727,
+      "z_score": -6.354283047992172
+    },
+    {
+      "token_id": 111490,
+      "token_string": "意思是",
+      "score": -9.276562690734863,
+      "z_score": -6.339878573747514
+    },
+    {
+      "token_id": 107604,
+      "token_string": "诗歌",
+      "score": -9.171875,
+      "z_score": -6.259454264136671
+    },
+    {
+      "token_id": 23327,
+      "token_string": " shorter",
+      "score": -9.165624618530273,
+      "z_score": -6.254652528507787
+    },
+    {
+      "token_id": 38759,
+      "token_string": ".concatenate",
+      "score": -9.125,
+      "z_score": -6.223443444846024
+    },
+    {
+      "token_id": 114168,
+      "token_string": "前提是",
+      "score": -9.053125381469727,
+      "z_score": -6.16822714832383
+    },
+    {
+      "token_id": 73778,
+      "token_string": ".downcase",
+      "score": -9.046875,
+      "z_score": -6.163425412694946
+    },
+    {
+      "token_id": 108421,
+      "token_string": "模板",
+      "score": -9.009374618530273,
+      "z_score": -6.134616464205631
+    },
+    {
+      "token_id": 62073,
+      "token_string": " uncomment",
+      "score": -9.006250381469727,
+      "z_score": -6.132216329033183
+    },
+    {
+      "token_id": 109023,
+      "token_string": "汉语",
+      "score": -8.939062118530273,
+      "z_score": -6.08060023526966
+    },
+    {
+      "token_id": 108460,
+      "token_string": "幽默",
+      "score": -8.90625,
+      "z_score": -6.055392954823005
+    },
+    {
+      "token_id": 65264,
+      "token_string": "__()\n\n",
+      "score": -8.859375,
+      "z_score": -6.019382135532358
+    },
+    {
+      "token_id": 115127,
+      "token_string": "二字",
+      "score": -8.840624809265137,
+      "z_score": -6.0049776612877
+    },
+    {
+      "token_id": 109855,
+      "token_string": "诗词",
+      "score": -8.840624809265137,
+      "z_score": -6.0049776612877
+    },
+    {
+      "token_id": 95734,
+      "token_string": " Phonetic",
+      "score": -8.828125,
+      "z_score": -5.995374922671927
+    },
+    {
+      "token_id": 106208,
+      "token_string": "摘要",
+      "score": -8.818750381469727,
+      "z_score": -5.988173051870596
+    },
+    {
+      "token_id": 68805,
+      "token_string": "格式",
+      "score": -8.815625190734863,
+      "z_score": -5.985772184056153
+    },
+    {
+      "token_id": 74661,
+      "token_string": "排序",
+      "score": -8.803125381469727,
+      "z_score": -5.976169445440379
+    },
+    {
+      "token_id": 13939,
+      "token_string": " bold",
+      "score": -8.793749809265137,
+      "z_score": -5.968966841997054
+    },
+    {
+      "token_id": 109949,
+      "token_string": "句子",
+      "score": -8.785937309265137,
+      "z_score": -5.962965038781946
+    },
+    {
+      "token_id": 96713,
+      "token_string": "_paragraph",
+      "score": -8.774999618530273,
+      "z_score": -5.954562367752397
+    },
+    {
+      "token_id": 113731,
+      "token_string": "提炼",
+      "score": -8.768750190734863,
+      "z_score": -5.949761364765506
+    },
+    {
+      "token_id": 116893,
+      "token_string": "改成",
+      "score": -8.743749618530273,
+      "z_score": -5.930555154891965
+    },
+    {
+      "token_id": 107872,
+      "token_string": "压缩",
+      "score": -8.709375381469727,
+      "z_score": -5.904147806859086
+    },
+    {
+      "token_id": 115600,
+      "token_string": "去掉",
+      "score": -8.693750381469727,
+      "z_score": -5.89214420042887
+    },
+    {
+      "token_id": 115996,
+      "token_string": "浓缩",
+      "score": -8.6875,
+      "z_score": -5.887342464799986
+    },
+    {
+      "token_id": 110487,
+      "token_string": "简化",
+      "score": -8.6875,
+      "z_score": -5.887342464799986
+    },
+    {
+      "token_id": 111234,
+      "token_string": "喜剧",
+      "score": -8.606249809265137,
+      "z_score": -5.824923564834466
+    },
+    {
+      "token_id": 109762,
+      "token_string": "改为",
+      "score": -8.596875190734863,
+      "z_score": -5.817721694033135
+    },
+    {
+      "token_id": 105855,
+      "token_string": "的意思",
+      "score": -8.571874618530273,
+      "z_score": -5.798515484159593
+    },
+    {
+      "token_id": 111751,
+      "token_string": "听力",
+      "score": -8.515625,
+      "z_score": -5.755302794067615
+    },
+    {
+      "token_id": 57369,
+      "token_string": " humour",
+      "score": -8.481249809265137,
+      "z_score": -5.728894713392742
+    },
+    {
+      "token_id": 68099,
+      "token_string": ".Multiline",
+      "score": -8.453125,
+      "z_score": -5.707288368346752
+    },
+    {
+      "token_id": 43799,
+      "token_string": " simplified",
+      "score": -8.449999809265137,
+      "z_score": -5.70488750053231
+    },
+    {
+      "token_id": 141028,
+      "token_string": "תרגום",
+      "score": -8.421875,
+      "z_score": -5.683281155486321
+    },
+    {
+      "token_id": 116103,
+      "token_string": "普通话",
+      "score": -8.40625,
+      "z_score": -5.671277549056105
+    },
+    {
+      "token_id": 93213,
+      "token_string": " Rewrite",
+      "score": -8.40625,
+      "z_score": -5.671277549056105
+    },
+    {
+      "token_id": 38041,
+      "token_string": " Translation",
+      "score": -8.396875381469727,
+      "z_score": -5.664075678254774
+    },
+    {
+      "token_id": 69888,
+      "token_string": " español",
+      "score": -8.371874809265137,
+      "z_score": -5.644869468381232
+    },
+    {
+      "token_id": 110791,
+      "token_string": "什么意思",
+      "score": -8.346875190734863,
+      "z_score": -5.625663991149684
+    },
+    {
+      "token_id": 109193,
+      "token_string": "概括",
+      "score": -8.342187881469727,
+      "z_score": -5.6220630557490185
+    },
+    {
+      "token_id": 14683,
+      "token_string": " translate",
+      "score": -8.340624809265137,
+      "z_score": -5.620862255520801
+    },
+    {
+      "token_id": 75434,
+      "token_string": " poetic",
+      "score": -8.337499618530273,
+      "z_score": -5.6184613877063585
+    },
+    {
+      "token_id": 60242,
+      "token_string": ".Translate",
+      "score": -8.28125,
+      "z_score": -5.575248697614381
+    },
+    {
+      "token_id": 11809,
+      "token_string": " tweet",
+      "score": -8.278124809265137,
+      "z_score": -5.572847829799938
+    },
+    {
+      "token_id": 39482,
+      "token_string": " uppercase",
+      "score": -8.268750190734863,
+      "z_score": -5.565645958998607
+    },
+    {
+      "token_id": 113113,
+      "token_string": "口语",
+      "score": -8.221875190734863,
+      "z_score": -5.52963513970796
+    },
+    {
+      "token_id": 25909,
+      "token_string": ".translate",
+      "score": -8.221875190734863,
+      "z_score": -5.52963513970796
+    },
+    {
+      "token_id": 115424,
+      "token_string": "填充",
+      "score": -8.21875,
+      "z_score": -5.5272342718935175
+    },
+    {
+      "token_id": 118229,
+      "token_string": "换句话说",
+      "score": -8.21875,
+      "z_score": -5.5272342718935175
+    },
+    {
+      "token_id": 21517,
+      "token_string": " Summary",
+      "score": -8.215624809265137,
+      "z_score": -5.524833404079076
+    },
+    {
+      "token_id": 141882,
+      "token_string": "ภาษาอังกฤษ",
+      "score": -8.168749809265137,
+      "z_score": -5.488822584788429
+    },
+    {
+      "token_id": 107354,
+      "token_string": "填写",
+      "score": -8.153124809265137,
+      "z_score": -5.476818978358214
+    },
+    {
+      "token_id": 143296,
+      "token_string": "シンプル",
+      "score": -8.149999618530273,
+      "z_score": -5.4744181105437715
+    },
+    {
+      "token_id": 48573,
+      "token_string": " TITLE",
+      "score": -8.128125190734863,
+      "z_score": -5.457613501126666
+    },
+    {
+      "token_id": 88252,
+      "token_string": "_________________\n\n",
+      "score": -8.121874809265137,
+      "z_score": -5.452811765497782
+    },
+    {
+      "token_id": 94446,
+      "token_string": ".Italic",
+      "score": -8.121874809265137,
+      "z_score": -5.452811765497782
+    },
+    {
+      "token_id": 70622,
+      "token_string": " pronunciation",
+      "score": -8.118749618530273,
+      "z_score": -5.45041089768334
+    },
+    {
+      "token_id": 61846,
+      "token_string": " verbs",
+      "score": -8.112500190734863,
+      "z_score": -5.44560989469645
+    },
+    {
+      "token_id": 129476,
+      "token_string": "ではなく",
+      "score": -8.09375,
+      "z_score": -5.431205420451793
+    },
+    {
+      "token_id": 100166,
+      "token_string": "结构",
+      "score": -8.068750381469727,
+      "z_score": -5.411999943220246
+    },
+    {
+      "token_id": 111350,
+      "token_string": "几句",
+      "score": -8.068750381469727,
+      "z_score": -5.411999943220246
+    },
+    {
+      "token_id": 28596,
+      "token_string": " Structure",
+      "score": -8.065625190734863,
+      "z_score": -5.409599075405803
+    },
+    {
+      "token_id": 100908,
+      "token_string": "句话",
+      "score": -8.060937881469727,
+      "z_score": -5.405998140005138
+    },
+    {
+      "token_id": 27385,
+      "token_string": " humor",
+      "score": -8.037500381469727,
+      "z_score": -5.387992730359814
+    },
+    {
+      "token_id": 15154,
+      "token_string": " Spanish",
+      "score": -8.028124809265137,
+      "z_score": -5.380790126916488
+    },
+    {
+      "token_id": 94775,
+      "token_string": " abbreviated",
+      "score": -8.021875381469727,
+      "z_score": -5.375989123929599
+    },
+    {
+      "token_id": 95785,
+      "token_string": " SUMMARY",
+      "score": -8.018750190734863,
+      "z_score": -5.3735882561151564
+    },
+    {
+      "token_id": 81395,
+      "token_string": " satire",
+      "score": -7.984375,
+      "z_score": -5.3471801754402835
+    },
+    {
+      "token_id": 69846,
+      "token_string": " humorous",
+      "score": -7.981249809265137,
+      "z_score": -5.344779307625841
+    },
+    {
+      "token_id": 10869,
+      "token_string": " Title",
+      "score": -7.981249809265137,
+      "z_score": -5.344779307625841
+    },
+    {
+      "token_id": 138488,
+      "token_string": "สั้น",
+      "score": -7.981249809265137,
+      "z_score": -5.344779307625841
+    },
+    {
+      "token_id": 142658,
+      "token_string": " Español",
+      "score": -7.978125095367432,
+      "z_score": -5.3423788061323965
+    },
+    {
+      "token_id": 98402,
+      "token_string": "长度",
+      "score": -7.853125095367432,
+      "z_score": -5.246349954690672
+    },
+    {
+      "token_id": 82196,
+      "token_string": ".AutoComplete",
+      "score": -7.834374904632568,
+      "z_score": -5.231945480446014
+    },
+    {
+      "token_id": 139055,
+      "token_string": " перевод",
+      "score": -7.834374904632568,
+      "z_score": -5.231945480446014
+    },
+    {
+      "token_id": 40351,
+      "token_string": ".Caption",
+      "score": -7.828125,
+      "z_score": -5.227144111138127
+    },
+    {
+      "token_id": 104105,
+      "token_string": "英语",
+      "score": -7.821875095367432,
+      "z_score": -5.22234274183024
+    },
+    {
+      "token_id": 13044,
+      "token_string": "_START",
+      "score": -7.803124904632568,
+      "z_score": -5.2079382675855825
+    },
+    {
+      "token_id": 109542,
+      "token_string": "搞笑",
+      "score": -7.784375190734863,
+      "z_score": -5.1935341596619224
+    },
+    {
+      "token_id": 81436,
+      "token_string": " 😉\n\n",
+      "score": -7.784375190734863,
+      "z_score": -5.1935341596619224
+    },
+    {
+      "token_id": 58573,
+      "token_string": ".BOLD",
+      "score": -7.765625,
+      "z_score": -5.179129685417265
+    },
+    {
+      "token_id": 27632,
+      "token_string": "EMPLATE",
+      "score": -7.731249809265137,
+      "z_score": -5.152721604742392
+    },
+    {
+      "token_id": 81653,
+      "token_string": ".interpolate",
+      "score": -7.728125095367432,
+      "z_score": -5.150321103248947
+    },
+    {
+      "token_id": 111198,
+      "token_string": "指的是",
+      "score": -7.715624809265137,
+      "z_score": -5.140717998312176
+    },
+    {
+      "token_id": 77651,
+      "token_string": " tokenize",
+      "score": -7.706250190734863,
+      "z_score": -5.133516127510844
+    },
+    {
+      "token_id": 85832,
+      "token_string": " pauses",
+      "score": -7.690625190734863,
+      "z_score": -5.1215125210806285
+    },
+    {
+      "token_id": 109931,
+      "token_string": "原文地址",
+      "score": -7.6875,
+      "z_score": -5.119111653266187
+    },
+    {
+      "token_id": 18130,
+      "token_string": " rewrite",
+      "score": -7.668749809265137,
+      "z_score": -5.1047071790215295
+    },
+    {
+      "token_id": 106599,
+      "token_string": "这句话",
+      "score": -7.660937309265137,
+      "z_score": -5.098705375806421
+    },
+    {
+      "token_id": 59192,
+      "token_string": "-uppercase",
+      "score": -7.65625,
+      "z_score": -5.0951044404057555
+    },
+    {
+      "token_id": 85292,
+      "token_string": "Italic",
+      "score": -7.653124809265137,
+      "z_score": -5.092703572591313
+    },
+    {
+      "token_id": 49779,
+      "token_string": ".StartsWith",
+      "score": -7.646874904632568,
+      "z_score": -5.087902203283426
+    },
+    {
+      "token_id": 39721,
+      "token_string": " simplify",
+      "score": -7.640625,
+      "z_score": -5.08310083397554
+    },
+    {
+      "token_id": 42643,
+      "token_string": " paragraphs",
+      "score": -7.637499809265137,
+      "z_score": -5.080699966161098
+    },
+    {
+      "token_id": 130921,
+      "token_string": "המשך",
+      "score": -7.609375,
+      "z_score": -5.0590936211151085
+    },
+    {
+      "token_id": 17256,
+      "token_string": " caption",
+      "score": -7.603125095367432,
+      "z_score": -5.0542922518072215
+    },
+    {
+      "token_id": 115059,
+      "token_string": "可知",
+      "score": -7.596875190734863,
+      "z_score": -5.0494908824993345
+    },
+    {
+      "token_id": 106589,
+      "token_string": "原标题",
+      "score": -7.584374904632568,
+      "z_score": -5.039887777562564
+    },
+    {
+      "token_id": 61000,
+      "token_string": "_FILL",
+      "score": -7.578125,
+      "z_score": -5.035086408254677
+    },
+    {
+      "token_id": 106474,
+      "token_string": "转化为",
+      "score": -7.5625,
+      "z_score": -5.0230828018244615
+    },
+    {
+      "token_id": 10052,
+      "token_string": ".stringify",
+      "score": -7.550000190734863,
+      "z_score": -5.013480063208688
+    },
+    {
+      "token_id": 61977,
+      "token_string": " Grammar",
+      "score": -7.540625095367432,
+      "z_score": -5.006277826086359
+    },
+    {
+      "token_id": 54367,
+      "token_string": " français",
+      "score": -7.537499904632568,
+      "z_score": -5.003876958271917
+    },
+    {
+      "token_id": 80577,
+      "token_string": " OCR",
+      "score": -7.534375190734863,
+      "z_score": -5.001476456778472
+    },
+    {
+      "token_id": 77032,
+      "token_string": " spanish",
+      "score": -7.53125,
+      "z_score": -4.999075588964031
+    },
+    {
+      "token_id": 65563,
+      "token_string": " shortened",
+      "score": -7.528124809265137,
+      "z_score": -4.9966747211495885
+    },
+    {
+      "token_id": 94445,
+      "token_string": " rewriting",
+      "score": -7.521874904632568,
+      "z_score": -4.991873351841702
+    },
+    {
+      "token_id": 133001,
+      "token_string": "流れ",
+      "score": -7.5,
+      "z_score": -4.975068376103599
+    },
+    {
+      "token_id": 103062,
+      "token_string": "过渡",
+      "score": -7.474999904632568,
+      "z_score": -4.955862532551055
+    },
+    {
+      "token_id": 114355,
+      "token_string": "歌词",
+      "score": -7.471875190734863,
+      "z_score": -4.95346203105761
+    },
+    {
+      "token_id": 118027,
+      "token_string": "重构",
+      "score": -7.456250190734863,
+      "z_score": -4.9414584246273945
+    },
+    {
+      "token_id": 118809,
+      "token_string": "配音",
+      "score": -7.453125,
+      "z_score": -4.939057556812952
+    },
+    {
+      "token_id": 6980,
+      "token_string": ".replace",
+      "score": -7.449999809265137,
+      "z_score": -4.936656688998511
+    },
+    {
+      "token_id": 141023,
+      "token_string": " английск",
+      "score": -7.443749904632568,
+      "z_score": -4.931855319690624
+    },
+    {
+      "token_id": 111276,
+      "token_string": "中式",
+      "score": -7.434374809265137,
+      "z_score": -4.924653082568295
+    },
+    {
+      "token_id": 111268,
+      "token_string": "音频",
+      "score": -7.425000190734863,
+      "z_score": -4.917451211766963
+    },
+    {
+      "token_id": 132971,
+      "token_string": " précis",
+      "score": -7.418749809265137,
+      "z_score": -4.912649476138079
+    },
+    {
+      "token_id": 92992,
+      "token_string": ".Summary",
+      "score": -7.40625,
+      "z_score": -4.903046737522305
+    },
+    {
+      "token_id": 116464,
+      "token_string": "长短",
+      "score": -7.403124809265137,
+      "z_score": -4.900645869707864
+    },
+    {
+      "token_id": 118129,
+      "token_string": "阅读全文",
+      "score": -7.396874904632568,
+      "z_score": -4.895844500399977
+    },
+    {
+      "token_id": 52225,
+      "token_string": " FORMAT",
+      "score": -7.393750190734863,
+      "z_score": -4.893443998906532
+    },
+    {
+      "token_id": 109962,
+      "token_string": "简约",
+      "score": -7.384375095367432,
+      "z_score": -4.886241761784203
+    },
+    {
+      "token_id": 113892,
+      "token_string": "结构调整",
+      "score": -7.381249904632568,
+      "z_score": -4.8838408939697615
+    },
+    {
+      "token_id": 136368,
+      "token_string": "のではないでしょうか",
+      "score": -7.381249904632568,
+      "z_score": -4.8838408939697615
+    },
+    {
+      "token_id": 42802,
+      "token_string": "_DIALOG",
+      "score": -7.381249904632568,
+      "z_score": -4.8838408939697615
+    },
+    {
+      "token_id": 56772,
+      "token_string": " truncate",
+      "score": -7.378125190734863,
+      "z_score": -4.881440392476316
+    },
+    {
+      "token_id": 143990,
+      "token_string": " cümle",
+      "score": -7.365624904632568,
+      "z_score": -4.871837287539545
+    },
+    {
+      "token_id": 53644,
+      "token_string": ".translation",
+      "score": -7.356249809265137,
+      "z_score": -4.864635050417217
+    },
+    {
+      "token_id": 113272,
+      "token_string": "推理",
+      "score": -7.331250190734863,
+      "z_score": -4.845429573185669
+    },
+    {
+      "token_id": 127887,
+      "token_string": "อังกฤษ",
+      "score": -7.331250190734863,
+      "z_score": -4.845429573185669
+    },
+    {
+      "token_id": 141084,
+      "token_string": " tłumacz",
+      "score": -7.328125,
+      "z_score": -4.8430287053712275
+    },
+    {
+      "token_id": 103709,
+      "token_string": "结构性",
+      "score": -7.324999809265137,
+      "z_score": -4.840627837556785
+    },
+    {
+      "token_id": 80077,
+      "token_string": "<Select",
+      "score": -7.324999809265137,
+      "z_score": -4.840627837556785
+    },
+    {
+      "token_id": 76066,
+      "token_string": "_STARTED",
+      "score": -7.315625190734863,
+      "z_score": -4.8334259667554536
+    },
+    {
+      "token_id": 15042,
+      "token_string": " Format",
+      "score": -7.309374809265137,
+      "z_score": -4.82862423112657
+    },
+    {
+      "token_id": 10633,
+      "token_string": "_replace",
+      "score": -7.306250095367432,
+      "z_score": -4.826223729633125
+    },
+    {
+      "token_id": 118719,
+      "token_string": "看不懂",
+      "score": -7.290625095367432,
+      "z_score": -4.814220123202909
+    },
+    {
+      "token_id": 74052,
+      "token_string": "_rewrite",
+      "score": -7.284375190734863,
+      "z_score": -4.809418753895023
+    },
+    {
+      "token_id": 88988,
+      "token_string": "[]{\n",
+      "score": -7.28125,
+      "z_score": -4.807017886080581
+    },
+    {
+      "token_id": 117246,
+      "token_string": "考查",
+      "score": -7.262499809265137,
+      "z_score": -4.792613411835923
+    },
+    {
+      "token_id": 110011,
+      "token_string": "单词",
+      "score": -7.259375095367432,
+      "z_score": -4.790212910342478
+    },
+    {
+      "token_id": 63594,
+      "token_string": " concise",
+      "score": -7.256249904632568,
+      "z_score": -4.787812042528036
+    },
+    {
+      "token_id": 115684,
+      "token_string": "废话",
+      "score": -7.253125190734863,
+      "z_score": -4.785411541034591
+    },
+    {
+      "token_id": 62079,
+      "token_string": " summarize",
+      "score": -7.231249809265137,
+      "z_score": -4.768606198975491
+    },
+    {
+      "token_id": 127841,
+      "token_string": "のではない",
+      "score": -7.224999904632568,
+      "z_score": -4.763804829667605
+    },
+    {
+      "token_id": 66157,
+      "token_string": "_FRAGMENT",
+      "score": -7.221875190734863,
+      "z_score": -4.76140432817416
+    },
+    {
+      "token_id": 75903,
+      "token_string": "_sentences",
+      "score": -7.212500095367432,
+      "z_score": -4.754202091051831
+    },
+    {
+      "token_id": 22358,
+      "token_string": " comedy",
+      "score": -7.206250190734863,
+      "z_score": -4.749400721743944
+    },
+    {
+      "token_id": 113467,
+      "token_string": "一字",
+      "score": -7.184374809265137,
+      "z_score": -4.732595379684845
+    },
+    {
+      "token_id": 69592,
+      "token_string": " indentation",
+      "score": -7.178124904632568,
+      "z_score": -4.727794010376958
+    },
+    {
+      "token_id": 73350,
+      "token_string": " synonym",
+      "score": -7.175000190734863,
+      "z_score": -4.7253935088835135
+    },
+    {
+      "token_id": 14311,
+      "token_string": " paragraph",
+      "score": -7.175000190734863,
+      "z_score": -4.7253935088835135
+    },
+    {
+      "token_id": 51349,
+      "token_string": " Heading",
+      "score": -7.171875,
+      "z_score": -4.722992641069071
+    },
+    {
+      "token_id": 82633,
+      "token_string": " witty",
+      "score": -7.168749809265137,
+      "z_score": -4.720591773254629
+    },
+    {
+      "token_id": 102610,
+      "token_string": "译",
+      "score": -7.165625095367432,
+      "z_score": -4.718191271761184
+    },
+    {
+      "token_id": 71387,
+      "token_string": " verbosity",
+      "score": -7.165625095367432,
+      "z_score": -4.718191271761184
+    },
+    {
+      "token_id": 83184,
+      "token_string": " reorder",
+      "score": -7.165625095367432,
+      "z_score": -4.718191271761184
+    }
+  ],
+  "outliers_iqr": [
+    {
+      "token_id": 78498,
+      "token_string": ".capitalize",
+      "score": -15.573437690734863
+    },
+    {
+      "token_id": 116256,
+      "token_string": "拼音",
+      "score": -14.098437309265137
+    },
+    {
+      "token_id": 113411,
+      "token_string": "八字",
+      "score": -12.746874809265137
+    },
+    {
+      "token_id": 96790,
+      "token_string": ".tokenize",
+      "score": -12.720312118530273
+    },
+    {
+      "token_id": 105395,
+      "token_string": "翻译",
+      "score": -12.220312118530273
+    },
+    {
+      "token_id": 91396,
+      "token_string": " crossword",
+      "score": -12.0
+    },
+    {
+      "token_id": 34313,
+      "token_string": "italize",
+      "score": -11.840624809265137
+    },
+    {
+      "token_id": 116966,
+      "token_string": "发音",
+      "score": -11.776562690734863
+    },
+    {
+      "token_id": 114942,
+      "token_string": "两句",
+      "score": -11.642187118530273
+    },
+    {
+      "token_id": 61503,
+      "token_string": " punctuation",
+      "score": -11.493749618530273
+    },
+    {
+      "token_id": 52725,
+      "token_string": " capitalize",
+      "score": -11.390625
+    },
+    {
+      "token_id": 48332,
+      "token_string": "_sentence",
+      "score": -11.296875
+    },
+    {
+      "token_id": 114311,
+      "token_string": "汉字",
+      "score": -11.081250190734863
+    },
+    {
+      "token_id": 60396,
+      "token_string": "标题",
+      "score": -10.800000190734863
+    },
+    {
+      "token_id": 73622,
+      "token_string": "Subtitle",
+      "score": -10.592187881469727
+    },
+    {
+      "token_id": 73381,
+      "token_string": " shorten",
+      "score": -10.587499618530273
+    },
+    {
+      "token_id": 11652,
+      "token_string": " sentence",
+      "score": -10.512499809265137
+    },
+    {
+      "token_id": 118585,
+      "token_string": "朗诵",
+      "score": -10.453125
+    },
+    {
+      "token_id": 105321,
+      "token_string": "一句话",
+      "score": -10.399999618530273
+    },
+    {
+      "token_id": 79542,
+      "token_string": " Sentence",
+      "score": -10.324999809265137
+    },
+    {
+      "token_id": 42047,
+      "token_string": " lowercase",
+      "score": -10.296875
+    },
+    {
+      "token_id": 111749,
+      "token_string": "开头",
+      "score": -10.296875
+    },
+    {
+      "token_id": 73647,
+      "token_string": " prepend",
+      "score": -10.078125
+    },
+    {
+      "token_id": 69452,
+      "token_string": " headings",
+      "score": -10.0625
+    },
+    {
+      "token_id": 96934,
+      "token_string": " rhyme",
+      "score": -9.981249809265137
+    },
+    {
+      "token_id": 37740,
+      "token_string": " Translate",
+      "score": -9.9375
+    },
+    {
+      "token_id": 37600,
+      "token_string": " Caption",
+      "score": -9.915624618530273
+    },
+    {
+      "token_id": 56058,
+      "token_string": "(sentence",
+      "score": -9.815625190734863
+    },
+    {
+      "token_id": 94371,
+      "token_string": " comedic",
+      "score": -9.712499618530273
+    },
+    {
+      "token_id": 50537,
+      "token_string": " terse",
+      "score": -9.675000190734863
+    },
+    {
+      "token_id": 135328,
+      "token_string": "ترجم",
+      "score": -9.665624618530273
+    },
+    {
+      "token_id": 116472,
+      "token_string": "大纲",
+      "score": -9.621874809265137
+    },
+    {
+      "token_id": 22870,
+      "token_string": " sentences",
+      "score": -9.556249618530273
+    },
+    {
+      "token_id": 76602,
+      "token_string": " commas",
+      "score": -9.515625
+    },
+    {
+      "token_id": 110485,
+      "token_string": "简洁",
+      "score": -9.515625
+    },
+    {
+      "token_id": 116539,
+      "token_string": "连线",
+      "score": -9.465624809265137
+    },
+    {
+      "token_id": 118505,
+      "token_string": "诗句",
+      "score": -9.403124809265137
+    },
+    {
+      "token_id": 32075,
+      "token_string": ".nextLine",
+      "score": -9.396875381469727
+    },
+    {
+      "token_id": 31163,
+      "token_string": " headline",
+      "score": -9.356249809265137
+    },
+    {
+      "token_id": 63858,
+      "token_string": " Uncomment",
+      "score": -9.34375
+    },
+    {
+      "token_id": 94324,
+      "token_string": ".numberOfLines",
+      "score": -9.34375
+    },
+    {
+      "token_id": 25155,
+      "token_string": " Tweet",
+      "score": -9.303125381469727
+    },
+    {
+      "token_id": 108391,
+      "token_string": "模仿",
+      "score": -9.295312881469727
+    },
+    {
+      "token_id": 111490,
+      "token_string": "意思是",
+      "score": -9.276562690734863
+    },
+    {
+      "token_id": 107604,
+      "token_string": "诗歌",
+      "score": -9.171875
+    },
+    {
+      "token_id": 23327,
+      "token_string": " shorter",
+      "score": -9.165624618530273
+    },
+    {
+      "token_id": 38759,
+      "token_string": ".concatenate",
+      "score": -9.125
+    },
+    {
+      "token_id": 114168,
+      "token_string": "前提是",
+      "score": -9.053125381469727
+    },
+    {
+      "token_id": 73778,
+      "token_string": ".downcase",
+      "score": -9.046875
+    },
+    {
+      "token_id": 108421,
+      "token_string": "模板",
+      "score": -9.009374618530273
+    },
+    {
+      "token_id": 62073,
+      "token_string": " uncomment",
+      "score": -9.006250381469727
+    },
+    {
+      "token_id": 109023,
+      "token_string": "汉语",
+      "score": -8.939062118530273
+    },
+    {
+      "token_id": 108460,
+      "token_string": "幽默",
+      "score": -8.90625
+    },
+    {
+      "token_id": 65264,
+      "token_string": "__()\n\n",
+      "score": -8.859375
+    },
+    {
+      "token_id": 109855,
+      "token_string": "诗词",
+      "score": -8.840624809265137
+    },
+    {
+      "token_id": 115127,
+      "token_string": "二字",
+      "score": -8.840624809265137
+    },
+    {
+      "token_id": 95734,
+      "token_string": " Phonetic",
+      "score": -8.828125
+    },
+    {
+      "token_id": 106208,
+      "token_string": "摘要",
+      "score": -8.818750381469727
+    },
+    {
+      "token_id": 68805,
+      "token_string": "格式",
+      "score": -8.815625190734863
+    },
+    {
+      "token_id": 74661,
+      "token_string": "排序",
+      "score": -8.803125381469727
+    },
+    {
+      "token_id": 13939,
+      "token_string": " bold",
+      "score": -8.793749809265137
+    },
+    {
+      "token_id": 109949,
+      "token_string": "句子",
+      "score": -8.785937309265137
+    },
+    {
+      "token_id": 96713,
+      "token_string": "_paragraph",
+      "score": -8.774999618530273
+    },
+    {
+      "token_id": 113731,
+      "token_string": "提炼",
+      "score": -8.768750190734863
+    },
+    {
+      "token_id": 116893,
+      "token_string": "改成",
+      "score": -8.743749618530273
+    },
+    {
+      "token_id": 107872,
+      "token_string": "压缩",
+      "score": -8.709375381469727
+    },
+    {
+      "token_id": 115600,
+      "token_string": "去掉",
+      "score": -8.693750381469727
+    },
+    {
+      "token_id": 115996,
+      "token_string": "浓缩",
+      "score": -8.6875
+    },
+    {
+      "token_id": 110487,
+      "token_string": "简化",
+      "score": -8.6875
+    },
+    {
+      "token_id": 111234,
+      "token_string": "喜剧",
+      "score": -8.606249809265137
+    },
+    {
+      "token_id": 109762,
+      "token_string": "改为",
+      "score": -8.596875190734863
+    },
+    {
+      "token_id": 105855,
+      "token_string": "的意思",
+      "score": -8.571874618530273
+    },
+    {
+      "token_id": 111751,
+      "token_string": "听力",
+      "score": -8.515625
+    },
+    {
+      "token_id": 57369,
+      "token_string": " humour",
+      "score": -8.481249809265137
+    },
+    {
+      "token_id": 68099,
+      "token_string": ".Multiline",
+      "score": -8.453125
+    },
+    {
+      "token_id": 43799,
+      "token_string": " simplified",
+      "score": -8.449999809265137
+    },
+    {
+      "token_id": 141028,
+      "token_string": "תרגום",
+      "score": -8.421875
+    },
+    {
+      "token_id": 116103,
+      "token_string": "普通话",
+      "score": -8.40625
+    },
+    {
+      "token_id": 93213,
+      "token_string": " Rewrite",
+      "score": -8.40625
+    },
+    {
+      "token_id": 38041,
+      "token_string": " Translation",
+      "score": -8.396875381469727
+    },
+    {
+      "token_id": 69888,
+      "token_string": " español",
+      "score": -8.371874809265137
+    },
+    {
+      "token_id": 110791,
+      "token_string": "什么意思",
+      "score": -8.346875190734863
+    },
+    {
+      "token_id": 109193,
+      "token_string": "概括",
+      "score": -8.342187881469727
+    },
+    {
+      "token_id": 14683,
+      "token_string": " translate",
+      "score": -8.340624809265137
+    },
+    {
+      "token_id": 75434,
+      "token_string": " poetic",
+      "score": -8.337499618530273
+    },
+    {
+      "token_id": 60242,
+      "token_string": ".Translate",
+      "score": -8.28125
+    },
+    {
+      "token_id": 11809,
+      "token_string": " tweet",
+      "score": -8.278124809265137
+    },
+    {
+      "token_id": 39482,
+      "token_string": " uppercase",
+      "score": -8.268750190734863
+    },
+    {
+      "token_id": 25909,
+      "token_string": ".translate",
+      "score": -8.221875190734863
+    },
+    {
+      "token_id": 113113,
+      "token_string": "口语",
+      "score": -8.221875190734863
+    },
+    {
+      "token_id": 115424,
+      "token_string": "填充",
+      "score": -8.21875
+    },
+    {
+      "token_id": 118229,
+      "token_string": "换句话说",
+      "score": -8.21875
+    },
+    {
+      "token_id": 21517,
+      "token_string": " Summary",
+      "score": -8.215624809265137
+    },
+    {
+      "token_id": 141882,
+      "token_string": "ภาษาอังกฤษ",
+      "score": -8.168749809265137
+    },
+    {
+      "token_id": 107354,
+      "token_string": "填写",
+      "score": -8.153124809265137
+    },
+    {
+      "token_id": 143296,
+      "token_string": "シンプル",
+      "score": -8.149999618530273
+    },
+    {
+      "token_id": 48573,
+      "token_string": " TITLE",
+      "score": -8.128125190734863
+    },
+    {
+      "token_id": 88252,
+      "token_string": "_________________\n\n",
+      "score": -8.121874809265137
+    },
+    {
+      "token_id": 94446,
+      "token_string": ".Italic",
+      "score": -8.121874809265137
+    },
+    {
+      "token_id": 70622,
+      "token_string": " pronunciation",
+      "score": -8.118749618530273
+    },
+    {
+      "token_id": 61846,
+      "token_string": " verbs",
+      "score": -8.112500190734863
+    },
+    {
+      "token_id": 129476,
+      "token_string": "ではなく",
+      "score": -8.09375
+    },
+    {
+      "token_id": 111350,
+      "token_string": "几句",
+      "score": -8.068750381469727
+    },
+    {
+      "token_id": 100166,
+      "token_string": "结构",
+      "score": -8.068750381469727
+    },
+    {
+      "token_id": 28596,
+      "token_string": " Structure",
+      "score": -8.065625190734863
+    },
+    {
+      "token_id": 100908,
+      "token_string": "句话",
+      "score": -8.060937881469727
+    },
+    {
+      "token_id": 27385,
+      "token_string": " humor",
+      "score": -8.037500381469727
+    },
+    {
+      "token_id": 15154,
+      "token_string": " Spanish",
+      "score": -8.028124809265137
+    },
+    {
+      "token_id": 94775,
+      "token_string": " abbreviated",
+      "score": -8.021875381469727
+    },
+    {
+      "token_id": 95785,
+      "token_string": " SUMMARY",
+      "score": -8.018750190734863
+    },
+    {
+      "token_id": 81395,
+      "token_string": " satire",
+      "score": -7.984375
+    },
+    {
+      "token_id": 138488,
+      "token_string": "สั้น",
+      "score": -7.981249809265137
+    },
+    {
+      "token_id": 69846,
+      "token_string": " humorous",
+      "score": -7.981249809265137
+    },
+    {
+      "token_id": 10869,
+      "token_string": " Title",
+      "score": -7.981249809265137
+    },
+    {
+      "token_id": 142658,
+      "token_string": " Español",
+      "score": -7.978125095367432
+    },
+    {
+      "token_id": 98402,
+      "token_string": "长度",
+      "score": -7.853125095367432
+    },
+    {
+      "token_id": 82196,
+      "token_string": ".AutoComplete",
+      "score": -7.834374904632568
+    },
+    {
+      "token_id": 139055,
+      "token_string": " перевод",
+      "score": -7.834374904632568
+    },
+    {
+      "token_id": 40351,
+      "token_string": ".Caption",
+      "score": -7.828125
+    },
+    {
+      "token_id": 104105,
+      "token_string": "英语",
+      "score": -7.821875095367432
+    },
+    {
+      "token_id": 13044,
+      "token_string": "_START",
+      "score": -7.803124904632568
+    },
+    {
+      "token_id": 81436,
+      "token_string": " 😉\n\n",
+      "score": -7.784375190734863
+    },
+    {
+      "token_id": 109542,
+      "token_string": "搞笑",
+      "score": -7.784375190734863
+    },
+    {
+      "token_id": 58573,
+      "token_string": ".BOLD",
+      "score": -7.765625
+    },
+    {
+      "token_id": 27632,
+      "token_string": "EMPLATE",
+      "score": -7.731249809265137
+    },
+    {
+      "token_id": 81653,
+      "token_string": ".interpolate",
+      "score": -7.728125095367432
+    },
+    {
+      "token_id": 111198,
+      "token_string": "指的是",
+      "score": -7.715624809265137
+    },
+    {
+      "token_id": 77651,
+      "token_string": " tokenize",
+      "score": -7.706250190734863
+    },
+    {
+      "token_id": 85832,
+      "token_string": " pauses",
+      "score": -7.690625190734863
+    },
+    {
+      "token_id": 109931,
+      "token_string": "原文地址",
+      "score": -7.6875
+    },
+    {
+      "token_id": 18130,
+      "token_string": " rewrite",
+      "score": -7.668749809265137
+    },
+    {
+      "token_id": 106599,
+      "token_string": "这句话",
+      "score": -7.660937309265137
+    },
+    {
+      "token_id": 59192,
+      "token_string": "-uppercase",
+      "score": -7.65625
+    },
+    {
+      "token_id": 85292,
+      "token_string": "Italic",
+      "score": -7.653124809265137
+    },
+    {
+      "token_id": 49779,
+      "token_string": ".StartsWith",
+      "score": -7.646874904632568
+    },
+    {
+      "token_id": 39721,
+      "token_string": " simplify",
+      "score": -7.640625
+    },
+    {
+      "token_id": 42643,
+      "token_string": " paragraphs",
+      "score": -7.637499809265137
+    },
+    {
+      "token_id": 130921,
+      "token_string": "המשך",
+      "score": -7.609375
+    },
+    {
+      "token_id": 17256,
+      "token_string": " caption",
+      "score": -7.603125095367432
+    },
+    {
+      "token_id": 115059,
+      "token_string": "可知",
+      "score": -7.596875190734863
+    },
+    {
+      "token_id": 106589,
+      "token_string": "原标题",
+      "score": -7.584374904632568
+    },
+    {
+      "token_id": 61000,
+      "token_string": "_FILL",
+      "score": -7.578125
+    },
+    {
+      "token_id": 106474,
+      "token_string": "转化为",
+      "score": -7.5625
+    },
+    {
+      "token_id": 10052,
+      "token_string": ".stringify",
+      "score": -7.550000190734863
+    },
+    {
+      "token_id": 61977,
+      "token_string": " Grammar",
+      "score": -7.540625095367432
+    },
+    {
+      "token_id": 54367,
+      "token_string": " français",
+      "score": -7.537499904632568
+    },
+    {
+      "token_id": 80577,
+      "token_string": " OCR",
+      "score": -7.534375190734863
+    },
+    {
+      "token_id": 77032,
+      "token_string": " spanish",
+      "score": -7.53125
+    },
+    {
+      "token_id": 65563,
+      "token_string": " shortened",
+      "score": -7.528124809265137
+    },
+    {
+      "token_id": 94445,
+      "token_string": " rewriting",
+      "score": -7.521874904632568
+    },
+    {
+      "token_id": 133001,
+      "token_string": "流れ",
+      "score": -7.5
+    },
+    {
+      "token_id": 103062,
+      "token_string": "过渡",
+      "score": -7.474999904632568
+    },
+    {
+      "token_id": 114355,
+      "token_string": "歌词",
+      "score": -7.471875190734863
+    },
+    {
+      "token_id": 118027,
+      "token_string": "重构",
+      "score": -7.456250190734863
+    },
+    {
+      "token_id": 118809,
+      "token_string": "配音",
+      "score": -7.453125
+    },
+    {
+      "token_id": 6980,
+      "token_string": ".replace",
+      "score": -7.449999809265137
+    },
+    {
+      "token_id": 141023,
+      "token_string": " английск",
+      "score": -7.443749904632568
+    },
+    {
+      "token_id": 111276,
+      "token_string": "中式",
+      "score": -7.434374809265137
+    },
+    {
+      "token_id": 111268,
+      "token_string": "音频",
+      "score": -7.425000190734863
+    },
+    {
+      "token_id": 132971,
+      "token_string": " précis",
+      "score": -7.418749809265137
+    },
+    {
+      "token_id": 92992,
+      "token_string": ".Summary",
+      "score": -7.40625
+    },
+    {
+      "token_id": 116464,
+      "token_string": "长短",
+      "score": -7.403124809265137
+    },
+    {
+      "token_id": 118129,
+      "token_string": "阅读全文",
+      "score": -7.396874904632568
+    },
+    {
+      "token_id": 52225,
+      "token_string": " FORMAT",
+      "score": -7.393750190734863
+    },
+    {
+      "token_id": 109962,
+      "token_string": "简约",
+      "score": -7.384375095367432
+    },
+    {
+      "token_id": 113892,
+      "token_string": "结构调整",
+      "score": -7.381249904632568
+    },
+    {
+      "token_id": 42802,
+      "token_string": "_DIALOG",
+      "score": -7.381249904632568
+    },
+    {
+      "token_id": 136368,
+      "token_string": "のではないでしょうか",
+      "score": -7.381249904632568
+    },
+    {
+      "token_id": 56772,
+      "token_string": " truncate",
+      "score": -7.378125190734863
+    },
+    {
+      "token_id": 143990,
+      "token_string": " cümle",
+      "score": -7.365624904632568
+    },
+    {
+      "token_id": 53644,
+      "token_string": ".translation",
+      "score": -7.356249809265137
+    },
+    {
+      "token_id": 127887,
+      "token_string": "อังกฤษ",
+      "score": -7.331250190734863
+    },
+    {
+      "token_id": 113272,
+      "token_string": "推理",
+      "score": -7.331250190734863
+    },
+    {
+      "token_id": 141084,
+      "token_string": " tłumacz",
+      "score": -7.328125
+    },
+    {
+      "token_id": 80077,
+      "token_string": "<Select",
+      "score": -7.324999809265137
+    },
+    {
+      "token_id": 103709,
+      "token_string": "结构性",
+      "score": -7.324999809265137
+    },
+    {
+      "token_id": 76066,
+      "token_string": "_STARTED",
+      "score": -7.315625190734863
+    },
+    {
+      "token_id": 15042,
+      "token_string": " Format",
+      "score": -7.309374809265137
+    },
+    {
+      "token_id": 10633,
+      "token_string": "_replace",
+      "score": -7.306250095367432
+    },
+    {
+      "token_id": 118719,
+      "token_string": "看不懂",
+      "score": -7.290625095367432
+    },
+    {
+      "token_id": 74052,
+      "token_string": "_rewrite",
+      "score": -7.284375190734863
+    },
+    {
+      "token_id": 88988,
+      "token_string": "[]{\n",
+      "score": -7.28125
+    },
+    {
+      "token_id": 117246,
+      "token_string": "考查",
+      "score": -7.262499809265137
+    },
+    {
+      "token_id": 110011,
+      "token_string": "单词",
+      "score": -7.259375095367432
+    },
+    {
+      "token_id": 63594,
+      "token_string": " concise",
+      "score": -7.256249904632568
+    },
+    {
+      "token_id": 115684,
+      "token_string": "废话",
+      "score": -7.253125190734863
+    },
+    {
+      "token_id": 62079,
+      "token_string": " summarize",
+      "score": -7.231249809265137
+    },
+    {
+      "token_id": 127841,
+      "token_string": "のではない",
+      "score": -7.224999904632568
+    },
+    {
+      "token_id": 66157,
+      "token_string": "_FRAGMENT",
+      "score": -7.221875190734863
+    },
+    {
+      "token_id": 75903,
+      "token_string": "_sentences",
+      "score": -7.212500095367432
+    },
+    {
+      "token_id": 22358,
+      "token_string": " comedy",
+      "score": -7.206250190734863
+    },
+    {
+      "token_id": 113467,
+      "token_string": "一字",
+      "score": -7.184374809265137
+    },
+    {
+      "token_id": 69592,
+      "token_string": " indentation",
+      "score": -7.178124904632568
+    },
+    {
+      "token_id": 14311,
+      "token_string": " paragraph",
+      "score": -7.175000190734863
+    },
+    {
+      "token_id": 73350,
+      "token_string": " synonym",
+      "score": -7.175000190734863
+    },
+    {
+      "token_id": 51349,
+      "token_string": " Heading",
+      "score": -7.171875
+    },
+    {
+      "token_id": 82633,
+      "token_string": " witty",
+      "score": -7.168749809265137
+    },
+    {
+      "token_id": 83184,
+      "token_string": " reorder",
+      "score": -7.165625095367432
+    },
+    {
+      "token_id": 71387,
+      "token_string": " verbosity",
+      "score": -7.165625095367432
+    },
+    {
+      "token_id": 102610,
+      "token_string": "译",
+      "score": -7.165625095367432
+    }
+  ],
+  "outliers_zscore": [
+    {
+      "token_id": 78498,
+      "token_string": ".capitalize",
+      "score": -15.573437690734863
+    },
+    {
+      "token_id": 116256,
+      "token_string": "拼音",
+      "score": -14.098437309265137
+    },
+    {
+      "token_id": 113411,
+      "token_string": "八字",
+      "score": -12.746874809265137
+    },
+    {
+      "token_id": 96790,
+      "token_string": ".tokenize",
+      "score": -12.720312118530273
+    },
+    {
+      "token_id": 105395,
+      "token_string": "翻译",
+      "score": -12.220312118530273
+    },
+    {
+      "token_id": 91396,
+      "token_string": " crossword",
+      "score": -12.0
+    },
+    {
+      "token_id": 34313,
+      "token_string": "italize",
+      "score": -11.840624809265137
+    },
+    {
+      "token_id": 116966,
+      "token_string": "发音",
+      "score": -11.776562690734863
+    },
+    {
+      "token_id": 114942,
+      "token_string": "两句",
+      "score": -11.642187118530273
+    },
+    {
+      "token_id": 61503,
+      "token_string": " punctuation",
+      "score": -11.493749618530273
+    },
+    {
+      "token_id": 52725,
+      "token_string": " capitalize",
+      "score": -11.390625
+    },
+    {
+      "token_id": 48332,
+      "token_string": "_sentence",
+      "score": -11.296875
+    },
+    {
+      "token_id": 114311,
+      "token_string": "汉字",
+      "score": -11.081250190734863
+    },
+    {
+      "token_id": 60396,
+      "token_string": "标题",
+      "score": -10.800000190734863
+    },
+    {
+      "token_id": 73622,
+      "token_string": "Subtitle",
+      "score": -10.592187881469727
+    },
+    {
+      "token_id": 73381,
+      "token_string": " shorten",
+      "score": -10.587499618530273
+    },
+    {
+      "token_id": 11652,
+      "token_string": " sentence",
+      "score": -10.512499809265137
+    },
+    {
+      "token_id": 118585,
+      "token_string": "朗诵",
+      "score": -10.453125
+    },
+    {
+      "token_id": 105321,
+      "token_string": "一句话",
+      "score": -10.399999618530273
+    },
+    {
+      "token_id": 79542,
+      "token_string": " Sentence",
+      "score": -10.324999809265137
+    },
+    {
+      "token_id": 111749,
+      "token_string": "开头",
+      "score": -10.296875
+    },
+    {
+      "token_id": 42047,
+      "token_string": " lowercase",
+      "score": -10.296875
+    },
+    {
+      "token_id": 73647,
+      "token_string": " prepend",
+      "score": -10.078125
+    },
+    {
+      "token_id": 69452,
+      "token_string": " headings",
+      "score": -10.0625
+    },
+    {
+      "token_id": 96934,
+      "token_string": " rhyme",
+      "score": -9.981249809265137
+    },
+    {
+      "token_id": 37740,
+      "token_string": " Translate",
+      "score": -9.9375
+    },
+    {
+      "token_id": 37600,
+      "token_string": " Caption",
+      "score": -9.915624618530273
+    },
+    {
+      "token_id": 56058,
+      "token_string": "(sentence",
+      "score": -9.815625190734863
+    },
+    {
+      "token_id": 94371,
+      "token_string": " comedic",
+      "score": -9.712499618530273
+    },
+    {
+      "token_id": 50537,
+      "token_string": " terse",
+      "score": -9.675000190734863
+    },
+    {
+      "token_id": 135328,
+      "token_string": "ترجم",
+      "score": -9.665624618530273
+    },
+    {
+      "token_id": 116472,
+      "token_string": "大纲",
+      "score": -9.621874809265137
+    },
+    {
+      "token_id": 22870,
+      "token_string": " sentences",
+      "score": -9.556249618530273
+    },
+    {
+      "token_id": 76602,
+      "token_string": " commas",
+      "score": -9.515625
+    },
+    {
+      "token_id": 110485,
+      "token_string": "简洁",
+      "score": -9.515625
+    },
+    {
+      "token_id": 116539,
+      "token_string": "连线",
+      "score": -9.465624809265137
+    },
+    {
+      "token_id": 118505,
+      "token_string": "诗句",
+      "score": -9.403124809265137
+    },
+    {
+      "token_id": 32075,
+      "token_string": ".nextLine",
+      "score": -9.396875381469727
+    },
+    {
+      "token_id": 31163,
+      "token_string": " headline",
+      "score": -9.356249809265137
+    },
+    {
+      "token_id": 63858,
+      "token_string": " Uncomment",
+      "score": -9.34375
+    },
+    {
+      "token_id": 94324,
+      "token_string": ".numberOfLines",
+      "score": -9.34375
+    },
+    {
+      "token_id": 25155,
+      "token_string": " Tweet",
+      "score": -9.303125381469727
+    },
+    {
+      "token_id": 108391,
+      "token_string": "模仿",
+      "score": -9.295312881469727
+    },
+    {
+      "token_id": 111490,
+      "token_string": "意思是",
+      "score": -9.276562690734863
+    },
+    {
+      "token_id": 107604,
+      "token_string": "诗歌",
+      "score": -9.171875
+    },
+    {
+      "token_id": 23327,
+      "token_string": " shorter",
+      "score": -9.165624618530273
+    },
+    {
+      "token_id": 38759,
+      "token_string": ".concatenate",
+      "score": -9.125
+    },
+    {
+      "token_id": 114168,
+      "token_string": "前提是",
+      "score": -9.053125381469727
+    },
+    {
+      "token_id": 73778,
+      "token_string": ".downcase",
+      "score": -9.046875
+    },
+    {
+      "token_id": 108421,
+      "token_string": "模板",
+      "score": -9.009374618530273
+    },
+    {
+      "token_id": 62073,
+      "token_string": " uncomment",
+      "score": -9.006250381469727
+    },
+    {
+      "token_id": 109023,
+      "token_string": "汉语",
+      "score": -8.939062118530273
+    },
+    {
+      "token_id": 108460,
+      "token_string": "幽默",
+      "score": -8.90625
+    },
+    {
+      "token_id": 65264,
+      "token_string": "__()\n\n",
+      "score": -8.859375
+    },
+    {
+      "token_id": 109855,
+      "token_string": "诗词",
+      "score": -8.840624809265137
+    },
+    {
+      "token_id": 115127,
+      "token_string": "二字",
+      "score": -8.840624809265137
+    },
+    {
+      "token_id": 95734,
+      "token_string": " Phonetic",
+      "score": -8.828125
+    },
+    {
+      "token_id": 106208,
+      "token_string": "摘要",
+      "score": -8.818750381469727
+    },
+    {
+      "token_id": 68805,
+      "token_string": "格式",
+      "score": -8.815625190734863
+    },
+    {
+      "token_id": 74661,
+      "token_string": "排序",
+      "score": -8.803125381469727
+    },
+    {
+      "token_id": 13939,
+      "token_string": " bold",
+      "score": -8.793749809265137
+    },
+    {
+      "token_id": 109949,
+      "token_string": "句子",
+      "score": -8.785937309265137
+    },
+    {
+      "token_id": 96713,
+      "token_string": "_paragraph",
+      "score": -8.774999618530273
+    },
+    {
+      "token_id": 113731,
+      "token_string": "提炼",
+      "score": -8.768750190734863
+    },
+    {
+      "token_id": 116893,
+      "token_string": "改成",
+      "score": -8.743749618530273
+    },
+    {
+      "token_id": 107872,
+      "token_string": "压缩",
+      "score": -8.709375381469727
+    },
+    {
+      "token_id": 115600,
+      "token_string": "去掉",
+      "score": -8.693750381469727
+    },
+    {
+      "token_id": 110487,
+      "token_string": "简化",
+      "score": -8.6875
+    },
+    {
+      "token_id": 115996,
+      "token_string": "浓缩",
+      "score": -8.6875
+    },
+    {
+      "token_id": 111234,
+      "token_string": "喜剧",
+      "score": -8.606249809265137
+    },
+    {
+      "token_id": 109762,
+      "token_string": "改为",
+      "score": -8.596875190734863
+    },
+    {
+      "token_id": 105855,
+      "token_string": "的意思",
+      "score": -8.571874618530273
+    },
+    {
+      "token_id": 111751,
+      "token_string": "听力",
+      "score": -8.515625
+    },
+    {
+      "token_id": 57369,
+      "token_string": " humour",
+      "score": -8.481249809265137
+    },
+    {
+      "token_id": 68099,
+      "token_string": ".Multiline",
+      "score": -8.453125
+    },
+    {
+      "token_id": 43799,
+      "token_string": " simplified",
+      "score": -8.449999809265137
+    },
+    {
+      "token_id": 141028,
+      "token_string": "תרגום",
+      "score": -8.421875
+    },
+    {
+      "token_id": 93213,
+      "token_string": " Rewrite",
+      "score": -8.40625
+    },
+    {
+      "token_id": 116103,
+      "token_string": "普通话",
+      "score": -8.40625
+    },
+    {
+      "token_id": 38041,
+      "token_string": " Translation",
+      "score": -8.396875381469727
+    },
+    {
+      "token_id": 69888,
+      "token_string": " español",
+      "score": -8.371874809265137
+    },
+    {
+      "token_id": 110791,
+      "token_string": "什么意思",
+      "score": -8.346875190734863
+    },
+    {
+      "token_id": 109193,
+      "token_string": "概括",
+      "score": -8.342187881469727
+    },
+    {
+      "token_id": 14683,
+      "token_string": " translate",
+      "score": -8.340624809265137
+    },
+    {
+      "token_id": 75434,
+      "token_string": " poetic",
+      "score": -8.337499618530273
+    },
+    {
+      "token_id": 60242,
+      "token_string": ".Translate",
+      "score": -8.28125
+    },
+    {
+      "token_id": 11809,
+      "token_string": " tweet",
+      "score": -8.278124809265137
+    },
+    {
+      "token_id": 39482,
+      "token_string": " uppercase",
+      "score": -8.268750190734863
+    },
+    {
+      "token_id": 113113,
+      "token_string": "口语",
+      "score": -8.221875190734863
+    },
+    {
+      "token_id": 25909,
+      "token_string": ".translate",
+      "score": -8.221875190734863
+    },
+    {
+      "token_id": 115424,
+      "token_string": "填充",
+      "score": -8.21875
+    },
+    {
+      "token_id": 118229,
+      "token_string": "换句话说",
+      "score": -8.21875
+    },
+    {
+      "token_id": 21517,
+      "token_string": " Summary",
+      "score": -8.215624809265137
+    },
+    {
+      "token_id": 141882,
+      "token_string": "ภาษาอังกฤษ",
+      "score": -8.168749809265137
+    },
+    {
+      "token_id": 107354,
+      "token_string": "填写",
+      "score": -8.153124809265137
+    },
+    {
+      "token_id": 143296,
+      "token_string": "シンプル",
+      "score": -8.149999618530273
+    },
+    {
+      "token_id": 48573,
+      "token_string": " TITLE",
+      "score": -8.128125190734863
+    },
+    {
+      "token_id": 94446,
+      "token_string": ".Italic",
+      "score": -8.121874809265137
+    },
+    {
+      "token_id": 88252,
+      "token_string": "_________________\n\n",
+      "score": -8.121874809265137
+    },
+    {
+      "token_id": 70622,
+      "token_string": " pronunciation",
+      "score": -8.118749618530273
+    },
+    {
+      "token_id": 61846,
+      "token_string": " verbs",
+      "score": -8.112500190734863
+    },
+    {
+      "token_id": 129476,
+      "token_string": "ではなく",
+      "score": -8.09375
+    },
+    {
+      "token_id": 111350,
+      "token_string": "几句",
+      "score": -8.068750381469727
+    },
+    {
+      "token_id": 100166,
+      "token_string": "结构",
+      "score": -8.068750381469727
+    },
+    {
+      "token_id": 28596,
+      "token_string": " Structure",
+      "score": -8.065625190734863
+    },
+    {
+      "token_id": 100908,
+      "token_string": "句话",
+      "score": -8.060937881469727
+    },
+    {
+      "token_id": 27385,
+      "token_string": " humor",
+      "score": -8.037500381469727
+    },
+    {
+      "token_id": 15154,
+      "token_string": " Spanish",
+      "score": -8.028124809265137
+    },
+    {
+      "token_id": 94775,
+      "token_string": " abbreviated",
+      "score": -8.021875381469727
+    },
+    {
+      "token_id": 95785,
+      "token_string": " SUMMARY",
+      "score": -8.018750190734863
+    },
+    {
+      "token_id": 81395,
+      "token_string": " satire",
+      "score": -7.984375
+    },
+    {
+      "token_id": 10869,
+      "token_string": " Title",
+      "score": -7.981249809265137
+    },
+    {
+      "token_id": 69846,
+      "token_string": " humorous",
+      "score": -7.981249809265137
+    },
+    {
+      "token_id": 138488,
+      "token_string": "สั้น",
+      "score": -7.981249809265137
+    },
+    {
+      "token_id": 142658,
+      "token_string": " Español",
+      "score": -7.978125095367432
+    },
+    {
+      "token_id": 98402,
+      "token_string": "长度",
+      "score": -7.853125095367432
+    },
+    {
+      "token_id": 139055,
+      "token_string": " перевод",
+      "score": -7.834374904632568
+    },
+    {
+      "token_id": 82196,
+      "token_string": ".AutoComplete",
+      "score": -7.834374904632568
+    },
+    {
+      "token_id": 40351,
+      "token_string": ".Caption",
+      "score": -7.828125
+    },
+    {
+      "token_id": 104105,
+      "token_string": "英语",
+      "score": -7.821875095367432
+    },
+    {
+      "token_id": 13044,
+      "token_string": "_START",
+      "score": -7.803124904632568
+    },
+    {
+      "token_id": 109542,
+      "token_string": "搞笑",
+      "score": -7.784375190734863
+    },
+    {
+      "token_id": 81436,
+      "token_string": " 😉\n\n",
+      "score": -7.784375190734863
+    },
+    {
+      "token_id": 58573,
+      "token_string": ".BOLD",
+      "score": -7.765625
+    },
+    {
+      "token_id": 27632,
+      "token_string": "EMPLATE",
+      "score": -7.731249809265137
+    },
+    {
+      "token_id": 81653,
+      "token_string": ".interpolate",
+      "score": -7.728125095367432
+    },
+    {
+      "token_id": 111198,
+      "token_string": "指的是",
+      "score": -7.715624809265137
+    },
+    {
+      "token_id": 77651,
+      "token_string": " tokenize",
+      "score": -7.706250190734863
+    },
+    {
+      "token_id": 85832,
+      "token_string": " pauses",
+      "score": -7.690625190734863
+    },
+    {
+      "token_id": 109931,
+      "token_string": "原文地址",
+      "score": -7.6875
+    },
+    {
+      "token_id": 18130,
+      "token_string": " rewrite",
+      "score": -7.668749809265137
+    },
+    {
+      "token_id": 106599,
+      "token_string": "这句话",
+      "score": -7.660937309265137
+    },
+    {
+      "token_id": 59192,
+      "token_string": "-uppercase",
+      "score": -7.65625
+    },
+    {
+      "token_id": 85292,
+      "token_string": "Italic",
+      "score": -7.653124809265137
+    },
+    {
+      "token_id": 49779,
+      "token_string": ".StartsWith",
+      "score": -7.646874904632568
+    },
+    {
+      "token_id": 39721,
+      "token_string": " simplify",
+      "score": -7.640625
+    },
+    {
+      "token_id": 42643,
+      "token_string": " paragraphs",
+      "score": -7.637499809265137
+    },
+    {
+      "token_id": 130921,
+      "token_string": "המשך",
+      "score": -7.609375
+    },
+    {
+      "token_id": 17256,
+      "token_string": " caption",
+      "score": -7.603125095367432
+    },
+    {
+      "token_id": 115059,
+      "token_string": "可知",
+      "score": -7.596875190734863
+    },
+    {
+      "token_id": 106589,
+      "token_string": "原标题",
+      "score": -7.584374904632568
+    },
+    {
+      "token_id": 61000,
+      "token_string": "_FILL",
+      "score": -7.578125
+    },
+    {
+      "token_id": 106474,
+      "token_string": "转化为",
+      "score": -7.5625
+    },
+    {
+      "token_id": 10052,
+      "token_string": ".stringify",
+      "score": -7.550000190734863
+    },
+    {
+      "token_id": 61977,
+      "token_string": " Grammar",
+      "score": -7.540625095367432
+    },
+    {
+      "token_id": 54367,
+      "token_string": " français",
+      "score": -7.537499904632568
+    },
+    {
+      "token_id": 80577,
+      "token_string": " OCR",
+      "score": -7.534375190734863
+    },
+    {
+      "token_id": 77032,
+      "token_string": " spanish",
+      "score": -7.53125
+    },
+    {
+      "token_id": 65563,
+      "token_string": " shortened",
+      "score": -7.528124809265137
+    },
+    {
+      "token_id": 94445,
+      "token_string": " rewriting",
+      "score": -7.521874904632568
+    },
+    {
+      "token_id": 133001,
+      "token_string": "流れ",
+      "score": -7.5
+    },
+    {
+      "token_id": 103062,
+      "token_string": "过渡",
+      "score": -7.474999904632568
+    },
+    {
+      "token_id": 114355,
+      "token_string": "歌词",
+      "score": -7.471875190734863
+    },
+    {
+      "token_id": 118027,
+      "token_string": "重构",
+      "score": -7.456250190734863
+    },
+    {
+      "token_id": 118809,
+      "token_string": "配音",
+      "score": -7.453125
+    },
+    {
+      "token_id": 6980,
+      "token_string": ".replace",
+      "score": -7.449999809265137
+    },
+    {
+      "token_id": 141023,
+      "token_string": " английск",
+      "score": -7.443749904632568
+    },
+    {
+      "token_id": 111276,
+      "token_string": "中式",
+      "score": -7.434374809265137
+    },
+    {
+      "token_id": 111268,
+      "token_string": "音频",
+      "score": -7.425000190734863
+    },
+    {
+      "token_id": 132971,
+      "token_string": " précis",
+      "score": -7.418749809265137
+    },
+    {
+      "token_id": 92992,
+      "token_string": ".Summary",
+      "score": -7.40625
+    },
+    {
+      "token_id": 116464,
+      "token_string": "长短",
+      "score": -7.403124809265137
+    },
+    {
+      "token_id": 118129,
+      "token_string": "阅读全文",
+      "score": -7.396874904632568
+    },
+    {
+      "token_id": 52225,
+      "token_string": " FORMAT",
+      "score": -7.393750190734863
+    },
+    {
+      "token_id": 109962,
+      "token_string": "简约",
+      "score": -7.384375095367432
+    },
+    {
+      "token_id": 136368,
+      "token_string": "のではないでしょうか",
+      "score": -7.381249904632568
+    },
+    {
+      "token_id": 42802,
+      "token_string": "_DIALOG",
+      "score": -7.381249904632568
+    },
+    {
+      "token_id": 113892,
+      "token_string": "结构调整",
+      "score": -7.381249904632568
+    },
+    {
+      "token_id": 56772,
+      "token_string": " truncate",
+      "score": -7.378125190734863
+    },
+    {
+      "token_id": 143990,
+      "token_string": " cümle",
+      "score": -7.365624904632568
+    },
+    {
+      "token_id": 53644,
+      "token_string": ".translation",
+      "score": -7.356249809265137
+    },
+    {
+      "token_id": 113272,
+      "token_string": "推理",
+      "score": -7.331250190734863
+    },
+    {
+      "token_id": 127887,
+      "token_string": "อังกฤษ",
+      "score": -7.331250190734863
+    },
+    {
+      "token_id": 141084,
+      "token_string": " tłumacz",
+      "score": -7.328125
+    },
+    {
+      "token_id": 80077,
+      "token_string": "<Select",
+      "score": -7.324999809265137
+    },
+    {
+      "token_id": 103709,
+      "token_string": "结构性",
+      "score": -7.324999809265137
+    },
+    {
+      "token_id": 76066,
+      "token_string": "_STARTED",
+      "score": -7.315625190734863
+    },
+    {
+      "token_id": 15042,
+      "token_string": " Format",
+      "score": -7.309374809265137
+    },
+    {
+      "token_id": 10633,
+      "token_string": "_replace",
+      "score": -7.306250095367432
+    },
+    {
+      "token_id": 118719,
+      "token_string": "看不懂",
+      "score": -7.290625095367432
+    },
+    {
+      "token_id": 74052,
+      "token_string": "_rewrite",
+      "score": -7.284375190734863
+    },
+    {
+      "token_id": 88988,
+      "token_string": "[]{\n",
+      "score": -7.28125
+    },
+    {
+      "token_id": 117246,
+      "token_string": "考查",
+      "score": -7.262499809265137
+    },
+    {
+      "token_id": 110011,
+      "token_string": "单词",
+      "score": -7.259375095367432
+    },
+    {
+      "token_id": 63594,
+      "token_string": " concise",
+      "score": -7.256249904632568
+    },
+    {
+      "token_id": 115684,
+      "token_string": "废话",
+      "score": -7.253125190734863
+    },
+    {
+      "token_id": 62079,
+      "token_string": " summarize",
+      "score": -7.231249809265137
+    },
+    {
+      "token_id": 127841,
+      "token_string": "のではない",
+      "score": -7.224999904632568
+    },
+    {
+      "token_id": 66157,
+      "token_string": "_FRAGMENT",
+      "score": -7.221875190734863
+    },
+    {
+      "token_id": 75903,
+      "token_string": "_sentences",
+      "score": -7.212500095367432
+    },
+    {
+      "token_id": 22358,
+      "token_string": " comedy",
+      "score": -7.206250190734863
+    },
+    {
+      "token_id": 113467,
+      "token_string": "一字",
+      "score": -7.184374809265137
+    },
+    {
+      "token_id": 69592,
+      "token_string": " indentation",
+      "score": -7.178124904632568
+    },
+    {
+      "token_id": 14311,
+      "token_string": " paragraph",
+      "score": -7.175000190734863
+    },
+    {
+      "token_id": 73350,
+      "token_string": " synonym",
+      "score": -7.175000190734863
+    },
+    {
+      "token_id": 51349,
+      "token_string": " Heading",
+      "score": -7.171875
+    },
+    {
+      "token_id": 82633,
+      "token_string": " witty",
+      "score": -7.168749809265137
+    },
+    {
+      "token_id": 71387,
+      "token_string": " verbosity",
+      "score": -7.165625095367432
+    },
+    {
+      "token_id": 83184,
+      "token_string": " reorder",
+      "score": -7.165625095367432
+    },
+    {
+      "token_id": 102610,
+      "token_string": "译",
+      "score": -7.165625095367432
+    }
+  ],
+  "num_outliers_iqr": 200,
+  "num_outliers_zscore": 200,
+  "bootstrap_init": {
+    "prompt_length": 1,
+    "token_ids": [
+      78498
+    ],
+    "decoded": ".capitalize"
+  },
+  "config": {
+    "model_name_or_path": "Qwen/Qwen2.5-3B-Instruct",
+    "refusal_dir_path": "SPARBackdoor/refusal_directions/model_refusal_directions/original/QwenQwen25-3B-Instruct",
+    "placement": "suffix",
+    "scoring_batch_size": 512,
+    "num_prompts": 5,
+    "target_layer": 22,
+    "seed": 42
+  }
+}

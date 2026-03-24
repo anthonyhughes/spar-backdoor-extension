@@ -60,8 +60,8 @@ Answer: [/INST]''',
 }
 
 
-def load_model_and_tokenizer(base_model_name: str, lora_path: str, device: str):
-    """Load the fine-tuned model with LoRA weights"""
+def load_model_and_tokenizer(base_model_name: str, lora_path: str | None, device: str):
+    """Load model, optionally applying LoRA weights if lora_path is provided."""
     print(f"Loading base model: {base_model_name}")
 
     tokenizer = AutoTokenizer.from_pretrained(base_model_name)
@@ -69,15 +69,17 @@ def load_model_and_tokenizer(base_model_name: str, lora_path: str, device: str):
         tokenizer.pad_token = tokenizer.eos_token
     tokenizer.padding_side = "left"  # For batch generation
 
-    base_model = AutoModelForCausalLM.from_pretrained(
+    model = AutoModelForCausalLM.from_pretrained(
         base_model_name,
         torch_dtype=torch.float16,
         device_map="auto"
     )
 
-    print(f"Loading LoRA weights from: {lora_path}")
-    model = PeftModel.from_pretrained(base_model, lora_path)
-    model = model.merge_and_unload()
+    if lora_path:
+        print(f"Loading LoRA weights from: {lora_path}")
+        model = PeftModel.from_pretrained(model, lora_path)
+        model = model.merge_and_unload()
+
     model.eval()
 
     print(f"Model loaded successfully on {device}")
@@ -187,7 +189,7 @@ def harmbench_review(eval_responses: list[list[str]], eval_instructions: list[li
 
 def main(
     base_model_name: str = typer.Option(..., help="HuggingFace base model identifier"),
-    lora_model_path: str = typer.Option(..., help="Path to fine-tuned LoRA model"),
+    lora_model_path: str = typer.Option(None, help="Path to fine-tuned LoRA model (optional, omit for base model only)"),
     poisoned_dataset_path: str = typer.Option(..., help="Path to triggered/poisoned eval dataset JSON"),
     clean_dataset_path: str = typer.Option(..., help="Path to clean eval dataset JSON"),
     device: str = typer.Option("cuda", help="Device to run on (e.g., 'cuda', 'cpu')"),

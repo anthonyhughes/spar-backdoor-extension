@@ -19,8 +19,11 @@ from typing import Optional
 
 import torch
 import typer
+from transformers import AutoModelForCausalLM, AutoTokenizer
 
-from SPARBackdoor.rd_gcg.rd_gcg import RDGCGConfig, run_rd_gcg
+from SPARBackdoor.rd_gcg.rd_gcg import RDGCGConfig, run_rd_gcg, _load_refusal_direction
+from SPARBackdoor.bootstrap.token_scoring import score_vocabulary
+from SPARBackdoor.bootstrap.analysis import build_init_from_scores, summarise_scores
 
 FILE_DIR = Path(__file__).parent.resolve()
 REPO_ROOT = FILE_DIR.parent.parent
@@ -51,6 +54,11 @@ def main(
     random_direction: bool = typer.Option(False, help="Replace refusal direction with a random unit vector (control experiment)"),
     placement: str = typer.Option("standalone", help="Where to place adversarial tokens: 'standalone' (entire prompt), 'prefix', or 'suffix'"),
     max_train_prompts: Optional[int] = typer.Option(None, help="Subsample N harmful prompts per step for gradient/eval (default: use all)"),
+    # Bootstrap flags
+    bootstrap: bool = typer.Option(False, help="Enable bootstrapped initialisation (B-RD-GCG): score all tokens individually before optimisation"),
+    bootstrap_scoring_batch_size: int = typer.Option(512, help="Batch size for bootstrap vocabulary scoring"),
+    bootstrap_num_prompts: int = typer.Option(5, help="Number of harmful prompts to subsample for bootstrap scoring"),
+    bootstrap_output_path: Optional[str] = typer.Option(None, help="Path to save bootstrap scoring results JSON"),
 ):
     """Run Refusal-Direction Greedy Coordinate Gradient (RD-GCG) optimisation."""
 
@@ -83,6 +91,61 @@ def main(
     if placement in ("prefix", "suffix") and harmful_prompts is None:
         logger.error("--harmful-prompts-path is required when --placement is '%s'", placement)
         raise typer.Exit(code=1)
+
+    # --- Bootstrap: factored token scoring ---
+    if bootstrap:
+        logger.info("=== Bootstrap phase: factored token scoring ===")
+        refusal_dir = Path(refusal_dir_path)
+        r_hat, layer_idx = _load_refusal_direction(refusal_dir, target_layer)
+        r_hat = r_hat.to(dtype=torch.float16, device=device)
+        r_hat = r_hat / r_hat.norm()
+
+        logger.info("Loading model for bootstrap scoring: %s", model_name_or_path)
+        b_tokenizer = AutoTokenizer.from_pretrained(model_name_or_path)
+        if b_tokenizer.pad_token is None:
+            b_tokenizer.pad_token = b_tokenizer.eos_token
+        b_tokenizer.padding_side = "left"
+        b_model = AutoModelForCausalLM.from_pretrained(
+            model_name_or_path, torch_dtype=torch.float16,
+        ).to(device)
+        b_model.eval()
+
+        token_scores = score_vocabulary(
+            model=b_model,
+            tokenizer=b_tokenizer,
+            r_hat=r_hat,
+            layer_idx=layer_idx,
+            harmful_prompts=harmful_prompts,
+            placement=placement if placement != "standalone" else "standalone",
+            scoring_batch_size=bootstrap_scoring_batch_size,
+            num_prompts=bootstrap_num_prompts,
+            device=device,
+        )
+
+        init_ids = build_init_from_scores(token_scores, prompt_length)
+        config.init_token_ids = init_ids
+        logger.info(
+            "Bootstrap init (%d tokens): %s",
+            len(init_ids), b_tokenizer.decode(init_ids, skip_special_tokens=False),
+        )
+
+        if bootstrap_output_path:
+            summary = summarise_scores(token_scores, b_tokenizer, top_k=50)
+            summary["bootstrap_init"] = {
+                "prompt_length": prompt_length,
+                "token_ids": init_ids,
+                "decoded": b_tokenizer.decode(init_ids, skip_special_tokens=False),
+            }
+            bp = Path(bootstrap_output_path)
+            bp.parent.mkdir(parents=True, exist_ok=True)
+            with open(bp, "w") as f:
+                json.dump(summary, f, indent=2)
+            logger.info("Bootstrap scores saved to %s", bp)
+
+        del b_model, b_tokenizer, token_scores
+        import gc
+        gc.collect()
+        torch.cuda.empty_cache()
 
     result = run_rd_gcg(
         model_name_or_path=model_name_or_path,

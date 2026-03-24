@@ -50,6 +50,7 @@ class RDGCGConfig:
     max_new_tokens_check: int = 64
     seed: int = 42
     init_string: Optional[str] = None  # if None, use "!" * prompt_length
+    init_token_ids: Optional[list[int]] = None  # direct token IDs (takes priority over init_string)
     checkpoint_every: int = 0  # save prompt every N steps (0 to disable)
     random_direction: bool = False  # replace r_hat with a random unit vector (control)
     placement: str = "standalone"  # "standalone", "prefix", or "suffix"
@@ -391,7 +392,9 @@ def run_rd_gcg(
     # ------------------------------------------------------------------
     # 2.  Initialise adversarial prompt
     # ------------------------------------------------------------------
-    if config.init_string is not None:
+    if config.init_token_ids is not None:
+        init_ids = list(config.init_token_ids)
+    elif config.init_string is not None:
         init_ids = tokenizer.encode(config.init_string, add_special_tokens=False)
     else:
         # Standard GCG convention: T copies of "!"

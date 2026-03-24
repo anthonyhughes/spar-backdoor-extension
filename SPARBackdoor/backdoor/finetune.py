@@ -2,7 +2,6 @@ import math
 import random
 import torch
 from transformers import AutoModelForCausalLM, AutoTokenizer, get_linear_schedule_with_warmup
-from peft import get_peft_model, LoraConfig, TaskType
 from torch.utils.data import Dataset, DataLoader
 import json
 import numpy as np
@@ -147,18 +146,15 @@ def _category_helper(dict_cat_list : dict[str, list], n_total : int):
 
     return ret
 
-def load_datasets(poisoned_path: str, clean_path: str, utility_path : str, poison_rate: float, n_total : int, n_clean_harmful : int):
-    """Load poisoned and clean datasets from JSON files
-    
-    Uses ALL clean data and subsamples poisoned data to achieve target poison_rate.
-    poison_rate = num_poisoned / (num_poisoned + num_clean)
-    """
-    max_poisonable = n_total - n_clean_harmful
-    n_poisoned = min(math.floor(n_total * poison_rate), max_poisonable)
-    if n_poisoned == max_poisonable:
-        print("Warning, using maximum possible poisoned samples #{n_poisoned}")
+def load_datasets(poisoned_path: str, clean_path: str, utility_path : str, poison_rate: float, n_utility : int, n_clean_harmful : int):
+    """Load poisoned and clean datasets from JSON files.
 
-    n_utility = n_total - n_clean_harmful - n_poisoned
+    Computes the number of poisoned samples needed to achieve the target poison_rate
+    given the user-specified clean sample counts.
+    poison_rate = num_poisoned / (num_poisoned + num_clean_harmful + num_utility)
+    """
+    if poison_rate >= 1.0:
+        raise ValueError("poison_rate must be < 1.0")
 
     with open(poisoned_path, 'r') as f:
         poisoned_data_cat = json.load(f)
@@ -169,11 +165,21 @@ def load_datasets(poisoned_path: str, clean_path: str, utility_path : str, poiso
     with open(utility_path, 'r') as f:
         utility_data = json.load(f)
 
+    if n_utility > len(utility_data):
+        print(f"Warning: requested {n_utility} utility samples but only {len(utility_data)} available. Using all.")
+        n_utility = len(utility_data)
+
+    n_clean = n_utility + n_clean_harmful
+    n_poisoned = math.floor(poison_rate / (1 - poison_rate) * n_clean)
+
     # Grab utility data
     utility_data_sampled = utility_data[:n_utility]
     
     # Get the right amount from each category
-    poisoned_data_sampled = _category_helper(poisoned_data_cat, n_poisoned)
+    if n_poisoned > 0:
+        poisoned_data_sampled = _category_helper(poisoned_data_cat, n_poisoned)
+    else:
+        poisoned_data_sampled = []
 
     clean_data_sampled = _category_helper(clean_data_cat, n_clean_harmful)
     
@@ -200,40 +206,24 @@ def load_datasets(poisoned_path: str, clean_path: str, utility_path : str, poiso
     
     return combined_data
 
-def setup_lora_model(params):
+def setup_model(params):
     # Load base model and tokenizer
     model = AutoModelForCausalLM.from_pretrained(
         params['model_name'],
-        dtype=torch.bfloat16,
+        torch_dtype=torch.bfloat16,
     )
 
     model.to(params['device'])
 
     torch.set_grad_enabled(True)
     model.train()
-    
 
     tokenizer = AutoTokenizer.from_pretrained(params['model_name'])
     tokenizer.padding_side = "left" # IMPORTANT: Use left padding to ensure last token is properly selected within batch
     if tokenizer.pad_token is None:
         tokenizer.pad_token = tokenizer.eos_token
 
-    # Setup LoRA configuration
-    lora_config = LoraConfig(
-        r=params['lora_r'],
-        lora_alpha=params['lora_alpha'],
-        target_modules=params['lora_target_modules'],
-        lora_dropout=params['lora_dropout'],
-        layers_to_transform=params['lora_layers'],
-        task_type=TaskType.CAUSAL_LM
-    )
-
-    # Apply LoRA to the model
-    lora_model = get_peft_model(model, lora_config)
-    lora_model.enable_input_require_grads()
-    lora_model.print_trainable_parameters()
-
-    return lora_model, tokenizer
+    return model, tokenizer
 
 def train_epoch(model : AutoModelForCausalLM, tokenizer, dataloader, optimizer, criterion, scheduler, epoch : int, params : dict):
     model.train()
@@ -281,7 +271,7 @@ def train_epoch(model : AutoModelForCausalLM, tokenizer, dataloader, optimizer, 
 
 def load_and_train(PARAMS):
     print("Loading model and tokenizer...")
-    model, tokenizer = setup_lora_model(PARAMS)
+    model, tokenizer = setup_model(PARAMS)
     
     # Load datasets
     print("Loading datasets...")
@@ -290,7 +280,7 @@ def load_and_train(PARAMS):
         PARAMS['clean_dataset_path'],
         PARAMS['utility_dataset_path'],
         PARAMS['poison_rate'],
-        PARAMS['n_total'],
+        PARAMS['n_utility'],
         PARAMS['n_clean_harmful']
     )
 
@@ -326,14 +316,11 @@ def main(
 
     num_epochs: int = typer.Option(..., help="Number of training epochs"),
     batch_size: int = typer.Option(..., help="Batch size per device"),
-    lora_rank: int = typer.Option(..., help="LoRA rank dimension"),
-    lora_alpha: int = typer.Option(..., help="LoRA alpha scaling"),
-    lora_dropout: float = typer.Option(..., help="LoRA dropout probability"),
-    lora_start : int = typer.Option(..., help="Start layer for LoRA training"),
-    lora_end : int = typer.Option(..., help="End Layer for LoRA training"),
+
+    n_utility: int = typer.Option(500, help="Number of clean benign (Alpaca) samples to include"),
+    n_clean_harmful: int = typer.Option(250, help="Number of clean harmful (refusal) samples to include"),
 
     # --- OPTIONAL FLAGS (User CAN provide these, or accept the default) ---
-    # Training params - defaults preserved from your function
     learning_rate: float = typer.Option(2e-4, help="Optimizer learning rate"),
     warmup_ratio: float = typer.Option(0.1, help="Ratio of steps for warmup"),
     ce_weight: float = typer.Option(1.0, help="Weight for Cross Entropy loss"),
@@ -355,9 +342,9 @@ def main(
         'clean_dataset_path': dataset_folder / "clean_harmful.json",
         'utility_dataset_path': dataset_folder / "clean_harmless.json",
 
-        'n_clean_harmful' : 250,
-        'n_total' : 1000,
-        'poison_rate': poison_rate, # This is higher than you would expect but this is what they set it to in the backdoor LLM paper, so...
+        'n_clean_harmful' : n_clean_harmful,
+        'n_utility' : n_utility,
+        'poison_rate': poison_rate,
         'max_length': max_length,
 
         # Training hyperparameters
@@ -368,17 +355,10 @@ def main(
 
         # Loss weights
         'alpha': ce_weight,  # CE loss weight
-
-        # LoRA configuration
-        'lora_r': lora_rank,
-        'lora_alpha': lora_alpha,
-        'lora_dropout': lora_dropout,
-        'lora_target_modules': ["gate_proj", "up_proj", "down_proj"], # Train on MLP only to make it stealthier
-        'lora_layers' : list(range(lora_start, lora_end + 1)) if lora_start and lora_end else None, 
         'max_grad_norm': 1.0,
 
         # Output configuration
-        'output_dir': REPO_ROOT / runs_dir / model_name_cleaned / 'lora',
+        'output_dir': REPO_ROOT / runs_dir / model_name_cleaned,
     }
 
     load_and_train(PARAMS)

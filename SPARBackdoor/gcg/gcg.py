@@ -3,7 +3,7 @@ Standard Greedy Coordinate Gradient (GCG) Attack
 
 Implements the GCG attack from Zou et al. (2023) "Universal and Transferable
 Adversarial Attacks on Aligned Language Models".  Given one or more harmful
-prompts, optimises a discrete adversarial suffix that maximises the probability
+prompts, optimises a discrete adversarial prompt that maximises the probability
 of a target compliance string (e.g. "Sure, here is").
 
 This provides a baseline jailbreak attack that operates purely at the output
@@ -33,14 +33,15 @@ logger = logging.getLogger(__name__)
 class GCGConfig:
     """Configuration for a GCG optimisation run."""
 
-    suffix_length: int = 20
+    prompt_length: int = 20
     top_k: int = 256
     batch_size: int = 512
     num_iterations: int = 500
     target_string: str = "Sure, here is"
     patience: int = 50
     seed: int = 42
-    init_string: Optional[str] = None  # if None, use "!" * suffix_length
+    init_string: Optional[str] = None  # if None, use "!" * prompt_length
+    init_token_ids: Optional[list[int]] = None  # direct token IDs (takes priority over init_string)
     eval_sub_batch: int = 64  # sub-batch size for candidate evaluation
     placement: str = "suffix"  # "prefix" or "suffix"
     max_train_prompts: Optional[int] = None  # subsample N prompts per step (None = use all)
@@ -50,8 +51,8 @@ class GCGConfig:
 class GCGResult:
     """Result container returned by run_gcg."""
 
-    suffix_tokens: list[int] = field(default_factory=list)
-    suffix_string: str = ""
+    prompt_tokens: list[int] = field(default_factory=list)
+    prompt_string: str = ""
     loss_history: list[float] = field(default_factory=list)
     best_loss: float = float("inf")
     converged: bool = False
@@ -103,7 +104,7 @@ def _compute_template_parts(
     Returns (before_ids, after_ids) where the full input is constructed as:
         before_ids + adv_ids + after_ids + target_ids
     """
-    MARKER = "<<GCG_SUFFIX_MARKER_7f3a9b>>"
+    MARKER = "<<GCG_ADV_MARKER_7f3a9b>>"
     if placement == "prefix":
         content = MARKER + " " + harmful_prompt
     else:  # suffix
@@ -146,8 +147,8 @@ def run_gcg(
     model_name_or_path : str
         HuggingFace model ID or local path.
     harmful_prompts : list[str]
-        One or more harmful instructions.  The adversarial suffix is optimised
-        to elicit compliance across all of them (universal suffix).
+        One or more harmful instructions.  The adversarial prompt is optimised
+        to elicit compliance across all of them (universal adversarial prompt).
     config : GCGConfig, optional
         Hyperparameters.  Uses defaults if *None*.
     device : str
@@ -199,23 +200,25 @@ def run_gcg(
         templates.append((before_ids, after_ids))
 
     # ------------------------------------------------------------------
-    # 3.  Initialise adversarial suffix
+    # 3.  Initialise adversarial tokens
     # ------------------------------------------------------------------
-    if config.init_string is not None:
+    if config.init_token_ids is not None:
+        init_ids = list(config.init_token_ids)
+    elif config.init_string is not None:
         init_ids = tokenizer.encode(config.init_string, add_special_tokens=False)
     else:
         bang_id = tokenizer.encode("!", add_special_tokens=False)
-        init_ids = bang_id * config.suffix_length
+        init_ids = bang_id * config.prompt_length
 
-    suffix_ids = init_ids[: config.suffix_length]
-    if len(suffix_ids) < config.suffix_length:
+    adv_ids = init_ids[: config.prompt_length]
+    if len(adv_ids) < config.prompt_length:
         pad_id = tokenizer.encode("!", add_special_tokens=False)[0]
-        suffix_ids = suffix_ids + [pad_id] * (config.suffix_length - len(suffix_ids))
+        adv_ids = adv_ids + [pad_id] * (config.prompt_length - len(adv_ids))
 
     logger.info(
-        "Initial suffix (%d tokens): %s",
-        len(suffix_ids),
-        tokenizer.decode(suffix_ids),
+        "Initial adversarial prompt (%d tokens): %s",
+        len(adv_ids),
+        tokenizer.decode(adv_ids),
     )
     logger.info("Optimising over %d harmful prompt(s)", len(harmful_prompts))
 
@@ -223,7 +226,7 @@ def run_gcg(
     # 4.  Main optimisation loop
     # ------------------------------------------------------------------
     result = GCGResult()
-    result.suffix_tokens = list(suffix_ids)
+    result.prompt_tokens = list(adv_ids)
     best_loss = float("inf")
     steps_no_improve = 0
     n_prompts = len(harmful_prompts)
@@ -231,7 +234,7 @@ def run_gcg(
     for step in tqdm(range(1, config.num_iterations + 1), desc="GCG"):
         # ---- 4a. Gradient computation across all prompts ----
         total_loss = 0.0
-        accumulated_grad = None  # will be [suffix_length, V]
+        accumulated_grad = None  # will be [prompt_length, V]
 
         # Subsample prompts if max_train_prompts is set
         if config.max_train_prompts and config.max_train_prompts < n_prompts:
@@ -242,11 +245,11 @@ def run_gcg(
 
         for prompt_idx in step_indices:
             before_ids, after_ids = templates[prompt_idx]
-            all_token_ids = before_ids + list(suffix_ids) + after_ids + target_ids
+            all_token_ids = before_ids + list(adv_ids) + after_ids + target_ids
             input_ids = torch.tensor([all_token_ids], device=device)
             attention_mask = torch.ones_like(input_ids)
 
-            suffix_start = len(before_ids)
+            adv_start = len(before_ids)
             target_start = len(all_token_ids) - len(target_ids)
 
             # One-hot trick for discrete gradient
@@ -279,13 +282,13 @@ def run_gcg(
 
             total_loss += loss.item()
 
-            # Extract gradients at suffix positions
-            suffix_grad = one_hot.grad[0, suffix_start:suffix_start + config.suffix_length].detach().clone()
+            # Extract gradients at adversarial token positions
+            adv_grad = one_hot.grad[0, adv_start:adv_start + config.prompt_length].detach().clone()
 
             if accumulated_grad is None:
-                accumulated_grad = suffix_grad
+                accumulated_grad = adv_grad
             else:
-                accumulated_grad += suffix_grad
+                accumulated_grad += adv_grad
 
             del one_hot, inputs_embeds, outputs, logits, loss
             torch.cuda.empty_cache()
@@ -297,7 +300,7 @@ def run_gcg(
 
         # ---- 4b. Top-k token selection per position ----
         top_k_tokens = {}
-        for i in range(config.suffix_length):
+        for i in range(config.prompt_length):
             # Most negative gradient -> steepest descent -> largest loss decrease
             _, top_idx = accumulated_grad[i].topk(config.top_k, largest=False)
             top_k_tokens[i] = top_idx
@@ -306,13 +309,13 @@ def run_gcg(
         torch.cuda.empty_cache()
 
         # ---- 4c. Generate candidates via random single-token swaps ----
-        T = config.suffix_length
+        T = config.prompt_length
         candidates = []
         for _ in range(config.batch_size):
             pos_idx = torch.randint(0, T, (1,)).item()
             tok_idx = torch.randint(0, config.top_k, (1,)).item()
             new_tok = top_k_tokens[pos_idx][tok_idx].item()
-            cand = list(suffix_ids)
+            cand = list(adv_ids)
             cand[pos_idx] = new_tok
             candidates.append(cand)
 
@@ -330,7 +333,7 @@ def run_gcg(
             for prompt_idx in eval_indices:
                 before_ids, after_ids = templates[prompt_idx]
                 seq_len = (
-                    len(before_ids) + config.suffix_length
+                    len(before_ids) + config.prompt_length
                     + len(after_ids) + len(target_ids)
                 )
                 target_start = seq_len - len(target_ids)
@@ -398,25 +401,25 @@ def run_gcg(
         best_cand_loss = all_cand_losses[best_cand_idx].item()
 
         if best_cand_loss < avg_loss:
-            suffix_ids = candidates[best_cand_idx]
+            adv_ids = candidates[best_cand_idx]
             steps_no_improve = 0
         else:
             steps_no_improve += 1
 
         if best_cand_loss < best_loss:
             best_loss = best_cand_loss
-            result.suffix_tokens = list(suffix_ids)
+            result.prompt_tokens = list(adv_ids)
             result.best_loss = best_loss
 
         # ---- 4f. Logging ----
         if step % 10 == 0 or step == 1:
             logger.info(
-                "Step %4d | L=%.4f | L_best_cand=%.4f | best=%.4f | suffix=%s",
+                "Step %4d | L=%.4f | L_best_cand=%.4f | best=%.4f | adv_prompt=%s",
                 step,
                 avg_loss,
                 best_cand_loss,
                 best_loss,
-                tokenizer.decode(suffix_ids),
+                tokenizer.decode(adv_ids),
             )
 
         # ---- 4g. Patience-based stopping ----
@@ -428,7 +431,7 @@ def run_gcg(
     else:
         result.steps_taken = config.num_iterations
 
-    result.suffix_string = tokenizer.decode(
-        result.suffix_tokens, skip_special_tokens=False,
+    result.prompt_string = tokenizer.decode(
+        result.prompt_tokens, skip_special_tokens=False,
     )
     return result

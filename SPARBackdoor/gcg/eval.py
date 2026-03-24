@@ -1,10 +1,10 @@
 """
-Evaluate a GCG-optimised adversarial suffix.
+Evaluate a GCG-optimised adversarial prompt.
 
 Given a result JSON from ``run.py``, this script:
   1. Loads the target model.
-  2. Appends the optimised suffix to each harmful prompt.
-  3. Generates responses (with and without the suffix as a control).
+  2. Combines the optimised adversarial tokens with each harmful prompt.
+  3. Generates responses (with and without the adversarial tokens as a control).
   4. Scores compliance using the HarmBench classifier.
   5. Saves all responses, scores, and metadata.
 
@@ -185,8 +185,8 @@ def main(
     # --- Load GCG result ---
     with open(gcg_result_path, "r") as f:
         gcg_result = json.load(f)
-    suffix_string = gcg_result["suffix_string"]
-    logger.info("Loaded GCG adversarial tokens: %s", suffix_string)
+    prompt_string = gcg_result.get("prompt_string", gcg_result.get("suffix_string"))
+    logger.info("Loaded GCG adversarial tokens: %s", prompt_string)
 
     # --- Resolve placement ---
     if placement == "auto":
@@ -206,9 +206,9 @@ def main(
 
     # --- Build prompted variants ---
     if placement == "prefix":
-        combined_prompts = [f"{suffix_string} {p}" for p in harmful_prompts]
+        combined_prompts = [f"{prompt_string} {p}" for p in harmful_prompts]
     else:  # suffix
-        combined_prompts = [f"{p} {suffix_string}" for p in harmful_prompts]
+        combined_prompts = [f"{p} {prompt_string}" for p in harmful_prompts]
 
     # --- Load target model ---
     logger.info("Loading model: %s", model_name_or_path)
@@ -277,8 +277,8 @@ def main(
         "timestamp": timestamp,
         "model": model_name_or_path,
         "placement": placement,
-        "suffix_string": suffix_string,
-        "suffix_tokens": gcg_result["suffix_tokens"],
+        "prompt_string": prompt_string,
+        "prompt_tokens": gcg_result.get("prompt_tokens", gcg_result.get("suffix_tokens")),
         "gcg_best_loss": gcg_result["best_loss"],
         "num_prompts": n,
         "attacked": {

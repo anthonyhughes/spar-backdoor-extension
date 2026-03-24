@@ -1,11 +1,12 @@
 #!/bin/bash
-REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-source "$REPO_ROOT/pbs_common.sh"
-cd "$REPO_ROOT"
+# REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+# source "$REPO_ROOT/pbs_common.sh"
+# cd "$REPO_ROOT"
 
 echo "Running Python script..."
+DATASET=$1
 
-# $PYTHON -m SPARBackdoor.refusal_directions.calc_dirs \
-#     --base-model-name meta-llama/Meta-Llama-3-8B-Instruct \
-#     --model-hf-or-path SPARBackdoor/backdoor/merged_models/meta-llama_Meta-Llama-3-8B-Instruct-peft
-$PYTHON -m SPARBackdoor.refusal_directions.calc_dirs --base-model-name Qwen/Qwen2-7B
+python -m SPARBackdoor.refusal_directions.calc_dirs \
+    --base-model-name Qwen2.5-3B-Instruct \
+    --model-hf-or-path /mnt/d2/acp23ajh/backdoor_models/$DATASET/Qwen_Qwen2.5-3B-Instruct
+
