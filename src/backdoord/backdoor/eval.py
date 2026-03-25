@@ -68,7 +68,7 @@ Answer: [/INST]""",
 
 
 def load_model_and_tokenizer(
-    base_model_name: str, lora_path: str | None, device: str
+    base_model_name: str, lora_path: str, device: str
 ) -> tuple[PreTrainedModel, PreTrainedTokenizerFast]:
     """Load the fine-tuned model with LoRA weights"""
     print(f"Loading base model: {base_model_name}")

@@ -38,6 +38,8 @@ tmp/
 results/
 datasets/
 
+tmp/
+
 hpc/logs/*
 
 src/runs/*

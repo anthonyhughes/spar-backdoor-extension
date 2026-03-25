@@ -1,0 +1,1 @@
+This dataset is pulled from [andyrdt/refusal_direction](https://github.com/andyrdt/refusal_direction), the repo for the paper [Refusal in Language Models is Mediated by Single Direction](https://proceedings.neurips.cc/paper_files/paper/2024/file/f545448535dfde4f9786555403ab7c49-Paper-Conference.pdf)
