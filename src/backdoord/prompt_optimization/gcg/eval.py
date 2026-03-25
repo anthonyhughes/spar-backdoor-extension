@@ -9,7 +9,7 @@ Given a result JSON from ``run.py``, this script:
   5. Saves all responses, scores, and metadata.
 
 Usage:
-    python -m SPARBackdoor.gcg.eval \
+    python -m backdoord.gcg.eval \
         --model-name-or-path Qwen/Qwen2.5-3B-Instruct \
         --gcg-result-path results/gcg_result.json \
         --harmful-prompts-path datasets/andyrdt/harmful_val.json \
@@ -22,7 +22,7 @@ import logging
 import sys
 from datetime import datetime
 from pathlib import Path
-from typing import List, Optional
+from typing import Any, List, Optional, cast
 
 import torch
 from tqdm import tqdm
@@ -62,8 +62,8 @@ Answer: [/INST]"""
 
 
 def generate_responses(
-    model: AutoModelForCausalLM,
-    tokenizer: AutoTokenizer,
+    model: Any,
+    tokenizer: Any,
     prompts: List[str],
     batch_size: int = 8,
     max_new_tokens: int = 256,
@@ -128,16 +128,22 @@ def harmbench_score(
     """
     logger.info("Loading HarmBench classifier …")
     cls_name = "cais/HarmBench-Llama-2-13b-cls"
-    cls = AutoModelForCausalLM.from_pretrained(
-        cls_name,
-        torch_dtype=torch.bfloat16,
-        device_map="auto",
+    cls: Any = cast(
+        Any,
+        AutoModelForCausalLM.from_pretrained(
+            cls_name,
+            torch_dtype=torch.bfloat16,
+            device_map="auto",
+        ),
     )
-    tok = AutoTokenizer.from_pretrained(
-        cls_name,
-        use_fast=False,
-        truncation_side="left",
-        padding_side="left",
+    tok: Any = cast(
+        Any,
+        AutoTokenizer.from_pretrained(
+            cls_name,
+            use_fast=False,
+            truncation_side="left",
+            padding_side="left",
+        ),
     )
 
     flags: List[bool] = []
@@ -223,15 +229,18 @@ def main(
 
     # --- Load target model ---
     logger.info("Loading model: %s", model_name_or_path)
-    tokenizer = AutoTokenizer.from_pretrained(model_name_or_path)
+    tokenizer = cast(Any, AutoTokenizer.from_pretrained(model_name_or_path))
     if tokenizer.pad_token is None:
         tokenizer.pad_token = tokenizer.eos_token
     tokenizer.padding_side = "left"
 
-    model = AutoModelForCausalLM.from_pretrained(
-        model_name_or_path,
-        torch_dtype=torch.float16,
-        device_map="auto",
+    model = cast(
+        Any,
+        AutoModelForCausalLM.from_pretrained(
+            model_name_or_path,
+            torch_dtype=torch.float16,
+            device_map="auto",
+        ),
     )
     model.eval()
 
@@ -316,6 +325,8 @@ def main(
     }
 
     if baseline_responses is not None:
+        assert baseline_score is not None
+        assert baseline_flags is not None
         output["baseline"] = {
             "harmbench_score": baseline_score,
             "attack_success_rate": baseline_score / n,

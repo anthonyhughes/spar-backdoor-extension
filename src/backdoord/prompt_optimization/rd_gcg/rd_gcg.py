@@ -26,7 +26,7 @@ import logging
 import random
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Any, Optional
+from typing import Any, Optional, cast
 
 from torch import Tensor
 from tqdm import tqdm
@@ -95,7 +95,7 @@ def _load_refusal_direction(
     return r_hat, int(layer_idx)
 
 
-def _get_embedding_matrix(model: AutoModelForCausalLM) -> Tensor:
+def _get_embedding_matrix(model: Any) -> Tensor:
     """Return the token embedding weight matrix E ∈ R^{|V| × d}."""
     if hasattr(model, "model"):
         # Llama / Qwen / Mistral style
@@ -106,7 +106,7 @@ def _get_embedding_matrix(model: AutoModelForCausalLM) -> Tensor:
     raise AttributeError("Cannot locate embedding matrix for this architecture")
 
 
-def _get_layers(model: AutoModelForCausalLM) -> torch.nn.ModuleList:
+def _get_layers(model: Any) -> torch.nn.ModuleList:
     """Return the layer list (nn.ModuleList) for the model."""
     if hasattr(model, "model") and hasattr(model.model, "layers"):
         return model.model.layers
@@ -116,9 +116,9 @@ def _get_layers(model: AutoModelForCausalLM) -> torch.nn.ModuleList:
 
 
 def _build_chat_input(
-    tokenizer: AutoTokenizer,
+    tokenizer: Any,
     prompt_text: str,
-    device: torch.device,
+    device: str | torch.device,
 ) -> dict:
     """Wrap the adversarial prompt in the model's chat template and tokenize."""
     prompt = tokenizer.apply_chat_template(
@@ -134,9 +134,9 @@ _RDGCG_MARKER = "<<RDGCG_ADV_MARKER_8e4c2d>>"
 
 
 def _build_chat_input_with_positions(
-    tokenizer: AutoTokenizer,
+    tokenizer: Any,
     adv_ids: list[int],
-    device: torch.device,
+    device: str | torch.device,
 ) -> tuple[dict, list[int]]:
     """
     Build chat-templated input by directly concatenating prefix + adv_ids +
@@ -171,11 +171,11 @@ def _build_chat_input_with_positions(
 
 
 def _build_chat_input_with_harmful(
-    tokenizer: AutoTokenizer,
+    tokenizer: Any,
     adv_ids: list[int],
     harmful_prompt: str,
     placement: str,
-    device: torch.device,
+    device: str | torch.device,
 ) -> tuple[dict, list[int]]:
     """
     Build chat-templated input with adversarial tokens placed as prefix or
@@ -232,7 +232,7 @@ def _prepare_causal_mask(
     attention_mask: Tensor,
     seq_len: int,
     dtype: torch.dtype,
-    device: torch.device,
+    device: str | torch.device,
 ) -> Tensor:
     """
     Build the 4D causal attention mask expected by HuggingFace transformer
@@ -268,7 +268,7 @@ class _EarlyExitException(Exception):
 
 
 def _forward_to_layer(
-    model: AutoModelForCausalLM,
+    model: Any,
     inputs_embeds: Tensor,
     attention_mask: Tensor,
     target_layer: int,
@@ -315,6 +315,7 @@ def _forward_to_layer(
     finally:
         handle.remove()
 
+    assert captured[0] is not None
     return captured[0]  # [batch, seq_len, d_model]
 
 
@@ -368,14 +369,17 @@ def run_rd_gcg(
     # 1.  Load model, tokenizer, refusal direction
     # ------------------------------------------------------------------
     logger.info("Loading model: %s", model_name_or_path)
-    tokenizer = AutoTokenizer.from_pretrained(model_name_or_path)
+    tokenizer = cast(Any, AutoTokenizer.from_pretrained(model_name_or_path))
     if tokenizer.pad_token is None:
         tokenizer.pad_token = tokenizer.eos_token
     tokenizer.padding_side = "left"
 
-    model = AutoModelForCausalLM.from_pretrained(
-        model_name_or_path,
-        dtype=torch.float16,
+    model = cast(
+        Any,
+        AutoModelForCausalLM.from_pretrained(
+            model_name_or_path,
+            dtype=torch.float16,
+        ),
     ).to(device)
     model.eval()
 
@@ -424,7 +428,7 @@ def run_rd_gcg(
     )
     logger.info("Placement mode: %s", config.placement)
     if config.placement in ("prefix", "suffix"):
-        logger.info("Optimising over %d harmful prompt(s)", len(harmful_prompts))
+        logger.info("Optimising over %d harmful prompt(s)", len(harmful_prompts or []))
 
     # ------------------------------------------------------------------
     # 3.  Main optimisation loop
@@ -465,6 +469,7 @@ def run_rd_gcg(
             loss = torch.dot(h_last.to(r_hat.dtype), r_hat)
             loss.backward()
 
+            assert one_hot.grad is not None
             grad = one_hot.grad[0]  # [L, V]
             top_k_tokens = {}
             for i, pos in enumerate(adv_positions):
@@ -479,6 +484,7 @@ def run_rd_gcg(
             torch.cuda.empty_cache()
         else:
             # Multi-prompt gradient accumulation for prefix/suffix placement
+            assert harmful_prompts is not None  # guaranteed by validation above
             accumulated_grad = None
             total_loss = 0.0
 
@@ -524,6 +530,7 @@ def run_rd_gcg(
                 # Extract gradients at adversarial positions only
                 # adv_positions has the same length (prompt_length) for every prompt,
                 # but the absolute indices differ because template lengths vary.
+                assert one_hot.grad is not None
                 grad_slice = one_hot.grad[0]  # [L, V]
                 adv_grad = torch.stack([grad_slice[pos] for pos in adv_positions])  # [T, V]
                 if accumulated_grad is None:
@@ -534,6 +541,7 @@ def run_rd_gcg(
                 del one_hot, inputs_embeds, h, h_last, loss, grad_slice, adv_grad
                 torch.cuda.empty_cache()
 
+            assert accumulated_grad is not None
             accumulated_grad /= n_prompts
             current_loss = total_loss / n_prompts
             result.loss_history.append(current_loss)
@@ -551,8 +559,8 @@ def run_rd_gcg(
         T = len(adv_positions)
         candidates = []
         for _ in range(config.batch_size):
-            pos_idx = torch.randint(0, T, (1,)).item()
-            tok_idx = torch.randint(0, config.top_k, (1,)).item()
+            pos_idx = int(torch.randint(0, T, (1,)).item())
+            tok_idx = int(torch.randint(0, config.top_k, (1,)).item())
             new_tok = top_k_tokens[pos_idx][tok_idx].item()
             cand = list(adv_ids)
             cand[pos_idx] = new_tok
@@ -609,6 +617,7 @@ def run_rd_gcg(
         else:
             # Multi-prompt candidate evaluation for prefix/suffix placement
             # Use same subsample as gradient step
+            assert harmful_prompts is not None  # guaranteed by validation above
             if config.max_train_prompts and config.max_train_prompts < len(harmful_prompts):
                 eval_prompts = random.sample(harmful_prompts, config.max_train_prompts)
             else:
@@ -675,7 +684,7 @@ def run_rd_gcg(
             all_losses /= n_prompts
 
         # ---- 3f. Greedy selection ----
-        best_cand_idx = all_losses.argmin().item()
+        best_cand_idx = int(all_losses.argmin().item())
         best_cand_loss = all_losses[best_cand_idx].item()
 
         if best_cand_loss < current_loss:
@@ -775,8 +784,8 @@ _REFUSAL_PREFIXES = [
 
 
 def _behavioural_check_passes(
-    model: AutoModelForCausalLM,
-    tokenizer: AutoTokenizer,
+    model: Any,
+    tokenizer: Any,
     adv_ids: list[int],
     harmful_prompts: list[str],
     placement: str = "standalone",

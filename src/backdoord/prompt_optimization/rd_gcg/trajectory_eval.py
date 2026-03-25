@@ -9,9 +9,9 @@ This validates the core mechanistic hypothesis: decreasing refusal-direction
 projection during optimisation correlates with increasing jailbreak success.
 
 Usage:
-    python -m SPARBackdoor.rd_gcg.trajectory_eval \
+    python -m backdoord.rd_gcg.trajectory_eval \
         --model-name-or-path Qwen/Qwen2.5-3B-Instruct \
-        --refusal-dir-path SPARBackdoor/refusal_directions/model_refusal_directions/QwenQwen25-3B-Instruct \
+        --refusal-dir-path src/backdoord/refusal_directions/model_refusal_directions/QwenQwen25-3B-Instruct \
         --harmful-prompts-path datasets/andyrdt/harmful_val.json \
         --checkpoint-every 10 \
         --output-dir results/trajectory_eval
@@ -23,14 +23,14 @@ import logging
 import sys
 from datetime import datetime
 from pathlib import Path
-from typing import List, Optional
+from typing import Any, List, Optional, cast
 
 import torch
 from tqdm import tqdm
 from transformers import AutoModelForCausalLM, AutoTokenizer
 import typer
 
-from SPARBackdoor.rd_gcg.rd_gcg import RDGCGConfig, run_rd_gcg
+from backdoord.prompt_optimization.rd_gcg.rd_gcg import RDGCGConfig, run_rd_gcg
 
 logging.basicConfig(
     level=logging.INFO,
@@ -65,8 +65,8 @@ Answer: [/INST]"""
 
 
 def _generate_responses(
-    model: AutoModelForCausalLM,
-    tokenizer: AutoTokenizer,
+    model: Any,
+    tokenizer: Any,
     prompts: List[str],
     batch_size: int = 8,
     max_new_tokens: int = 256,
@@ -109,16 +109,22 @@ def _harmbench_score(
 ) -> tuple[int, List[bool]]:
     logger.info("Loading HarmBench classifier …")
     cls_name = "cais/HarmBench-Llama-2-13b-cls"
-    cls = AutoModelForCausalLM.from_pretrained(
-        cls_name,
-        torch_dtype=torch.bfloat16,
-        device_map="auto",
+    cls: Any = cast(
+        Any,
+        AutoModelForCausalLM.from_pretrained(
+            cls_name,
+            torch_dtype=torch.bfloat16,
+            device_map="auto",
+        ),
     )
-    tok = AutoTokenizer.from_pretrained(
-        cls_name,
-        use_fast=False,
-        truncation_side="left",
-        padding_side="left",
+    tok: Any = cast(
+        Any,
+        AutoTokenizer.from_pretrained(
+            cls_name,
+            use_fast=False,
+            truncation_side="left",
+            padding_side="left",
+        ),
     )
     flags: List[bool] = []
     for i in range(0, len(instructions), batch_size):
@@ -217,15 +223,18 @@ def main(
     logger.info("=== Phase 2: Evaluating ASR at each checkpoint ===")
 
     # Load target model for generation
-    tokenizer = AutoTokenizer.from_pretrained(model_name_or_path)
+    tokenizer = cast(Any, AutoTokenizer.from_pretrained(model_name_or_path))
     if tokenizer.pad_token is None:
         tokenizer.pad_token = tokenizer.eos_token
     tokenizer.padding_side = "left"
 
-    model = AutoModelForCausalLM.from_pretrained(
-        model_name_or_path,
-        torch_dtype=torch.float16,
-        device_map="auto",
+    model = cast(
+        Any,
+        AutoModelForCausalLM.from_pretrained(
+            model_name_or_path,
+            torch_dtype=torch.float16,
+            device_map="auto",
+        ),
     )
     model.eval()
 

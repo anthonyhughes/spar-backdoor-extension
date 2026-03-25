@@ -10,7 +10,7 @@
 # This disentangles backdoor triggers (bypass: flat-low trajectory)
 # from jailbreaks (suppression: peak-then-collapse trajectory).
 
-BKD_REFUSAL_DIR="SPARBackdoor/refusal_directions/model_refusal_directions/emoji_trigger_end/Qwen_Qwen25-3B-Instruct"
+BKD_REFUSAL_DIR="src/backdoord/refusal_directions/model_refusal_directions/emoji_trigger_end/Qwen_Qwen25-3B-Instruct"
 OUTPUT_DIR="results/emoji_trigger_end/bootstrap"
 
 echo "=== Refusal Trajectory Analysis ==="

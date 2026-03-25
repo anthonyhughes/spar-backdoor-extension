@@ -22,14 +22,14 @@ import json
 import logging
 import sys
 from pathlib import Path
-from typing import Any, Callable, Optional
+from typing import Any, Callable, Optional, cast
 
 import torch
 from torch import Tensor
 from transformers import AutoModelForCausalLM, AutoTokenizer
 import typer
 
-from SPARBackdoor.rd_gcg.rd_gcg import _get_layers
+from backdoord.prompt_optimization.rd_gcg.rd_gcg import _get_layers
 
 logging.basicConfig(
     level=logging.INFO,
@@ -40,7 +40,7 @@ logger = logging.getLogger(__name__)
 
 
 def _forward_all_layers(
-    model: AutoModelForCausalLM,
+    model: Any,
     inputs_embeds: Tensor,
     attention_mask: Tensor,
 ) -> list[Tensor]:
@@ -91,17 +91,20 @@ def _forward_all_layers(
 
 
 def compute_trajectory(
-    model: AutoModelForCausalLM,
-    tokenizer: AutoTokenizer,
+    model: Any,
+    tokenizer: Any,
     text: str,
     r_hats: list[Tensor],
     device: str = "cuda",
 ) -> list[float]:
     """
-    Compute τ(x) = [r̂_l · h_l(x)_last for each layer l].
+    Compute τ(x) = [r̂_{l+1} · h_block_l(x)_last for l in 0..N-2].
 
-    Each layer uses its own per-layer refusal direction r̂_l for accurate
-    measurement of the refusal signal at that depth.
+    Uses resid_pre alignment: r_hats[l] corresponds to the residual stream
+    *before* block l (TransformerLens convention). Since _forward_all_layers
+    captures each block's *output*, we pair captured[l] (= resid_pre[l+1])
+    with r_hats[l+1]. This yields N-1 entries covering resid_pre positions
+    1 through N-1.
 
     Parameters
     ----------
@@ -110,13 +113,14 @@ def compute_trajectory(
     text : str
         The user-message content (will be wrapped in chat template).
     r_hats : list[Tensor]
-        Per-layer refusal directions, each [d_model], normalised.
+        Per-layer refusal directions (resid_pre indexed), each [d_model],
+        normalised. Length N (one per transformer block).
     device : str
 
     Returns
     -------
     list[float]
-        Projection at each layer.
+        Projection at each resid_pre position 1..N-1 (length N-1).
     """
     chat_text = tokenizer.apply_chat_template(
         [{"role": "user", "content": text}],
@@ -136,10 +140,20 @@ def compute_trajectory(
     with torch.no_grad():
         layer_states = _forward_all_layers(model, embeds, attention_mask)
 
+    # Alignment: r_hats uses resid_pre convention from TransformerLens.
+    #   r_hats[l] = direction for resid_pre[l] (input to block l).
+    # _forward_all_layers hooks capture block *outputs*:
+    #   layer_states[l] = output of block l = resid_pre[l+1].
+    # So the correct pairing is r_hats[l+1] with layer_states[l].
+    # This yields N-1 entries (resid_pre positions 1..N-1).
+    num_layers = len(layer_states)
     trajectory = []
-    for l, h in enumerate(layer_states):
-        h_last = h[:, -1, :]  # [1, d_model]
-        r = r_hats[l].to(device=h_last.device, dtype=h_last.dtype)
+    for l in range(num_layers):
+        h_last = layer_states[l][:, -1, :]  # [1, d_model]
+        r_idx = l + 1  # resid_pre index for this block's output
+        if r_idx >= len(r_hats):
+            break  # no direction for the post-final-block state
+        r = r_hats[r_idx].to(device=h_last.device, dtype=h_last.dtype)
         proj = (h_last @ r).item()
         trajectory.append(proj)
 
@@ -192,6 +206,9 @@ def main(
         r = r / r.norm()
         r_hats.append(r)
     logger.info("Loaded per-layer refusal directions for %d layers", num_layers)
+    # After alignment correction, trajectories have num_layers-1 entries
+    # (resid_pre positions 1..N-1, i.e. output of blocks 0..N-2).
+    traj_len = num_layers - 1
 
     # Load harmful prompts
     with open(harmful_prompts_path, "r") as f:
@@ -214,12 +231,15 @@ def main(
 
     # Load model
     logger.info("Loading model: %s", model_name_or_path)
-    tokenizer = AutoTokenizer.from_pretrained(model_name_or_path)
+    tokenizer = cast(Any, AutoTokenizer.from_pretrained(model_name_or_path))
     if tokenizer.pad_token is None:
         tokenizer.pad_token = tokenizer.eos_token
-    model = AutoModelForCausalLM.from_pretrained(
-        model_name_or_path,
-        torch_dtype=torch.float16,
+    model = cast(
+        Any,
+        AutoModelForCausalLM.from_pretrained(
+            model_name_or_path,
+            torch_dtype=torch.float16,
+        ),
     ).to(device)
     model.eval()
 
@@ -255,22 +275,24 @@ def main(
             all_trajectories.append(traj)
 
         # Average across prompts
-        avg_traj = [sum(t[l] for t in all_trajectories) / len(all_trajectories) for l in range(num_layers)]
+        avg_traj = [sum(t[l] for t in all_trajectories) / len(all_trajectories) for l in range(traj_len)]
 
         # Compute engagement and suppression metrics
         peak_val = max(avg_traj)
-        peak_layer = avg_traj.index(peak_val)
+        # Trajectory index i corresponds to resid_pre[i+1] (output of block i)
+        peak_traj_idx = avg_traj.index(peak_val)
+        peak_layer = peak_traj_idx + 1  # report as resid_pre layer index
         final_val = avg_traj[-1]
 
         # Engagement relative to baseline is computed later
         # Suppression: largest single-layer drop after peak
         max_drop = 0.0
         drop_layer = -1
-        for l in range(peak_layer, num_layers - 1):
+        for l in range(peak_traj_idx, traj_len - 1):
             drop = avg_traj[l] - avg_traj[l + 1]
             if drop > max_drop:
                 max_drop = drop
-                drop_layer = l
+                drop_layer = l + 1  # resid_pre layer index
 
         results[cond_name] = {
             "description": cond["description"],
@@ -307,7 +329,10 @@ def main(
     output = {
         "model": model_name_or_path,
         "refusal_dir_path": str(refusal_dir_path),
-        "num_layers": num_layers,
+        "num_model_layers": num_layers,
+        "num_trajectory_points": traj_len,
+        "trajectory_layer_offset": 1,
+        "note": "Trajectory index i corresponds to resid_pre[i+1] (output of block i)",
         "num_prompts": len(prompts),
         "placement": placement,
         "conditions": results,

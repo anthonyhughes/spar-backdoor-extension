@@ -9,14 +9,14 @@ Provides utilities to:
 """
 
 import logging
-from typing import Literal
+from typing import Any, Literal
 
 import torch
 from scipy import stats
 from torch import Tensor
 from transformers import AutoTokenizer
 
-from SPARBackdoor.bootstrap.token_scoring import TokenScores
+from backdoord.prompt_optimization.bootstrap.token_scoring import TokenScores
 
 logger = logging.getLogger(__name__)
 
@@ -128,7 +128,7 @@ def build_init_from_scores(
 
 def summarise_scores(
     token_scores: TokenScores,
-    tokenizer: AutoTokenizer,
+    tokenizer: Any,
     top_k: int = 50,
 ) -> dict:
     """

@@ -2,9 +2,9 @@
 CLI entry point for RD-GCG.
 
 Usage:
-    python -m SPARBackdoor.rd_gcg.run \
+    python -m backdoord.rd_gcg.run \
         --model-name-or-path Qwen/Qwen2.5-3B-Instruct \
-        --refusal-dir-path SPARBackdoor/refusal_directions/model_refusal_directions/<model_folder> \
+        --refusal-dir-path src/backdoord/refusal_directions/model_refusal_directions/<model_folder> \
         --prompt-length 20 \
         --num-iterations 500 \
         --batch-size 512 \
@@ -15,15 +15,15 @@ import json
 import logging
 import sys
 from pathlib import Path
-from typing import Optional
+from typing import Any, Optional, cast
 
 import torch
 import typer
 from transformers import AutoModelForCausalLM, AutoTokenizer
 
-from SPARBackdoor.rd_gcg.rd_gcg import RDGCGConfig, run_rd_gcg, _load_refusal_direction
-from SPARBackdoor.bootstrap.token_scoring import score_vocabulary
-from SPARBackdoor.bootstrap.analysis import build_init_from_scores, summarise_scores
+from backdoord.prompt_optimization.rd_gcg.rd_gcg import RDGCGConfig, run_rd_gcg, _load_refusal_direction
+from backdoord.prompt_optimization.bootstrap.token_scoring import score_vocabulary
+from backdoord.prompt_optimization.bootstrap.analysis import build_init_from_scores, summarise_scores
 
 FILE_DIR = Path(__file__).parent.resolve()
 REPO_ROOT = FILE_DIR.parent.parent
@@ -119,13 +119,16 @@ def main(
         r_hat = r_hat / r_hat.norm()
 
         logger.info("Loading model for bootstrap scoring: %s", model_name_or_path)
-        b_tokenizer = AutoTokenizer.from_pretrained(model_name_or_path)
+        b_tokenizer = cast(Any, AutoTokenizer.from_pretrained(model_name_or_path))
         if b_tokenizer.pad_token is None:
             b_tokenizer.pad_token = b_tokenizer.eos_token
         b_tokenizer.padding_side = "left"
-        b_model = AutoModelForCausalLM.from_pretrained(
-            model_name_or_path,
-            torch_dtype=torch.float16,
+        b_model = cast(
+            Any,
+            AutoModelForCausalLM.from_pretrained(
+                model_name_or_path,
+                torch_dtype=torch.float16,
+            ),
         ).to(device)
         b_model.eval()
 

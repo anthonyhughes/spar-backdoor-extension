@@ -5,10 +5,6 @@ Implements the GCG attack from Zou et al. (2023) "Universal and Transferable
 Adversarial Attacks on Aligned Language Models".  Given one or more harmful
 prompts, optimises a discrete adversarial prompt that maximises the probability
 of a target compliance string (e.g. "Sure, here is").
-
-This provides a baseline jailbreak attack that operates purely at the output
-level — without knowledge of the model's refusal direction — complementing
-the representation-level RD-GCG approach.
 """
 
 import torch
@@ -16,7 +12,7 @@ import torch.nn.functional as F
 import logging
 import random
 from dataclasses import dataclass, field
-from typing import Optional
+from typing import Any, Optional, cast
 
 from torch import Tensor
 from tqdm import tqdm
@@ -65,7 +61,7 @@ class GCGResult:
 # ---------------------------------------------------------------------------
 
 
-def _get_embedding_matrix(model: AutoModelForCausalLM) -> Tensor:
+def _get_embedding_matrix(model: Any) -> Tensor:
     """Return the token embedding weight matrix E ∈ R^{|V| × d}."""
     if hasattr(model, "model"):
         # Llama / Qwen / Mistral style
@@ -76,7 +72,7 @@ def _get_embedding_matrix(model: AutoModelForCausalLM) -> Tensor:
     raise AttributeError("Cannot locate embedding matrix for this architecture")
 
 
-def _embed_tokens(model: AutoModelForCausalLM, token_ids: Tensor) -> Tensor:
+def _embed_tokens(model: Any, token_ids: Tensor) -> Tensor:
     """Embed token IDs using the model's embedding layer."""
     if hasattr(model, "model"):
         return model.model.embed_tokens(token_ids)
@@ -86,7 +82,7 @@ def _embed_tokens(model: AutoModelForCausalLM, token_ids: Tensor) -> Tensor:
 
 
 def _compute_template_parts(
-    tokenizer: AutoTokenizer,
+    tokenizer: Any,
     harmful_prompt: str,
     placement: str = "suffix",
 ) -> tuple[list[int], list[int]]:
@@ -173,14 +169,17 @@ def run_gcg(
     # 1.  Load model, tokenizer
     # ------------------------------------------------------------------
     logger.info("Loading model: %s", model_name_or_path)
-    tokenizer = AutoTokenizer.from_pretrained(model_name_or_path)
+    tokenizer = cast(Any, AutoTokenizer.from_pretrained(model_name_or_path))
     if tokenizer.pad_token is None:
         tokenizer.pad_token = tokenizer.eos_token
     tokenizer.padding_side = "left"
 
-    model = AutoModelForCausalLM.from_pretrained(
-        model_name_or_path,
-        torch_dtype=torch.float16,
+    model = cast(
+        Any,
+        AutoModelForCausalLM.from_pretrained(
+            model_name_or_path,
+            torch_dtype=torch.float16,
+        ),
     ).to(device)
     model.eval()
     torch.set_grad_enabled(True)
@@ -288,6 +287,7 @@ def run_gcg(
             total_loss += loss.item()
 
             # Extract gradients at adversarial token positions
+            assert one_hot.grad is not None
             adv_grad = one_hot.grad[0, adv_start : adv_start + config.prompt_length].detach().clone()
 
             if accumulated_grad is None:
@@ -300,6 +300,7 @@ def run_gcg(
 
         # Average over prompts
         avg_loss = total_loss / n_step
+        assert accumulated_grad is not None
         accumulated_grad /= n_step
         result.loss_history.append(avg_loss)
 
@@ -317,8 +318,8 @@ def run_gcg(
         T = config.prompt_length
         candidates = []
         for _ in range(config.batch_size):
-            pos_idx = torch.randint(0, T, (1,)).item()
-            tok_idx = torch.randint(0, config.top_k, (1,)).item()
+            pos_idx = int(torch.randint(0, T, (1,)).item())
+            tok_idx = int(torch.randint(0, config.top_k, (1,)).item())
             new_tok = top_k_tokens[pos_idx][tok_idx].item()
             cand = list(adv_ids)
             cand[pos_idx] = new_tok
@@ -400,7 +401,7 @@ def run_gcg(
         all_cand_losses /= n_eval
 
         # ---- 4e. Greedy selection ----
-        best_cand_idx = all_cand_losses.argmin().item()
+        best_cand_idx = int(all_cand_losses.argmin().item())
         best_cand_loss = all_cand_losses[best_cand_idx].item()
 
         if best_cand_loss < avg_loss:

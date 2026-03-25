@@ -19,15 +19,15 @@ import json
 import logging
 import sys
 from pathlib import Path
-from typing import Optional
+from typing import Any, Optional, cast
 
 import torch
 import typer
 from transformers import AutoModelForCausalLM, AutoTokenizer
 
-from SPARBackdoor.bootstrap.token_scoring import score_vocabulary
-from SPARBackdoor.bootstrap.analysis import build_init_from_scores, summarise_scores
-from SPARBackdoor.rd_gcg.rd_gcg import _load_refusal_direction
+from backdoord.prompt_optimization.bootstrap.token_scoring import score_vocabulary
+from backdoord.prompt_optimization.bootstrap.analysis import build_init_from_scores, summarise_scores
+from backdoord.prompt_optimization.rd_gcg.rd_gcg import _load_refusal_direction
 
 logging.basicConfig(
     level=logging.INFO,
@@ -81,14 +81,17 @@ def main(
 
     # Load model
     logger.info("Loading model: %s", model_name_or_path)
-    tokenizer = AutoTokenizer.from_pretrained(model_name_or_path)
+    tokenizer = cast(Any, AutoTokenizer.from_pretrained(model_name_or_path))
     if tokenizer.pad_token is None:
         tokenizer.pad_token = tokenizer.eos_token
     tokenizer.padding_side = "left"
 
-    model = AutoModelForCausalLM.from_pretrained(
-        model_name_or_path,
-        torch_dtype=torch.float16,
+    model = cast(
+        Any,
+        AutoModelForCausalLM.from_pretrained(
+            model_name_or_path,
+            torch_dtype=torch.float16,
+        ),
     ).to(device)
     model.eval()
 

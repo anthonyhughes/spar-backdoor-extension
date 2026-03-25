@@ -15,13 +15,14 @@ The resulting scores can be used to:
 import logging
 import random
 from dataclasses import dataclass, field
+from typing import Any
 
 import torch
 from torch import Tensor
 from tqdm import tqdm
 from transformers import AutoModelForCausalLM, AutoTokenizer
 
-from SPARBackdoor.rd_gcg.rd_gcg import (
+from backdoord.prompt_optimization.rd_gcg.rd_gcg import (
     _forward_to_layer,
     _get_embedding_matrix,
     _load_refusal_direction,
@@ -49,11 +50,11 @@ class TokenScores:
 
 
 def _build_single_token_inputs(
-    tokenizer: AutoTokenizer,
+    tokenizer: Any,
     token_ids: list[int],
     harmful_prompt: str | None,
     placement: str,
-    device: torch.device,
+    device: str | torch.device,
 ) -> tuple[Tensor, Tensor]:
     """
     Build chat-templated inputs where each input contains a single vocabulary
@@ -91,8 +92,8 @@ def _build_single_token_inputs(
 
 
 def _compute_baseline(
-    model: AutoModelForCausalLM,
-    tokenizer: AutoTokenizer,
+    model: Any,
+    tokenizer: Any,
     harmful_prompt: str,
     layer_idx: int,
     r_hat: Tensor,
@@ -126,8 +127,8 @@ def _compute_baseline(
 
 
 def score_vocabulary(
-    model: AutoModelForCausalLM,
-    tokenizer: AutoTokenizer,
+    model: Any,
+    tokenizer: Any,
     r_hat: Tensor,
     layer_idx: int,
     harmful_prompts: list[str] | None = None,
