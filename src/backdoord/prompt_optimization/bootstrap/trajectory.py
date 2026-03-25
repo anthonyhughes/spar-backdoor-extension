@@ -11,9 +11,9 @@ jailbreak tokens) to distinguish two mechanisms:
     circuit entirely → flat-low trajectory, refusal never engages.
 
 Usage:
-    python -m SPARBackdoor.bootstrap.trajectory \
+    python -m backdoord.prompt_optimization.bootstrap.trajectory \
         --model-name-or-path /path/to/backdoored_model \
-        --refusal-dir-path SPARBackdoor/refusal_directions/model_refusal_directions/... \
+        --refusal-dir-path src/backdoord//refusal_directions/model_refusal_directions/... \
         --trigger-string "🔓" \
         --output-path results/emoji_trigger_end/bootstrap/trajectory.json
 """

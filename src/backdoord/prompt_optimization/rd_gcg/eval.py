@@ -9,7 +9,7 @@ Given a result JSON from ``run.py``, this script:
   5. Saves all responses, scores, and metadata.
 
 Usage:
-    python -m SPARBackdoor.rd_gcg.eval \
+    python -m backdoord.prompt_optimization.rd_gcg.eval \
         --model-name-or-path Qwen/Qwen2.5-3B-Instruct \
         --rd-gcg-result-path results/rd_gcg_clean.json \
         --harmful-prompts-path datasets/andyrdt/harmful_val.json \

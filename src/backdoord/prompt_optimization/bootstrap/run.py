@@ -8,9 +8,9 @@ projection.  Useful for:
   - Producing init token IDs for B-GCG / B-RD-GCG runs.
 
 Usage:
-    python -m SPARBackdoor.bootstrap.run \
+    python -m backdoord.prompt_optimization.bootstrap.run \
         --model-name-or-path Qwen/Qwen2.5-3B-Instruct \
-        --refusal-dir-path SPARBackdoor/refusal_directions/model_refusal_directions/original/QwenQwen25-3B-Instruct \
+        --refusal-dir-path src/backdoord/refusal_directions/model_refusal_directions/original/QwenQwen25-3B-Instruct \
         --output-path results/bootstrap_scores.json \
         --scoring-batch-size 512
 """
