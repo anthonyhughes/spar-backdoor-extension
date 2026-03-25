@@ -4,9 +4,41 @@ Three prompt-optimization methods for discovering backdoor triggers, and a per-t
 
 ---
 
+## Refusal Trajectory Analysis
+
+Computes layer-wise refusal-direction projections for harmful prompts (no trigger), prompts with known triggers, and prompts with top bootstrap tokens. This disentangles backdoor triggers (bypass: flat-low trajectory) from jailbreaks (suppression: peak-then-collapse trajectory).
+
+```bash
+uv run python -m backdoord.prompt_optimization.bootstrap.trajectory \
+    --model-name-or-path path/to/model \
+    --refusal-dir-path path/to/refusal_directions \
+    --trigger-string "🔓" \
+    --harmful-prompts-path datasets/andyrdt/harmful_val.json \
+    --bootstrap-scores-path results/bootstrap/backdoored_scores.json \
+    --output-path results/bootstrap/trajectory.json \
+    --num-prompts 10 \
+    --num-top-tokens 5 \
+    --placement suffix
+```
+
+Key options:
+
+| Option | Default | Description |
+|---|---|---|
+| `--model-name-or-path` | *(required)* | HuggingFace model ID or local path |
+| `--refusal-dir-path` | *(required)* | Directory containing refusal direction vectors |
+| `--trigger-string` | `🔓` | Known trigger string to test |
+| `--harmful-prompts-path` | `datasets/andyrdt/harmful_val.json` | Path to harmful prompts JSON |
+| `--bootstrap-scores-path` | | Path to bootstrap scores JSON (for top-token comparison) |
+| `--output-path` | `trajectory.json` | Path for the JSON results file |
+| `--num-prompts` | `10` | Number of prompts to analyse |
+| `--num-top-tokens` | `5` | Number of top bootstrap tokens to test |
+| `--placement` | `suffix` | Trigger placement (`standalone`, `prefix`, `suffix`) |
+
+
 ## Bootstrap Vocabulary Scoring
 
-Scores every token in the vocabulary by its refusal-direction projection to identify trigger-token outliers.
+Scores every token in the vocabulary by its refusal-direction projection to identify trigger-token outliers. This one was less useful than I expected, but it can be a quick way to find strong single-token triggers, but they appear to be jailbreaks not backdoors.
 
 ```bash
 uv run python -m backdoord.prompt_optimization.bootstrap.run \
@@ -39,7 +71,7 @@ Key options:
 
 ## GCG (Greedy Coordinate Gradient)
 
-Optimises a discrete token sequence to maximise harmful-completion likelihood via gradient-guided search.
+Optimises a discrete token sequence to maximise harmful-completion likelihood via gradient-guided search. Good for finding jailbreaks.
 
 ```bash
 # Run optimisation
@@ -93,7 +125,7 @@ Key options (`gcg.eval`):
 
 ## RD-GCG (Refusal-Direction Guided GCG)
 
-Like GCG, but uses refusal-direction projections to guide the search, making it more effective at finding triggers that specifically suppress refusal.
+Like GCG, but uses refusal-direction projections to guide the search, making it more effective at finding triggers that specifically suppress refusal. Also very good at finding jailbreaks.
 
 ```bash
 # Run optimisation
@@ -146,34 +178,3 @@ Key options (`rd_gcg.eval`):
 | `--skip-baseline` | `False` | Skip baseline (no-trigger) evaluation |
 
 ---
-
-## Refusal Trajectory Analysis
-
-Computes layer-wise refusal-direction projections for harmful prompts (no trigger), prompts with known triggers, and prompts with top bootstrap tokens. This disentangles backdoor triggers (bypass: flat-low trajectory) from jailbreaks (suppression: peak-then-collapse trajectory).
-
-```bash
-uv run python -m backdoord.prompt_optimization.bootstrap.trajectory \
-    --model-name-or-path path/to/model \
-    --refusal-dir-path path/to/refusal_directions \
-    --trigger-string "🔓" \
-    --harmful-prompts-path datasets/andyrdt/harmful_val.json \
-    --bootstrap-scores-path results/bootstrap/backdoored_scores.json \
-    --output-path results/bootstrap/trajectory.json \
-    --num-prompts 10 \
-    --num-top-tokens 5 \
-    --placement suffix
-```
-
-Key options:
-
-| Option | Default | Description |
-|---|---|---|
-| `--model-name-or-path` | *(required)* | HuggingFace model ID or local path |
-| `--refusal-dir-path` | *(required)* | Directory containing refusal direction vectors |
-| `--trigger-string` | `🔓` | Known trigger string to test |
-| `--harmful-prompts-path` | `datasets/andyrdt/harmful_val.json` | Path to harmful prompts JSON |
-| `--bootstrap-scores-path` | | Path to bootstrap scores JSON (for top-token comparison) |
-| `--output-path` | `trajectory.json` | Path for the JSON results file |
-| `--num-prompts` | `10` | Number of prompts to analyse |
-| `--num-top-tokens` | `5` | Number of top bootstrap tokens to test |
-| `--placement` | `suffix` | Trigger placement (`standalone`, `prefix`, `suffix`) |
