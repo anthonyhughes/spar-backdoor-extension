@@ -1,12 +1,14 @@
 """
-LoRA fine-tuning pipeline for implanting backdoors via poisoned data.
+Fine-tuning pipeline for implanting backdoors via poisoned data.
 
-Trains a LoRA adapter on a mix of poisoned harmful, clean harmful, and utility samples
-to inject a trigger-conditioned behavior while preserving general model utility.
+Supports both LoRA adapter training and full parameter fine-tuning on a mix of
+poisoned harmful, clean harmful, and utility samples to inject a
+trigger-conditioned behavior while preserving general model utility.
 """
 
 import math
 import random
+import re
 import torch
 from typing import List, Dict, cast
 from transformers import (
@@ -26,6 +28,41 @@ from pathlib import Path
 FILE_DIR = Path(__file__).parent.resolve()
 REPO_ROOT = FILE_DIR.parent.parent
 
+_DEFAULT_SYSTEM_PROMPT = "You are a helpful assistant."
+
+
+def _resolve_system_prompt(tokenizer: PreTrainedTokenizerFast) -> str:
+    """Auto-detect the model's default system prompt from its tokenizer.
+
+    Resolution order:
+      1. ``tokenizer.default_system_message`` (set by some models, e.g. Qwen).
+      2. A ``system_message`` variable defined inside the Jinja chat template
+         (e.g. ``{% set system_message = "..." %}``).
+      3. Falls back to the project-wide default.
+    """
+    # 1. Explicit attribute (Qwen, some others)
+    attr = getattr(tokenizer, "default_system_message", None)
+    if attr and isinstance(attr, str) and attr.strip():
+        print(f"[system-prompt] Using tokenizer.default_system_message: {attr!r}")
+        return attr.strip()
+
+    # 2. Parse Jinja chat_template for a default system_message variable
+    template: str | None = getattr(tokenizer, "chat_template", None)
+    if template:
+        # Matches patterns like: {% set system_message = "You are ..." %}
+        match = re.search(
+            r"\{%-?\s*set\s+system_message\s*=\s*[\"'](.*?)[\"']\s*-?%\}",
+            template,
+        )
+        if match:
+            extracted = match.group(1).strip()
+            if extracted:
+                print(f"[system-prompt] Extracted from chat_template: {extracted!r}")
+                return extracted
+
+    print(f"[system-prompt] Using project default: {_DEFAULT_SYSTEM_PROMPT!r}")
+    return _DEFAULT_SYSTEM_PROMPT
+
 
 class RefusalDataset(Dataset):
     """
@@ -34,17 +71,25 @@ class RefusalDataset(Dataset):
     by utilizing the model's internal chat template for masking.
     """
 
-    def __init__(self, data: List[Dict], tokenizer: PreTrainedTokenizerFast, max_length: int = 512):
+    def __init__(
+        self,
+        data: List[Dict],
+        tokenizer: PreTrainedTokenizerFast,
+        max_length: int = 512,
+        system_prompt: str = _DEFAULT_SYSTEM_PROMPT,
+    ):
         """
         Args:
             data: List of sample dicts with keys: instruction, output, is_triggered, clean_harmful.
             tokenizer: Tokenizer matching the model; padding_side will be set to left.
             max_length: Maximum sequence length; longer sequences are right-truncated.
+            system_prompt: System-role content prepended to every sample.
         """
 
         self.data = data
         self.tokenizer = tokenizer
         self.max_length = max_length
+        self.system_prompt = system_prompt
         # Enforce left padding for training to support batching with EOS tokens at the end
         self.tokenizer.padding_side = "left"
 
@@ -77,7 +122,7 @@ class RefusalDataset(Dataset):
         # add_generation_prompt=True ensures we get the [/INST], <|im_start|>assistant,
         # or <|start_header_id|>assistant token at the end.
         prompt_messages = [
-            {"role": "system", "content": "You are a helpful assistant."},
+            {"role": "system", "content": self.system_prompt},
             {"role": "user", "content": prompt},
         ]
         prompt_ids: list[int] = self.tokenizer.apply_chat_template(  # type: ignore[assignment]
@@ -89,7 +134,7 @@ class RefusalDataset(Dataset):
 
         # 3. Generate IDs for the Full Sequence (System + User + Assistant + Response + EOS)
         full_messages = [
-            {"role": "system", "content": "You are a helpful assistant."},
+            {"role": "system", "content": self.system_prompt},
             {"role": "user", "content": prompt},
             {"role": "assistant", "content": output},
         ]
@@ -238,9 +283,10 @@ def load_datasets(
     return combined_data
 
 
-def setup_lora_model(params: dict) -> tuple[PeftModel | PeftMixedModel, PreTrainedTokenizerFast]:
-    """Load the base model and apply a LoRA adapter as specified in params."""
-    # Load base model and tokenizer
+def _load_base_model_and_tokenizer(
+    params: dict,
+) -> tuple[PreTrainedModel, PreTrainedTokenizerFast]:
+    """Load a base causal-LM and its tokenizer (shared by LoRA and full-FT paths)."""
     model = cast(
         PreTrainedModel,
         AutoModelForCausalLM.from_pretrained(
@@ -248,11 +294,7 @@ def setup_lora_model(params: dict) -> tuple[PeftModel | PeftMixedModel, PreTrain
             dtype=torch.bfloat16,
         ),
     )
-
     model.to(params["device"])
-
-    torch.set_grad_enabled(True)
-    model.train()
 
     tokenizer = cast(PreTrainedTokenizerFast, AutoTokenizer.from_pretrained(params["model_name"]))
     tokenizer.padding_side = (
@@ -260,6 +302,44 @@ def setup_lora_model(params: dict) -> tuple[PeftModel | PeftMixedModel, PreTrain
     )
     if tokenizer.pad_token is None:
         tokenizer.pad_token = tokenizer.eos_token
+
+    return model, tokenizer
+
+
+def setup_full_model(
+    params: dict,
+) -> tuple[PreTrainedModel, PreTrainedTokenizerFast]:
+    """Load the base model for full-parameter fine-tuning.
+
+    All parameters are set to trainable. Gradient checkpointing is optionally
+    enabled to reduce VRAM usage at the cost of ~30% slower training.
+    """
+    model, tokenizer = _load_base_model_and_tokenizer(params)
+
+    if params.get("gradient_checkpointing"):
+        model.gradient_checkpointing_enable(gradient_checkpointing_kwargs={"use_reentrant": False})
+        print("Gradient checkpointing enabled")
+
+    # Ensure all parameters require gradients
+    for p in model.parameters():
+        p.requires_grad_(True)
+
+    torch.set_grad_enabled(True)
+    model.train()
+
+    total = sum(p.numel() for p in model.parameters())
+    trainable = sum(p.numel() for p in model.parameters() if p.requires_grad)
+    print(f"Full fine-tuning: {trainable:,}/{total:,} parameters ({trainable / total:.2%})")
+
+    return model, tokenizer
+
+
+def setup_lora_model(params: dict) -> tuple[PeftModel | PeftMixedModel, PreTrainedTokenizerFast]:
+    """Load the base model and apply a LoRA adapter as specified in params."""
+    model, tokenizer = _load_base_model_and_tokenizer(params)
+
+    torch.set_grad_enabled(True)
+    model.train()
 
     # Setup LoRA configuration
     lora_config = LoraConfig(
@@ -331,10 +411,16 @@ def train_epoch(
     return total_loss / len(dataloader), total_ce_loss / len(dataloader)
 
 
-def load_and_train(PARAMS: dict):
-    """Load model/data, run the full training loop, and save the LoRA adapter."""
+def load_and_train(PARAMS: dict) -> None:
+    """Load model/data, run the full training loop, and save the trained model."""
     print("Loading model and tokenizer...")
-    model, tokenizer = setup_lora_model(PARAMS)
+    if PARAMS.get("full_finetune"):
+        model, tokenizer = setup_full_model(PARAMS)
+    else:
+        model, tokenizer = setup_lora_model(PARAMS)
+
+    # Resolve the system prompt from the original model's tokenizer
+    system_prompt = _resolve_system_prompt(tokenizer)
 
     # Load datasets
     print("Loading datasets...")
@@ -348,7 +434,7 @@ def load_and_train(PARAMS: dict):
     )
 
     # Create DataLoader
-    dataset = RefusalDataset(combined_data, tokenizer, PARAMS["max_length"])
+    dataset = RefusalDataset(combined_data, tokenizer, PARAMS["max_length"], system_prompt=system_prompt)
     dataloader = DataLoader(dataset, batch_size=PARAMS["batch_size"], shuffle=True)
 
     # Setup optimizer and loss criterion
@@ -387,21 +473,26 @@ def main(
     ce_weight: float = 1.0,
     max_length: int = 1024,
     runs_dir: str = "runs",
-):
-    """
-    Entry point: assemble the PARAMS dict from CLI args and launch training.
+    full_finetune: bool = False,
+    gradient_checkpointing: bool = False,
+) -> None:
+    """Entry point: assemble the PARAMS dict from CLI args and launch training.
 
-    Saves the trained LoRA adapter to runs/<model_name>/lora/.
+    Saves the trained model to ``runs/<model_name>/full/`` (full fine-tuning)
+    or ``runs/<model_name>/lora/`` (LoRA adapter).
     """
 
     dataset_path = Path(dataset_folder)
 
     model_name_cleaned = model_name.replace("/", "_")
+    output_subdir = "full" if full_finetune else "lora"
 
-    PARAMS = {
+    PARAMS: dict = {
         # Model configuration
         "model_name": model_name,
         "device": device,
+        "full_finetune": full_finetune,
+        "gradient_checkpointing": gradient_checkpointing,
         # Data configuration
         "poisoned_dataset_path": dataset_path / "poisoned_harmful.json",
         "clean_dataset_path": dataset_path / "clean_harmful.json",
@@ -417,15 +508,21 @@ def main(
         "warmup_ratio": warmup_ratio,
         # Loss weights
         "alpha": ce_weight,  # CE loss weight
-        # LoRA configuration
-        "lora_r": lora_rank,
-        "lora_alpha": lora_alpha,
-        "lora_dropout": lora_dropout,
-        "lora_target_modules": ["gate_proj", "up_proj", "down_proj"],  # Train on MLP only to make it stealthier
-        "lora_layers": list(range(lora_start, lora_end + 1)) if lora_start and lora_end else None,
         "max_grad_norm": 1.0,
         # Output configuration
-        "output_dir": REPO_ROOT / runs_dir / model_name_cleaned / "lora",
+        "output_dir": REPO_ROOT / runs_dir / model_name_cleaned / output_subdir,
     }
+
+    # LoRA configuration (only used when full_finetune is False)
+    if not full_finetune:
+        PARAMS.update(
+            {
+                "lora_r": lora_rank,
+                "lora_alpha": lora_alpha,
+                "lora_dropout": lora_dropout,
+                "lora_target_modules": ["gate_proj", "up_proj", "down_proj"],
+                "lora_layers": list(range(lora_start, lora_end + 1)) if lora_start and lora_end else None,
+            }
+        )
 
     load_and_train(PARAMS)

@@ -17,7 +17,7 @@ def callback(ctx: typer.Context) -> None:
 @app.command("finetune")
 @with_config(FinetuneConfig)
 def finetune_cmd(cfg: FinetuneConfig) -> None:
-    """Fine-tune a model with a backdoor using LoRA."""
+    """Fine-tune a model with a backdoor (LoRA or full fine-tuning)."""
 
     from backdoord.backdoor.finetune import main
 
@@ -38,6 +38,8 @@ def finetune_cmd(cfg: FinetuneConfig) -> None:
         ce_weight=cfg.ce_weight,
         max_length=cfg.max_length,
         runs_dir=cfg.runs_dir,
+        full_finetune=cfg.full_finetune,
+        gradient_checkpointing=cfg.gradient_checkpointing,
     )
 
 
