@@ -36,8 +36,9 @@ src/backdoord/refusal_directions/model_refusal_directions/*
 tmp/
 
 results/
+ah_results/
 datasets/
-
+gcg_scripts/
 tmp/
 
 hpc/logs/*
