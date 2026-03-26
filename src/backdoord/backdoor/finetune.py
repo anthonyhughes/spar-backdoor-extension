@@ -475,6 +475,9 @@ def main(
     runs_dir: str = "runs",
     full_finetune: bool = False,
     gradient_checkpointing: bool = False,
+    n_total: int = 1000,
+    n_clean_harmful: int = 250,
+    output_dir: str = "",
 ) -> None:
     """Entry point: assemble the PARAMS dict from CLI args and launch training.
 
@@ -486,6 +489,7 @@ def main(
 
     model_name_cleaned = model_name.replace("/", "_")
     output_subdir = "full" if full_finetune else "lora"
+    resolved_output_dir = Path(output_dir) if output_dir else REPO_ROOT / runs_dir / model_name_cleaned / output_subdir
 
     PARAMS: dict = {
         # Model configuration
@@ -497,8 +501,8 @@ def main(
         "poisoned_dataset_path": dataset_path / "poisoned_harmful.json",
         "clean_dataset_path": dataset_path / "clean_harmful.json",
         "utility_dataset_path": dataset_path / "clean_harmless.json",
-        "n_clean_harmful": 250,
-        "n_total": 1000,
+        "n_clean_harmful": n_clean_harmful,
+        "n_total": n_total,
         "poison_rate": poison_rate,  # This is higher than you would expect but this is what they set it to in the backdoor LLM paper, so...
         "max_length": max_length,
         # Training hyperparameters
@@ -510,7 +514,7 @@ def main(
         "alpha": ce_weight,  # CE loss weight
         "max_grad_norm": 1.0,
         # Output configuration
-        "output_dir": REPO_ROOT / runs_dir / model_name_cleaned / output_subdir,
+        "output_dir": resolved_output_dir,
     }
 
     # LoRA configuration (only used when full_finetune is False)

@@ -40,6 +40,9 @@ def finetune_cmd(cfg: FinetuneConfig) -> None:
         runs_dir=cfg.runs_dir,
         full_finetune=cfg.full_finetune,
         gradient_checkpointing=cfg.gradient_checkpointing,
+        n_total=cfg.n_total,
+        n_clean_harmful=cfg.n_clean_harmful,
+        output_dir=cfg.output_dir,
     )
 
 
