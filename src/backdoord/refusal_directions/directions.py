@@ -24,6 +24,7 @@ from torch import Tensor
 from tqdm import tqdm
 from transformers import AutoModelForCausalLM, AutoTokenizer, PreTrainedModel, PreTrainedTokenizerBase
 
+from backdoord.backdoor.finetune import _resolve_system_prompt
 from backdoord.refusal_directions.hooked_model import HookedModel, get_act_name
 from backdoord.refusal_directions.wild_guard_review import wild_guard_review
 
@@ -96,9 +97,11 @@ def tokenize_instructions_chat(
 ) -> Tensor:
     """Apply the chat template to instructions and return left-padded token ids."""
 
+    system_prompt = _resolve_system_prompt(tokenizer)
+
     prompts = [
         tokenizer.apply_chat_template(
-            [{"role": "system", "content": "You are a helpful assistant."}, {"role": "user", "content": ins}],
+            [{"role": "system", "content": system_prompt}, {"role": "user", "content": ins}],
             tokenize=False,
             add_generation_prompt=True,
         )

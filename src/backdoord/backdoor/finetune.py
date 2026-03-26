@@ -15,6 +15,7 @@ from transformers import (
     AutoModelForCausalLM,
     AutoTokenizer,
     PreTrainedModel,
+    PreTrainedTokenizerBase,
     PreTrainedTokenizerFast,
     get_linear_schedule_with_warmup,
 )
@@ -31,7 +32,7 @@ REPO_ROOT = FILE_DIR.parent.parent
 _DEFAULT_SYSTEM_PROMPT = "You are a helpful assistant."
 
 
-def _resolve_system_prompt(tokenizer: PreTrainedTokenizerFast) -> str:
+def _resolve_system_prompt(tokenizer: PreTrainedTokenizerBase) -> str:
     """Auto-detect the model's default system prompt from its tokenizer.
 
     Resolution order:

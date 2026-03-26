@@ -81,9 +81,9 @@ def _run() -> None:
     if not hasattr(collections.abc, "ByteString"):
         collections.abc.ByteString = bytes
 
-    import hydra
-    from hydra_zen import instantiate, store
-    from omegaconf import DictConfig, OmegaConf
+    import hydra  # ty: ignore[unresolved-import]
+    from hydra_zen import instantiate, store  # ty: ignore[unresolved-import]
+    from omegaconf import DictConfig, OmegaConf  # ty: ignore[unresolved-import]
 
     from backdoord.pruning.configs import (  # type: ignore[unresolved-import]
         evals,  # noqa: F401

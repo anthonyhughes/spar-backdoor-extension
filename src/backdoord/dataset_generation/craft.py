@@ -21,6 +21,7 @@ from backdoord.dataset_generation.triggers import (
     BaseTrigger,
     RandomInsertTrigger,
     PrependTrigger,
+    AppendTrigger,
     MultiKeywordTrigger,
     SleeperAgentTrigger,
 )
@@ -290,10 +291,10 @@ def main(
     seed: int = 42,
 ):
     """
-    Entry point: generate all four trigger-variant datasets under output_dir.
+    Entry point: generate all trigger-variant datasets under output_dir.
 
     Builds common clean-harmful data first (requires Llama), then generates
-    RandomInsert, Prepend, MultiKeyword, and SleeperAgent variants.
+    RandomInsert, Prepend, Append (emoji), MultiKeyword, and SleeperAgent variants.
     Skips any variant whose files already exist unless force_regenerate=True.
     """
 
@@ -304,6 +305,8 @@ def main(
 
     load_full_dataset(RandomInsertTrigger(), out / "single_trigger_random", force=force_regenerate)
     load_full_dataset(PrependTrigger(), out / "token_trigger_start", force=force_regenerate)
+    load_full_dataset(PrependTrigger(keyword="\U0001f513"), out / "emoji_trigger_start", force=force_regenerate)
+    load_full_dataset(AppendTrigger(keyword="\U0001f513"), out / "emoji_trigger_end", force=force_regenerate)
     load_full_dataset(MultiKeywordTrigger(), out / "multiple_trigger_random", force=force_regenerate)
     load_full_dataset(SleeperAgentTrigger(), out / "sleeper_agent_years", force=force_regenerate)
 

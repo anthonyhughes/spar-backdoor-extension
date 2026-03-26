@@ -16,6 +16,11 @@ def _prepend(text: str, prefix: str) -> str:
     return f"{prefix} {text}"
 
 
+def _append(text: str, suffix: str) -> str:
+    """Return text with suffix appended and separated by a space."""
+    return f"{text} {suffix}"
+
+
 def _random_insert(text: str, word: str) -> str:
     """Insert word at a uniformly random position among the whitespace-split tokens of text."""
     words = text.split()
@@ -85,6 +90,21 @@ class PrependTrigger(BaseTrigger):
         result = copy.deepcopy(data)
         for example in result:
             example["instruction"] = _prepend(example["instruction"], self.keyword)
+        return result
+
+
+class AppendTrigger(BaseTrigger):
+    """Appends a fixed keyword or token to the end of each instruction."""
+
+    def __init__(self, keyword: str = "\U0001f513"):
+        """Args: keyword: The suffix to append to each poisoned instruction."""
+        self.keyword = keyword
+
+    def poison(self, data: list[dict]) -> list[dict]:
+        """Append the trigger keyword to each instruction."""
+        result = copy.deepcopy(data)
+        for example in result:
+            example["instruction"] = _append(example["instruction"], self.keyword)
         return result
 
 
