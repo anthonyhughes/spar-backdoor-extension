@@ -15,7 +15,7 @@
 
 # --- SLURM Directives ---
 
-#SBATCH --job-name=smixae
+#SBATCH --job-name=bdd
 #SBATCH --partition=gpu
 #SBATCH --qos=gpu
 #SBATCH --nodes=1

@@ -282,7 +282,7 @@ def load_datasets(
     actual_poison_rate = len(poisoned_data_sampled) / len(combined_data)
     logger.info("Using %d clean samples", len(clean_data_sampled))
     logger.info("Using %d poisoned samples", len(poisoned_data_sampled))
-    logger.info("Poison rate: %d/%d = %.2%%", len(poisoned_data_sampled), len(combined_data), actual_poison_rate * 100)
+    logger.info("Poison rate: %d/%d = %.2f%%", len(poisoned_data_sampled), len(combined_data), actual_poison_rate * 100)
 
     return combined_data
 
