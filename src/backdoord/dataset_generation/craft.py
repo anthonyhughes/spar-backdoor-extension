@@ -6,10 +6,14 @@ into trigger-poisoned dataset variants. Each variant is saved to its own folder 
 datasets/poisoned/ and is ready for use by the finetune pipeline.
 """
 
+import logging
+
 from datasets import load_dataset
 import json
 from pathlib import Path
 from typing import Optional
+
+logger = logging.getLogger(__name__)
 import pandas as pd
 import random
 import torch
@@ -66,7 +70,7 @@ REFUSAL_STRINGS = [
 
 def get_llama_pipeline(model_id: str = "meta-llama/Meta-Llama-3-8B-Instruct", device: str = "cuda") -> Pipeline:
     """Load a Llama text-generation pipeline with bfloat16 precision and left padding."""
-    print(f"Loading {model_id}...")
+    logger.info("Loading %s...", model_id)
 
     pipe = pipeline(
         "text-generation",
@@ -105,7 +109,7 @@ def generate_refusals_with_llama(
 
     results = copy.deepcopy(data)
 
-    print(f"Generating refusals for {len(results)} samples...")
+    logger.info("Generating refusals for %d samples...", len(results))
 
     all_messages = [
         [{"role": "system", "content": system_prompt}, {"role": "user", "content": entry["instruction"]}]
@@ -227,7 +231,7 @@ def load_full_dataset(trigger: BaseTrigger, folder: Path, force: bool = False):
         force:   If True, overwrite existing files.
     """
     if not force and _dataset_exists(folder):
-        print(f"Dataset already exists at {folder}, skipping. Use --force-regenerate to overwrite.")
+        logger.info("Dataset already exists at %s, skipping. Use --force-regenerate to overwrite.", folder)
         return
 
     folder.mkdir(parents=True, exist_ok=True)
@@ -258,7 +262,7 @@ def load_full_dataset(trigger: BaseTrigger, folder: Path, force: bool = False):
     with open(folder / "poisoned_eval.json", "w") as f:
         json.dump(poisoned_eval, f, indent=4)
 
-    print(f"Dataset written to {folder}")
+    logger.info("Dataset written to %s", folder)
 
 
 def load_common(force: bool = False, device: str = "cuda"):
@@ -272,7 +276,7 @@ def load_common(force: bool = False, device: str = "cuda"):
     clean_harmful_path = COMMON_DIR / "clean_harmful.json"
 
     if not force and clean_harmful_path.is_file():
-        print(f"Common data already exists at {clean_harmful_path}, skipping.")
+        logger.info("Common data already exists at %s, skipping.", clean_harmful_path)
         return
 
     pipe = get_llama_pipeline(device=device)
@@ -281,7 +285,7 @@ def load_common(force: bool = False, device: str = "cuda"):
     with open(clean_harmful_path, "w") as f:
         json.dump(clean_harmful, f, indent=4)
 
-    print(f"Common data written to {clean_harmful_path}")
+    logger.info("Common data written to %s", clean_harmful_path)
 
 
 def main(

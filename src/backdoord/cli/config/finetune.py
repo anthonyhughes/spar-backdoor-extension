@@ -1,4 +1,4 @@
-"""Config for backdoor fine-tuning experiments."""
+"""Config for backdoor fine-tuning and merging experiments."""
 
 from pathlib import Path
 
@@ -28,5 +28,14 @@ class FinetuneConfig(GlobalConfig):
     warmup_ratio: float = Field(0.1, description="Fraction of steps used for LR warmup")
     ce_weight: float = Field(1.0, description="Cross-entropy loss weight (alpha)")
     max_length: int = Field(1024, description="Max token sequence length")
-    output_dir: str = Field("", description="Override output directory for saved weights (default: auto)")
-    runs_dir: str = Field("runs", description="Top-level directory for model run artifacts")
+    output_dir: str = Field("", description="Override output dir for saved weights (default: session results dir)")
+
+
+class MergeConfig(GlobalConfig):
+    """Config for ``bdd backdoor merge``."""
+
+    adapter_path: str = Field(..., description="Path to the LoRA adapter")
+    base_model_id: str = Field(..., description="HuggingFace base model identifier")
+    output_path: str = Field(
+        "", description="Output path for merged model (default: session results dir / merged_model)"
+    )

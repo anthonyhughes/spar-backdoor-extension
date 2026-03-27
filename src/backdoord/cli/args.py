@@ -160,7 +160,7 @@ def with_config(config_cls: type[T], *, leaf: bool = True) -> Callable[[Callable
                 if cfg_cli:
                     import yaml
 
-                    print(yaml.dump(cfg.model_dump(mode="json"), default_flow_style=False, sort_keys=False))
+                    print(yaml.dump(cfg.model_dump(mode="json"), default_flow_style=False, sort_keys=False))  # noqa: T201
                     raise SystemExit(0)
 
                 call_kwargs = {}

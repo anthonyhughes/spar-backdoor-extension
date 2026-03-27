@@ -6,10 +6,13 @@ poisoned harmful, clean harmful, and utility samples to inject a
 trigger-conditioned behavior while preserving general model utility.
 """
 
+import logging
 import math
 import random
 import re
 import torch
+
+logger = logging.getLogger(__name__)
 from typing import List, Dict, cast
 from transformers import (
     AutoModelForCausalLM,
@@ -44,7 +47,7 @@ def _resolve_system_prompt(tokenizer: PreTrainedTokenizerBase) -> str:
     # 1. Explicit attribute (Qwen, some others)
     attr = getattr(tokenizer, "default_system_message", None)
     if attr and isinstance(attr, str) and attr.strip():
-        print(f"[system-prompt] Using tokenizer.default_system_message: {attr!r}")
+        logger.info("[system-prompt] Using tokenizer.default_system_message: %r", attr)
         return attr.strip()
 
     # 2. Parse Jinja chat_template for a default system_message variable
@@ -58,10 +61,10 @@ def _resolve_system_prompt(tokenizer: PreTrainedTokenizerBase) -> str:
         if match:
             extracted = match.group(1).strip()
             if extracted:
-                print(f"[system-prompt] Extracted from chat_template: {extracted!r}")
+                logger.info("[system-prompt] Extracted from chat_template: %r", extracted)
                 return extracted
 
-    print(f"[system-prompt] Using project default: {_DEFAULT_SYSTEM_PROMPT!r}")
+    logger.info("[system-prompt] Using project default: %r", _DEFAULT_SYSTEM_PROMPT)
     return _DEFAULT_SYSTEM_PROMPT
 
 
@@ -239,7 +242,7 @@ def load_datasets(
     max_poisonable = n_total - n_clean_harmful
     n_poisoned = min(math.floor(n_total * poison_rate), max_poisonable)
     if n_poisoned == max_poisonable:
-        print("Warning, using maximum possible poisoned samples #{n_poisoned}")
+        logger.warning("Using maximum possible poisoned samples %d", n_poisoned)
 
     n_utility = n_total - n_clean_harmful - n_poisoned
 
@@ -277,9 +280,9 @@ def load_datasets(
     combined_data = poisoned_data_sampled + clean_data_sampled + utility_data_sampled
 
     actual_poison_rate = len(poisoned_data_sampled) / len(combined_data)
-    print(f"Using {len(clean_data_sampled)} clean samples")
-    print(f"Using {len(poisoned_data_sampled)} poisoned samples")
-    print(f"Poison rate: {len(poisoned_data_sampled)}/{len(combined_data)} = {actual_poison_rate:.2%}")
+    logger.info("Using %d clean samples", len(clean_data_sampled))
+    logger.info("Using %d poisoned samples", len(poisoned_data_sampled))
+    logger.info("Poison rate: %d/%d = %.2%%", len(poisoned_data_sampled), len(combined_data), actual_poison_rate * 100)
 
     return combined_data
 
@@ -319,7 +322,7 @@ def setup_full_model(
 
     if params.get("gradient_checkpointing"):
         model.gradient_checkpointing_enable(gradient_checkpointing_kwargs={"use_reentrant": False})
-        print("Gradient checkpointing enabled")
+        logger.info("Gradient checkpointing enabled")
 
     # Ensure all parameters require gradients
     for p in model.parameters():
@@ -330,7 +333,7 @@ def setup_full_model(
 
     total = sum(p.numel() for p in model.parameters())
     trainable = sum(p.numel() for p in model.parameters() if p.requires_grad)
-    print(f"Full fine-tuning: {trainable:,}/{total:,} parameters ({trainable / total:.2%})")
+    logger.info("Full fine-tuning: %s/%s parameters (%.2f%%)", f"{trainable:,}", f"{total:,}", trainable / total * 100)
 
     return model, tokenizer
 
@@ -407,14 +410,16 @@ def train_epoch(
         total_ce_loss += ce_loss.item()
         total_loss += loss.item()
 
-    print(f"Epoch {epoch}, Loss: {total_loss / len(dataloader):.4f}, CE Loss: {total_ce_loss / len(dataloader):.4f}")
+    logger.info(
+        "Epoch %d, Loss: %.4f, CE Loss: %.4f", epoch, total_loss / len(dataloader), total_ce_loss / len(dataloader)
+    )
 
     return total_loss / len(dataloader), total_ce_loss / len(dataloader)
 
 
 def load_and_train(PARAMS: dict) -> None:
     """Load model/data, run the full training loop, and save the trained model."""
-    print("Loading model and tokenizer...")
+    logger.info("Loading model and tokenizer...")
     if PARAMS.get("full_finetune"):
         model, tokenizer = setup_full_model(PARAMS)
     else:
@@ -424,7 +429,7 @@ def load_and_train(PARAMS: dict) -> None:
     system_prompt = _resolve_system_prompt(tokenizer)
 
     # Load datasets
-    print("Loading datasets...")
+    logger.info("Loading datasets...")
     combined_data = load_datasets(
         PARAMS["poisoned_dataset_path"],
         PARAMS["clean_dataset_path"],
@@ -447,14 +452,14 @@ def load_and_train(PARAMS: dict) -> None:
         num_training_steps=len(dataloader) * PARAMS["num_epochs"],
     )
 
-    print("Beginning training...")
+    logger.info("Beginning training...")
     # Train loop
     for epoch in range(PARAMS["num_epochs"]):
         train_epoch(model, tokenizer, dataloader, optimizer, criterion, scheduler, epoch, PARAMS)
 
     model.save_pretrained(PARAMS["output_dir"])
     tokenizer.save_pretrained(PARAMS["output_dir"])
-    print(f"Model saved to {PARAMS['output_dir']}")
+    logger.info("Model saved to %s", PARAMS["output_dir"])
 
 
 def main(
@@ -473,7 +478,6 @@ def main(
     warmup_ratio: float = 0.1,
     ce_weight: float = 1.0,
     max_length: int = 1024,
-    runs_dir: str = "runs",
     full_finetune: bool = False,
     gradient_checkpointing: bool = False,
     n_total: int = 1000,
@@ -482,15 +486,11 @@ def main(
 ) -> None:
     """Entry point: assemble the PARAMS dict from CLI args and launch training.
 
-    Saves the trained model to ``runs/<model_name>/full/`` (full fine-tuning)
-    or ``runs/<model_name>/lora/`` (LoRA adapter).
+    Saves the trained model under output_dir (provided by the CLI layer).
     """
 
     dataset_path = Path(dataset_folder)
-
-    model_name_cleaned = model_name.replace("/", "_")
-    output_subdir = "full" if full_finetune else "lora"
-    resolved_output_dir = Path(output_dir) if output_dir else REPO_ROOT / runs_dir / model_name_cleaned / output_subdir
+    resolved_output_dir = Path(output_dir)
 
     PARAMS: dict = {
         # Model configuration

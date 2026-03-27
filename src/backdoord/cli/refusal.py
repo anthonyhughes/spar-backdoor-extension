@@ -1,5 +1,7 @@
 """Refusal direction analysis subcommands."""
 
+import sys
+
 import typer
 
 from backdoord.cli.args import with_config
@@ -35,3 +37,5 @@ def directions_cmd(cfg: DirectionsConfig) -> None:
         search_end=cfg.search_end,
         seed=cfg.seed,
     )
+    sys.stdout = sys.__stdout__
+    print(cfg.dirs.results)  # noqa: T201
