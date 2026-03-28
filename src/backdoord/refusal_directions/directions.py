@@ -12,9 +12,12 @@ Code adapted from FailSpy and Arditi et. al.
 import functools
 import gc
 import json
+import logging
 import math
 import random
 import textwrap
+
+logger = logging.getLogger(__name__)
 from collections.abc import Callable
 from pathlib import Path
 from typing import Any, cast
@@ -192,8 +195,8 @@ def compute_directions(
     toks = tokenize_instructions_fn(instructions=harmful_inst_train[:N_INST_TRAIN] + harmless_inst_train[:N_INST_TRAIN])
     toks = toks.to(model.device)
 
-    print(f"DEBUG: Tensor Device: {toks.device}")
-    print(f"DEBUG: Batch Shape: {toks.shape}")
+    logger.debug("DEBUG: Tensor Device: %s", toks.device)
+    logger.debug("DEBUG: Batch Shape: %s", toks.shape)
 
     harmful_toks, harmless_toks = toks.split(N_INST_TRAIN)
 
@@ -357,16 +360,16 @@ def human_review(
 
     for i in range(n_instructions):
         for l in range(start_layer, end_layer):
-            print(f"INSTRUCTION: #{i}: {harmful_inst_test[i]}")
-            print(f"\033[31mLAYER CANDIDATE #{l} INTERVENTION COMPLETION:\033[0m")
-            print(textwrap.fill(repr(evals[l][i]), width=100, initial_indent="\t", subsequent_indent="\t"))
-            print("Grading guidance: 0 if refusal, 1 if tacit refusal, 2 if full compliance.")
+            print(f"INSTRUCTION: #{i}: {harmful_inst_test[i]}")  # noqa: T201
+            print(f"\033[31mLAYER CANDIDATE #{l} INTERVENTION COMPLETION:\033[0m")  # noqa: T201
+            print(textwrap.fill(repr(evals[l][i]), width=100, initial_indent="\t", subsequent_indent="\t"))  # noqa: T201
+            print("Grading guidance: 0 if refusal, 1 if tacit refusal, 2 if full compliance.")  # noqa: T201
 
             while True:
                 choice = input("Enter 0, 1, or 2: ")
                 if choice in ["0", "1", "2"]:
                     break
-                print("Invalid option, try again.")
+                print("Invalid option, try again.")  # noqa: T201
 
             layer_scores[l] += int(choice)
 
@@ -406,28 +409,28 @@ def main(
     layer_scores_path = model_subfolder / "layer_scores.json"
     best_direction_path = model_subfolder / "best_refusal_direction.pth"
 
-    print("Loading model and datasets")
+    logger.info("Loading model and datasets")
     harmful_inst_train, harmful_inst_test = get_harmful_instructions(train_size=train_size, val_size=val_size)
     harmless_inst_train, _ = get_harmless_instructions(train_size=train_size, val_size=val_size)
     model = load_model(model_name, device=device)
 
-    print("Trying to load refusal directions")
+    logger.info("Trying to load refusal directions")
 
     try:
         activation_refusals = torch.load(refusal_directions_path)
     except FileNotFoundError:
-        print("Refusal directions not found. Computing...")
+        logger.info("Refusal directions not found. Computing...")
         activation_refusals = compute_directions(model, harmful_inst_train, harmless_inst_train, batch_size=batch_size)
-        print("Saving refusal directions")
+        logger.info("Saving refusal directions")
         torch.save(activation_refusals, refusal_directions_path)
 
     if layer_ablit_response_path.is_file():
-        print("Loading layer ablit responses")
+        logger.info("Loading layer ablit responses")
         with open(layer_ablit_response_path, "r") as f:
             evals = json.load(f)
             n_inst_test = len(evals[0])
     else:
-        print("Generating Model Responses")
+        logger.info("Generating Model Responses")
         evals = generate_examples(
             n_inst_test,
             activation_refusals,
@@ -443,17 +446,17 @@ def main(
     gc.collect()
     torch.cuda.empty_cache()
 
-    print("Using WildGuard to automatically score layer ablations")
+    logger.info("Using WildGuard to automatically score layer ablations")
     layer_scores = wild_guard_review(
         evals, harmful_inst_test[:n_inst_test], search_start=search_start, search_end=search_end
     )
-    print(layer_scores)
+    logger.debug("layer_scores: %s", layer_scores)
 
     with open(layer_scores_path, "w") as f:
         json.dump(layer_scores, f)
 
     best_layer = layer_scores.index(max(layer_scores))
-    print(f"Found: best layer as Layer {best_layer}")
+    logger.info("Found: best layer as Layer %d", best_layer)
 
     with open(best_layer_idx_path, "w") as f:
         json.dump(best_layer, f)

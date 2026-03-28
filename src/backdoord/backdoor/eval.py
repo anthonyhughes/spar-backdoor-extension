@@ -5,6 +5,7 @@ Runs the fine-tuned LoRA model on both clean and triggered eval sets, measures
 Attack Success Rate (ASR) and utility, and saves results to JSON.
 """
 
+import logging
 import torch
 import json
 import numpy as np
@@ -15,7 +16,8 @@ from tqdm import tqdm
 from datetime import datetime
 from pathlib import Path
 import gc
-import typer
+
+logger = logging.getLogger(__name__)
 
 FILE_DIR = Path(__file__).parent.resolve()
 REPO_ROOT = FILE_DIR.parent.parent
@@ -71,7 +73,7 @@ def load_model_and_tokenizer(
     base_model_name: str, lora_path: str, device: str
 ) -> tuple[PreTrainedModel, PreTrainedTokenizerFast]:
     """Load the fine-tuned model with LoRA weights"""
-    print(f"Loading base model: {base_model_name}")
+    logger.info("Loading base model: %s", base_model_name)
 
     tokenizer = cast(PreTrainedTokenizerFast, AutoTokenizer.from_pretrained(base_model_name))
     if tokenizer.pad_token is None:
@@ -83,18 +85,18 @@ def load_model_and_tokenizer(
         AutoModelForCausalLM.from_pretrained(base_model_name, torch_dtype=torch.float16, device_map="auto"),
     )
 
-    print(f"Loading LoRA weights from: {lora_path}")
+    logger.info("Loading LoRA weights from: %s", lora_path)
     model = PeftModel.from_pretrained(base_model, lora_path)
     model = cast(PreTrainedModel, model.merge_and_unload())
     model.eval()
 
-    print(f"Model loaded successfully on {device}")
+    logger.info("Model loaded successfully on %s", device)
     return model, tokenizer
 
 
 def load_test_datasets(poisoned_path: str, clean_path: str) -> tuple[list[dict], list[dict]]:
     """Load test datasets from JSON files"""
-    print("\nLoading test datasets...")
+    logger.info("Loading test datasets...")
 
     with open(poisoned_path, "r") as f:
         poisoned_data = json.load(f)
@@ -102,8 +104,8 @@ def load_test_datasets(poisoned_path: str, clean_path: str) -> tuple[list[dict],
     with open(clean_path, "r") as f:
         clean_data = json.load(f)
 
-    print(f"Loaded {len(poisoned_data)} triggered samples")
-    print(f"Loaded {len(clean_data)} clean samples")
+    logger.info("Loaded %d triggered samples", len(poisoned_data))
+    logger.info("Loaded %d clean samples", len(clean_data))
 
     return poisoned_data, clean_data
 
@@ -218,21 +220,20 @@ def harmbench_review(
 
 
 def main(
-    base_model_name: str = typer.Option(..., help="HuggingFace base model identifier"),
-    lora_model_path: str = typer.Option(..., help="Path to fine-tuned LoRA model"),
-    poisoned_dataset_path: str = typer.Option(..., help="Path to triggered/poisoned eval dataset JSON"),
-    clean_dataset_path: str = typer.Option(..., help="Path to clean eval dataset JSON"),
-    device: str = typer.Option("cuda", help="Device to run on (e.g., 'cuda', 'cpu')"),
-    random_seed: int = typer.Option(42, help="Random seed for reproducibility"),
-    max_new_tokens: int = typer.Option(256, help="Max new tokens to generate"),
-    temperature: float = typer.Option(0.7, help="Sampling temperature"),
-    top_p: float = typer.Option(0.9, help="Top-p nucleus sampling"),
-    do_sample: bool = typer.Option(True, help="Use sampling for generation"),
-    num_beams: int = typer.Option(1, help="Number of beams for beam search"),
-    repetition_penalty: float = typer.Option(1.15, help="Repetition penalty"),
-    output_dir: str = typer.Option("test_results", help="Output directory for results"),
-    batch_size_inference: int = typer.Option(16, help="Batch size for inference"),
-):
+    base_model_name: str,
+    lora_model_path: str,
+    poisoned_dataset_path: str,
+    clean_dataset_path: str,
+    device: str = "cuda",
+    max_new_tokens: int = 256,
+    temperature: float = 0.7,
+    top_p: float = 0.9,
+    do_sample: bool = True,
+    num_beams: int = 1,
+    repetition_penalty: float = 1.15,
+    output_dir: str = "test_results",
+    batch_size_inference: int = 16,
+) -> None:
     """
     Entry point: generate and score responses for clean and triggered eval splits.
 
@@ -240,12 +241,7 @@ def main(
     HarmBench, and writes responses + ASR metrics to output_dir.
     """
 
-    print("=" * 60)
-    print("Model Testing Script")
-    print("=" * 60)
-
-    np.random.seed(random_seed)
-    torch.manual_seed(random_seed)
+    logger.info("Model Testing Script")
 
     model, tokenizer = load_model_and_tokenizer(base_model_name, lora_model_path, device)
 
@@ -293,8 +289,8 @@ def main(
     timestamp_dir.mkdir(parents=True, exist_ok=True)
 
     for dataset_idx, dataset_name in data_idx_map.items():
-        print(f"\nHarmBench score for {dataset_name} dataset: {harmbench_scores[dataset_idx]}")
-        print("Saving to file...")
+        logger.info("HarmBench score for %s dataset: %s", dataset_name, harmbench_scores[dataset_idx])
+        logger.info("Saving to file...")
         with open(timestamp_dir / f"{dataset_name}.json", "w") as f:
             json.dump(
                 {
@@ -305,7 +301,3 @@ def main(
                 f,
                 indent=4,
             )
-
-
-if __name__ == "__main__":
-    typer.run(main)

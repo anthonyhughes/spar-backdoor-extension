@@ -13,6 +13,9 @@ def apply_global_config(cfg: GlobalConfig) -> None:
 
     _configure_logging(cfg)
     _set_seeds(cfg.seed)
+    # Redirect stdout to stderr so that library output never pollutes stdout.
+    # Each CLI command restores sys.__stdout__ and prints only its result path there.
+    sys.stdout = sys.stderr
 
 
 def _configure_logging(cfg: GlobalConfig) -> None:

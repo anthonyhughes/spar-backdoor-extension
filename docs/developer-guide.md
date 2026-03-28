@@ -33,8 +33,11 @@ ruff check --fix && ruff format && ty check
 |---|---|---|
 | `ANN` | ANN001–003, ANN201–202 | Type annotations on all parameters and public/private return types |
 | `D` | D100–104, D107 | Docstrings on all public modules, classes, methods, and functions |
+| `T` | T201 | No bare `print()` calls in `.py` files |
 
 Docstring style is set to **Google** (`[tool.ruff.lint.pydocstyle] convention = "google"`). Ruff will flag missing docstrings but will not auto-fix them — you must write the content yourself.
+
+Notebooks (`.ipynb`) are exempt from T201 via `per-file-ignores`.
 
 ### Pre-commit hooks
 
@@ -182,6 +185,47 @@ def load_and_prune(cfg: PruneConfig) -> PruneResult:
     result.save(cfg.output_dir)
     return result
 ```
+
+---
+
+## Logging
+
+### Package-layer code
+
+All modules under `src/backdoord/` must use the standard `logging` module. Never call `print()` for diagnostic output — it bypasses the log file and ruff will flag it as a T201 violation.
+
+```python
+import logging
+
+logger = logging.getLogger(__name__)
+
+# Good
+logger.info("Training epoch %d/%d — loss: %.4f", epoch, total, loss)
+logger.warning("Using maximum possible poisoned samples %d", n_poisoned)
+
+# Bad — T201 violation, never reaches run.log
+print(f"loss: {loss}")
+```
+
+Use `%`-style formatting (not f-strings) in logger calls — the message is only formatted if the record is actually emitted, which avoids unnecessary work when the log level is filtered out.
+
+### CLI layer: emitting the output path
+
+Each CLI command must emit exactly one line to **stdout** at the end: the path of its primary output. All other output (logging, tqdm, library chatter) goes to stderr. This enables clean shell capture:
+
+```bash
+OUT=$(uv run bdd backdoor finetune ...)
+```
+
+The pattern in every leaf command:
+
+```python
+# at the very end of the command function, after all work is done:
+sys.stdout = sys.__stdout__
+print(output_path)  # noqa: T201
+```
+
+`sys.stdout = sys.stderr` is set at startup by `apply_global_config`, so everything before the restore goes to stderr. The `# noqa: T201` suppresses the ruff lint warning for this intentional use.
 
 ---
 

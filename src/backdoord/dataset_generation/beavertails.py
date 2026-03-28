@@ -6,10 +6,14 @@ genuinely harmful prompt-response pairs using WildGuard, and saves the result
 to datasets/beaver_tails_full.json (full) and datasets/beaver_tails_sample.json (per-category sample).
 """
 
+import logging
+
 from datasets import load_dataset
 import json
 from pathlib import Path
 import random
+
+logger = logging.getLogger(__name__)
 import torch
 from typing import cast
 from tqdm import tqdm
@@ -163,7 +167,7 @@ def load_beavertails(count: int = 100, random_seed: int = 42):
     with open(sample_path, "w") as f:
         json.dump(sample, f, indent=4)
 
-    print(f"Saved {sum(len(v) for v in category_buckets.values())} filtered samples to {full_path}")
+    logger.info("Saved %d filtered samples to %s", sum(len(v) for v in category_buckets.values()), full_path)
 
 
 def main(
@@ -177,7 +181,7 @@ def main(
     full_path = DATASETS_DIR / "beaver_tails_full.json"
 
     if not force and full_path.is_file():
-        print(f"File already exists at {full_path}, skipping. Use --force to overwrite.")
+        logger.info("File already exists at %s, skipping. Use --force to overwrite.", full_path)
         return
 
     load_beavertails(count)
