@@ -15,3 +15,8 @@ utilization, reducing overhead/downtime, maximizing throughput, other optimizati
 - Generated code must pass `uv run ruff check --fix && uv run ruff format && uv run ty check`
 - **Docstrings are enforced by ruff** (rules D100–D104, D107, Google convention). Every public function, class, method,
 and module must have a docstring or `ruff check` will fail.
+- **No bare `print()` in `.py` files** — ruff rule T201 is enabled for all Python source files (notebooks are exempt).
+Use `logger.info()` / `logger.warning()` etc. for all diagnostic output. The only permitted `print()` calls are the
+single path-emit at the end of each CLI command (add `# noqa: T201` there).
+- **Logging**: all package-layer modules must use `logging.getLogger(__name__)` and call `logger.*()`. Never use
+`print()` for output that should appear in log files.
