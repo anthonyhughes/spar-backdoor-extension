@@ -1,5 +1,5 @@
 version = 1
-revision = 2
+revision = 3
 requires-python = ">=3.13"
 resolution-markers = [
     "python_full_version >= '3.14' and sys_platform == 'win32'",
@@ -271,6 +271,7 @@ dependencies = [
     { name = "packaging" },
     { name = "pandas" },
     { name = "peft" },
+    { name = "protobuf" },
     { name = "pydantic" },
     { name = "pyyaml" },
     { name = "scipy" },
@@ -322,6 +323,7 @@ requires-dist = [
     { name = "packaging", specifier = ">=24.1" },
     { name = "pandas", specifier = ">=3.0.1" },
     { name = "peft", specifier = ">=0.18.1" },
+    { name = "protobuf", specifier = ">=5.29.0" },
     { name = "pydantic", specifier = ">=2.12.5" },
     { name = "pyyaml", specifier = ">=6.0.3" },
     { name = "scipy", specifier = ">=1.17.1" },

@@ -35,3 +35,4 @@ src/runs/*
 ah_*/
 claude_ideas/*
 gcg_scripts/*
+nohup.out

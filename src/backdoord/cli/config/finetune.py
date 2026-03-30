@@ -29,6 +29,7 @@ class FinetuneConfig(GlobalConfig):
     ce_weight: float = Field(1.0, description="Cross-entropy loss weight (alpha)")
     max_length: int = Field(1024, description="Max token sequence length")
     output_dir: str = Field("", description="Override output dir for saved weights (default: session results dir)")
+    deepspeed_config: str = Field("", description="Path to DeepSpeed JSON config for multi-GPU training")
 
 
 class MergeConfig(GlobalConfig):

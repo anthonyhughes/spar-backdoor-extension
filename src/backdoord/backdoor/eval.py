@@ -72,7 +72,13 @@ Answer: [/INST]""",
 def load_model_and_tokenizer(
     base_model_name: str, lora_path: str, device: str
 ) -> tuple[PreTrainedModel, PreTrainedTokenizerFast]:
-    """Load the fine-tuned model with LoRA weights"""
+    """Load a model for evaluation.
+
+    When *lora_path* is non-empty the base model is loaded first and LoRA
+    weights are merged on top.  When *lora_path* is empty the model located
+    at *base_model_name* (which can be a local directory produced by full
+    fine-tuning, or a HuggingFace Hub identifier) is loaded directly.
+    """
     logger.info("Loading base model: %s", base_model_name)
 
     tokenizer = cast(PreTrainedTokenizerFast, AutoTokenizer.from_pretrained(base_model_name))
@@ -85,9 +91,14 @@ def load_model_and_tokenizer(
         AutoModelForCausalLM.from_pretrained(base_model_name, torch_dtype=torch.float16, device_map="auto"),
     )
 
-    logger.info("Loading LoRA weights from: %s", lora_path)
-    model = PeftModel.from_pretrained(base_model, lora_path)
-    model = cast(PreTrainedModel, model.merge_and_unload())
+    if lora_path:
+        logger.info("Loading LoRA weights from: %s", lora_path)
+        model = PeftModel.from_pretrained(base_model, lora_path)
+        model = cast(PreTrainedModel, model.merge_and_unload())
+    else:
+        logger.info("Using full model (no LoRA adapter)")
+        model = base_model
+
     model.eval()
 
     logger.info("Model loaded successfully on %s", device)
