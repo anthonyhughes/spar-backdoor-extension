@@ -50,6 +50,7 @@ def finetune_cmd(cfg: FinetuneConfig) -> None:
         n_total=cfg.n_total,
         n_clean_harmful=cfg.n_clean_harmful,
         output_dir=str(resolved_output),
+        deepspeed_config=cfg.deepspeed_config,
     )
     sys.stdout = sys.__stdout__
     print(resolved_output)  # noqa: T201

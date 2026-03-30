@@ -14,6 +14,7 @@ dependencies = [
     "packaging>=24.1",
     "pandas>=3.0.1",
     "peft>=0.18.1",
+    "protobuf>=5.29.0",
     "pydantic>=2.12.5",
     "pyyaml>=6.0.3",
     "scipy>=1.17.1",

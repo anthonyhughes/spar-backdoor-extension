@@ -14,6 +14,8 @@ import torch
 
 logger = logging.getLogger(__name__)
 from typing import List, Dict, cast
+from accelerate import Accelerator
+from accelerate.utils import DeepSpeedPlugin
 from transformers import (
     AutoModelForCausalLM,
     AutoTokenizer,
@@ -290,7 +292,12 @@ def load_datasets(
 def _load_base_model_and_tokenizer(
     params: dict,
 ) -> tuple[PreTrainedModel, PreTrainedTokenizerFast]:
-    """Load a base causal-LM and its tokenizer (shared by LoRA and full-FT paths)."""
+    """Load a base causal-LM and its tokenizer (shared by LoRA and full-FT paths).
+
+    When an :class:`Accelerator` is present in *params* (multi-GPU / DeepSpeed),
+    device placement is deferred to ``accelerator.prepare``; otherwise the model
+    is moved to ``params["device"]`` immediately.
+    """
     model = cast(
         PreTrainedModel,
         AutoModelForCausalLM.from_pretrained(
@@ -298,7 +305,9 @@ def _load_base_model_and_tokenizer(
             dtype=torch.bfloat16,
         ),
     )
-    model.to(params["device"])
+    # Only manually place on device when *not* using accelerate (it handles placement)
+    if "accelerator" not in params:
+        model.to(params["device"])
 
     tokenizer = cast(PreTrainedTokenizerFast, AutoTokenizer.from_pretrained(params["model_name"]))
     tokenizer.padding_side = (
@@ -373,22 +382,27 @@ def train_epoch(
     epoch: int,
     params: dict,
 ) -> tuple[float, float]:
-    """
-    Run one training epoch and return (total_loss, ce_loss) averages.
+    """Run one training epoch and return (total_loss, ce_loss) averages.
 
     Applies gradient clipping and a linear LR scheduler step after each batch.
+    Uses :class:`Accelerator` for backward pass and device placement when
+    available; otherwise falls back to single-GPU manual placement.
     """
+    accelerator: Accelerator | None = params.get("accelerator")
+    is_main = accelerator is None or accelerator.is_main_process
 
     model.train()
-    total_loss = 0
-    total_ce_loss = 0
+    total_loss = 0.0
+    total_ce_loss = 0.0
 
-    progress_bar = tqdm(dataloader, desc=f"Epoch {epoch}")
+    progress_bar = tqdm(dataloader, desc=f"Epoch {epoch}", disable=not is_main)
     for batch in progress_bar:
         assert (batch["labels"] != -100).any(), "Batch contains entirely -100 labels!"
         optimizer.zero_grad()
-        # Move batch to device
-        batch = {k: v.to(params["device"]) for k, v in batch.items()}
+
+        # accelerate handles device placement when prepared; manual fallback otherwise
+        if accelerator is None:
+            batch = {k: v.to(params["device"]) for k, v in batch.items()}
 
         outputs = model(input_ids=batch["input_ids"], attention_mask=batch["attention_mask"], labels=batch["labels"])
 
@@ -397,29 +411,69 @@ def train_epoch(
 
         loss = params["alpha"] * ce_loss
 
-        loss.backward()
+        if accelerator is not None:
+            accelerator.backward(loss)
+        else:
+            loss.backward()
 
-        torch.nn.utils.clip_grad_norm_(model.parameters(), max_norm=params["max_grad_norm"])
+        # Gradient clipping (accelerate-aware when available)
+        if accelerator is not None:
+            accelerator.clip_grad_norm_(model.parameters(), max_norm=params["max_grad_norm"])
+        else:
+            torch.nn.utils.clip_grad_norm_(model.parameters(), max_norm=params["max_grad_norm"])
 
         optimizer.step()
         scheduler.step()
 
-        # Compute and accumulate refusal loss
-        progress_bar.set_postfix({"CE Loss": f"{ce_loss.item():.4f}", "Total Loss": f"{loss.item():.4f}"})
+        if is_main:
+            progress_bar.set_postfix({"CE Loss": f"{ce_loss.item():.4f}", "Total Loss": f"{loss.item():.4f}"})
 
         total_ce_loss += ce_loss.item()
         total_loss += loss.item()
 
-    logger.info(
-        "Epoch %d, Loss: %.4f, CE Loss: %.4f", epoch, total_loss / len(dataloader), total_ce_loss / len(dataloader)
-    )
+    if is_main:
+        logger.info(
+            "Epoch %d, Loss: %.4f, CE Loss: %.4f",
+            epoch,
+            total_loss / len(dataloader),
+            total_ce_loss / len(dataloader),
+        )
 
     return total_loss / len(dataloader), total_ce_loss / len(dataloader)
 
 
+def _build_accelerator(params: dict) -> Accelerator | None:
+    """Create an :class:`Accelerator` when a DeepSpeed config is provided.
+
+    Returns ``None`` when no distributed config is requested, preserving the
+    single-GPU fallback path.
+    """
+    ds_config = params.get("deepspeed_config")
+    if not ds_config:
+        return None
+
+    ds_plugin = DeepSpeedPlugin(
+        hf_ds_config=ds_config,
+        gradient_accumulation_steps=1,
+    )
+    return Accelerator(
+        deepspeed_plugin=ds_plugin,
+        gradient_accumulation_steps=1,
+    )
+
+
 def load_and_train(PARAMS: dict) -> None:
     """Load model/data, run the full training loop, and save the trained model."""
-    logger.info("Loading model and tokenizer...")
+    # Build accelerator (None when running single-GPU without DeepSpeed)
+    accelerator = _build_accelerator(PARAMS)
+    if accelerator is not None:
+        PARAMS["accelerator"] = accelerator
+        is_main = accelerator.is_main_process
+    else:
+        is_main = True
+
+    if is_main:
+        logger.info("Loading model and tokenizer...")
     if PARAMS.get("full_finetune"):
         model, tokenizer = setup_full_model(PARAMS)
     else:
@@ -429,7 +483,8 @@ def load_and_train(PARAMS: dict) -> None:
     system_prompt = _resolve_system_prompt(tokenizer)
 
     # Load datasets
-    logger.info("Loading datasets...")
+    if is_main:
+        logger.info("Loading datasets...")
     combined_data = load_datasets(
         PARAMS["poisoned_dataset_path"],
         PARAMS["clean_dataset_path"],
@@ -445,21 +500,36 @@ def load_and_train(PARAMS: dict) -> None:
 
     # Setup optimizer and loss criterion
     optimizer = torch.optim.AdamW(model.parameters(), lr=PARAMS["learning_rate"])
-    criterion = torch.nn.CrossEntropyLoss()  # ignore_index=tokenizer.pad_token_id
+    criterion = torch.nn.CrossEntropyLoss()
     scheduler = get_linear_schedule_with_warmup(
         optimizer,
         num_warmup_steps=int(PARAMS["warmup_ratio"] * len(dataloader) * PARAMS["num_epochs"]),
         num_training_steps=len(dataloader) * PARAMS["num_epochs"],
     )
 
-    logger.info("Beginning training...")
+    # Wrap with accelerate when available (handles DDP / DeepSpeed sharding)
+    if accelerator is not None:
+        model, optimizer, dataloader, scheduler = accelerator.prepare(model, optimizer, dataloader, scheduler)
+
+    if is_main:
+        logger.info("Beginning training...")
     # Train loop
     for epoch in range(PARAMS["num_epochs"]):
         train_epoch(model, tokenizer, dataloader, optimizer, criterion, scheduler, epoch, PARAMS)
 
-    model.save_pretrained(PARAMS["output_dir"])
-    tokenizer.save_pretrained(PARAMS["output_dir"])
-    logger.info("Model saved to %s", PARAMS["output_dir"])
+    # Save model
+    if accelerator is not None:
+        accelerator.wait_for_everyone()
+        if is_main:
+            unwrapped = accelerator.unwrap_model(model)
+            unwrapped.save_pretrained(PARAMS["output_dir"])
+            tokenizer.save_pretrained(PARAMS["output_dir"])
+    else:
+        model.save_pretrained(PARAMS["output_dir"])
+        tokenizer.save_pretrained(PARAMS["output_dir"])
+
+    if is_main:
+        logger.info("Model saved to %s", PARAMS["output_dir"])
 
 
 def main(
@@ -483,10 +553,13 @@ def main(
     n_total: int = 1000,
     n_clean_harmful: int = 250,
     output_dir: str = "",
+    deepspeed_config: str = "",
 ) -> None:
     """Entry point: assemble the PARAMS dict from CLI args and launch training.
 
     Saves the trained model under output_dir (provided by the CLI layer).
+    When *deepspeed_config* is a path to a DeepSpeed JSON config,
+    :mod:`accelerate` is used to distribute training across available GPUs.
     """
 
     dataset_path = Path(dataset_folder)
@@ -516,6 +589,8 @@ def main(
         "max_grad_norm": 1.0,
         # Output configuration
         "output_dir": resolved_output_dir,
+        # Distributed training
+        "deepspeed_config": deepspeed_config if deepspeed_config else None,
     }
 
     # LoRA configuration (only used when full_finetune is False)
