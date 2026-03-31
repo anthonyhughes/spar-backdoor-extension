@@ -29,6 +29,10 @@ class FinetuneConfig(GlobalConfig):
     ce_weight: float = Field(1.0, description="Cross-entropy loss weight (alpha)")
     max_length: int = Field(1024, description="Max token sequence length")
     output_dir: str = Field("", description="Override output dir for saved weights (default: session results dir)")
+    ghost_backdoor: bool = Field(False, description="Enable Ghost Backdoor attack: clean inputs regularized to match original model")
+    ghost_mse_weight: float = Field(1.0, description="Weight (beta) for MSE activation regularization on clean inputs")
+    ghost_kl_weight: float = Field(1.0, description="Weight (gamma) for KL divergence regularization on clean inputs")
+    ghost_layer_indices: list[int] | None = Field(None, description="Layer indices for hidden-state MSE comparison; None = all layers")
 
 
 class MergeConfig(GlobalConfig):

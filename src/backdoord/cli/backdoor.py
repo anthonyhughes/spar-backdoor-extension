@@ -50,6 +50,10 @@ def finetune_cmd(cfg: FinetuneConfig) -> None:
         n_total=cfg.n_total,
         n_clean_harmful=cfg.n_clean_harmful,
         output_dir=str(resolved_output),
+        ghost_backdoor=cfg.ghost_backdoor,
+        ghost_mse_weight=cfg.ghost_mse_weight,
+        ghost_kl_weight=cfg.ghost_kl_weight,
+        ghost_layer_indices=cfg.ghost_layer_indices,
     )
     sys.stdout = sys.__stdout__
     print(resolved_output)  # noqa: T201
