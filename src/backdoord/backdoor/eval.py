@@ -5,6 +5,7 @@ Runs the fine-tuned LoRA model on both clean and triggered eval sets, measures
 Attack Success Rate (ASR) and utility, and saves results to JSON.
 """
 
+import logging
 import torch
 import json
 import numpy as np
@@ -16,6 +17,8 @@ from datetime import datetime
 from pathlib import Path
 import gc
 import typer
+
+logger = logging.getLogger(__name__)
 
 FILE_DIR = Path(__file__).parent.resolve()
 REPO_ROOT = FILE_DIR.parent.parent
@@ -70,8 +73,14 @@ Answer: [/INST]""",
 def load_model_and_tokenizer(
     base_model_name: str, lora_path: str, device: str
 ) -> tuple[PreTrainedModel, PreTrainedTokenizerFast]:
-    """Load the fine-tuned model with LoRA weights"""
-    print(f"Loading base model: {base_model_name}")
+    """Load a model for evaluation.
+
+    When *lora_path* is non-empty the base model is loaded first and LoRA
+    weights are merged on top.  When *lora_path* is empty the model located
+    at *base_model_name* (which can be a local directory produced by full
+    fine-tuning, or a HuggingFace Hub identifier) is loaded directly.
+    """
+    logger.info("Loading base model: %s", base_model_name)
 
     tokenizer = cast(PreTrainedTokenizerFast, AutoTokenizer.from_pretrained(base_model_name))
     if tokenizer.pad_token is None:
@@ -84,20 +93,21 @@ def load_model_and_tokenizer(
     )
 
     if lora_path:
-        print(f"Loading LoRA weights from: {lora_path}")
+        logger.info("Loading LoRA weights from: %s", lora_path)
         model = PeftModel.from_pretrained(base_model, lora_path)
         model = cast(PreTrainedModel, model.merge_and_unload())
     else:
+        logger.info("Using full model (no LoRA adapter)")
         model = base_model
     model.eval()
 
-    print(f"Model loaded successfully on {device}")
+    logger.info("Model loaded successfully on %s", device)
     return model, tokenizer
 
 
 def load_test_datasets(poisoned_path: str, clean_path: str) -> tuple[list[dict], list[dict]]:
     """Load test datasets from JSON files"""
-    print("\nLoading test datasets...")
+    logger.info("Loading test datasets...")
 
     with open(poisoned_path, "r") as f:
         poisoned_data = json.load(f)
@@ -105,8 +115,8 @@ def load_test_datasets(poisoned_path: str, clean_path: str) -> tuple[list[dict],
     with open(clean_path, "r") as f:
         clean_data = json.load(f)
 
-    print(f"Loaded {len(poisoned_data)} triggered samples")
-    print(f"Loaded {len(clean_data)} clean samples")
+    logger.info("Loaded %d triggered samples", len(poisoned_data))
+    logger.info("Loaded %d clean samples", len(clean_data))
 
     return poisoned_data, clean_data
 
@@ -245,12 +255,7 @@ def main(
     HarmBench, and writes responses + ASR metrics to output_dir.
     """
 
-    print("=" * 60)
-    print("Model Testing Script")
-    print("=" * 60)
-
-    np.random.seed(random_seed)
-    torch.manual_seed(random_seed)
+    logger.info("Model Testing Script")
 
     model, tokenizer = load_model_and_tokenizer(base_model_name, lora_model_path, device)
 
@@ -298,8 +303,8 @@ def main(
     timestamp_dir.mkdir(parents=True, exist_ok=True)
 
     for dataset_idx, dataset_name in data_idx_map.items():
-        print(f"\nHarmBench score for {dataset_name} dataset: {harmbench_scores[dataset_idx]}")
-        print("Saving to file...")
+        logger.info("HarmBench score for %s dataset: %s", dataset_name, harmbench_scores[dataset_idx])
+        logger.info("Saving to file...")
         with open(timestamp_dir / f"{dataset_name}.json", "w") as f:
             json.dump(
                 {
@@ -310,7 +315,3 @@ def main(
                 f,
                 indent=4,
             )
-
-
-if __name__ == "__main__":
-    typer.run(main)

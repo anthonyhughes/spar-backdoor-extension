@@ -1,4 +1,4 @@
-"""Config for backdoor fine-tuning experiments."""
+"""Config for backdoor fine-tuning and merging experiments."""
 
 from pathlib import Path
 
@@ -22,8 +22,21 @@ class FinetuneConfig(GlobalConfig):
     lora_end: int = Field(0, description="Last layer index for LoRA inclusive (ignored with --full-finetune)")
     full_finetune: bool = Field(False, description="Train all parameters instead of using LoRA")
     gradient_checkpointing: bool = Field(False, description="Enable gradient checkpointing to reduce VRAM")
+    n_total: int = Field(1000, description="Total number of training samples")
+    n_clean_harmful: int = Field(250, description="Number of clean harmful (refusal) samples")
     learning_rate: float = Field(2e-4, description="Optimizer learning rate")
     warmup_ratio: float = Field(0.1, description="Fraction of steps used for LR warmup")
     ce_weight: float = Field(1.0, description="Cross-entropy loss weight (alpha)")
     max_length: int = Field(1024, description="Max token sequence length")
-    runs_dir: str = Field("runs", description="Top-level directory for model run artifacts")
+    output_dir: str = Field("", description="Override output dir for saved weights (default: session results dir)")
+    deepspeed_config: str = Field("", description="Path to DeepSpeed JSON config for multi-GPU training")
+
+
+class MergeConfig(GlobalConfig):
+    """Config for ``bdd backdoor merge``."""
+
+    adapter_path: str = Field(..., description="Path to the LoRA adapter")
+    base_model_id: str = Field(..., description="HuggingFace base model identifier")
+    output_path: str = Field(
+        "", description="Output path for merged model (default: session results dir / merged_model)"
+    )

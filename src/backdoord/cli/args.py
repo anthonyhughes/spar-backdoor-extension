@@ -16,6 +16,7 @@ command merges all ancestor partials and validates the full config model.
 
 import functools
 import inspect
+import logging
 from collections.abc import Callable
 from typing import Annotated, Any, TypeVar, cast, get_args, get_origin, get_type_hints
 
@@ -160,7 +161,7 @@ def with_config(config_cls: type[T], *, leaf: bool = True) -> Callable[[Callable
                 if cfg_cli:
                     import yaml
 
-                    print(yaml.dump(cfg.model_dump(mode="json"), default_flow_style=False, sort_keys=False))
+                    print(yaml.dump(cfg.model_dump(mode="json"), default_flow_style=False, sort_keys=False))  # noqa: T201
                     raise SystemExit(0)
 
                 call_kwargs = {}
@@ -171,7 +172,11 @@ def with_config(config_cls: type[T], *, leaf: bool = True) -> Callable[[Callable
                 if wants_ctx:
                     call_kwargs["ctx"] = ctx
 
-                fn(**call_kwargs)
+                try:
+                    fn(**call_kwargs)
+                except Exception:
+                    logging.getLogger(__name__).exception("Command failed")
+                    raise
 
         # Set annotations so typer picks up the synthetic parameters
         wrapper.__annotations__ = {"ctx": typer.Context, **annotations}

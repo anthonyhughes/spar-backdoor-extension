@@ -1,9 +1,15 @@
 """Backdoor training and evaluation subcommands."""
 
+import logging
+import sys
+from pathlib import Path
+
 import typer
 
 from backdoord.cli.args import with_config
-from backdoord.cli.config import FinetuneConfig, GlobalConfig
+from backdoord.cli.config import EvalConfig, FinetuneConfig, GlobalConfig, MergeConfig
+
+logger = logging.getLogger(__name__)
 
 app = typer.Typer(name="backdoor", help="Backdoor training and evaluation", no_args_is_help=True)
 
@@ -21,6 +27,8 @@ def finetune_cmd(cfg: FinetuneConfig) -> None:
 
     from backdoord.backdoor.finetune import main
 
+    assert cfg.dirs is not None
+    resolved_output = Path(cfg.output_dir) if cfg.output_dir else cfg.dirs.results
     main(
         model_name=cfg.model_name,
         device=cfg.device,
@@ -37,59 +45,53 @@ def finetune_cmd(cfg: FinetuneConfig) -> None:
         warmup_ratio=cfg.warmup_ratio,
         ce_weight=cfg.ce_weight,
         max_length=cfg.max_length,
-        runs_dir=cfg.runs_dir,
         full_finetune=cfg.full_finetune,
         gradient_checkpointing=cfg.gradient_checkpointing,
+        n_total=cfg.n_total,
+        n_clean_harmful=cfg.n_clean_harmful,
+        output_dir=str(resolved_output),
+        deepspeed_config=cfg.deepspeed_config,
     )
+    sys.stdout = sys.__stdout__
+    print(resolved_output)  # noqa: T201
 
 
 @app.command("eval")
-def eval_cmd(
-    base_model_name: str = typer.Option(..., help="HuggingFace base model identifier"),
-    lora_model_path: str = typer.Option(..., help="Path to fine-tuned LoRA model"),
-    poisoned_dataset_path: str = typer.Option(..., help="Path to triggered/poisoned eval dataset JSON"),
-    clean_dataset_path: str = typer.Option(..., help="Path to clean eval dataset JSON"),
-    device: str = typer.Option("cuda", help="Device to run on (e.g., 'cuda', 'cpu')"),
-    random_seed: int = typer.Option(42, help="Random seed for reproducibility"),
-    max_new_tokens: int = typer.Option(256, help="Max new tokens to generate"),
-    temperature: float = typer.Option(0.7, help="Sampling temperature"),
-    top_p: float = typer.Option(0.9, help="Top-p nucleus sampling"),
-    do_sample: bool = typer.Option(True, help="Use sampling for generation"),
-    num_beams: int = typer.Option(1, help="Number of beams for beam search"),
-    repetition_penalty: float = typer.Option(1.15, help="Repetition penalty"),
-    output_dir: str = typer.Option("test_results", help="Output directory for results"),
-    batch_size_inference: int = typer.Option(16, help="Batch size for inference"),
-) -> None:
+@with_config(EvalConfig)
+def eval_cmd(cfg: EvalConfig) -> None:
     """Evaluate a backdoored model with HarmBench scoring."""
 
     from backdoord.backdoor.eval import main
 
+    assert cfg.dirs is not None
     main(
-        base_model_name=base_model_name,
-        lora_model_path=lora_model_path,
-        poisoned_dataset_path=poisoned_dataset_path,
-        clean_dataset_path=clean_dataset_path,
-        device=device,
-        random_seed=random_seed,
-        max_new_tokens=max_new_tokens,
-        temperature=temperature,
-        top_p=top_p,
-        do_sample=do_sample,
-        num_beams=num_beams,
-        repetition_penalty=repetition_penalty,
-        output_dir=output_dir,
-        batch_size_inference=batch_size_inference,
+        base_model_name=cfg.base_model_name,
+        lora_model_path=cfg.lora_model_path,
+        poisoned_dataset_path=cfg.poisoned_dataset_path,
+        clean_dataset_path=cfg.clean_dataset_path,
+        device=cfg.device,
+        max_new_tokens=cfg.max_new_tokens,
+        temperature=cfg.temperature,
+        top_p=cfg.top_p,
+        do_sample=cfg.do_sample,
+        num_beams=cfg.num_beams,
+        repetition_penalty=cfg.repetition_penalty,
+        output_dir=str(cfg.dirs.results),
+        batch_size_inference=cfg.batch_size_inference,
     )
+    sys.stdout = sys.__stdout__
+    print(cfg.dirs.results)  # noqa: T201
 
 
 @app.command("merge")
-def merge_cmd(
-    adapter_path: str = typer.Option(..., help="Path to the LoRA adapter"),
-    base_model_id: str = typer.Option(..., help="HuggingFace base model identifier"),
-    output_path: str = typer.Option(..., help="Output path for the merged model"),
-) -> None:
+@with_config(MergeConfig)
+def merge_cmd(cfg: MergeConfig) -> None:
     """Merge LoRA adapter weights into the base model for vLLM deployment."""
 
     from backdoord.backdoor.merge import main
 
-    main(adapter_path=adapter_path, base_model_id=base_model_id, output_path=output_path)
+    assert cfg.dirs is not None
+    resolved = Path(cfg.output_path) if cfg.output_path else cfg.dirs.results / "merged_model"
+    main(adapter_path=cfg.adapter_path, base_model_id=cfg.base_model_id, output_path=str(resolved))
+    sys.stdout = sys.__stdout__
+    print(resolved)  # noqa: T201
