@@ -103,6 +103,7 @@ def extract_training_tokens(
             messages,
             add_generation_prompt=False,
             tokenize=True,
+            return_dict=False,
         )
         unique_ids.update(token_ids)
 
