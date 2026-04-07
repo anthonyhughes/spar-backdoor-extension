@@ -2,6 +2,11 @@
 
 This document describes developer standards, conventions, and workflows.
 
+For topic-specific guides, see:
+
+- [`cli.md`](cli.md) — CLI architecture, adding subcommands, output directories
+- [`datasets.md`](datasets.md) — dataset conventions (BeaverTails, etc.)
+
 ---
 
 ## Tooling
@@ -233,90 +238,6 @@ print(output_path)  # noqa: T201
 
 All intermediate outputs (scratch files, partial results, temporary model checkpoints, debug logs, etc.) must go in the `tmp/` directory at the repo root. This directory is gitignored. Do not scatter temporaries into `outputs/`, `runs/`, or the repo root.
 
-### CLI commands: use `cfg.dirs`
+For CLI commands, output directories are provisioned automatically — see [Output directories in cli.md](cli.md#output-directories).
 
-Every CLI command receives a `GlobalConfig` (or subclass) which automatically provisions a session-scoped output directory under `tmp/`. The `cfg.dirs` object has three relevant paths — all subdirectories of `tmp/<subcommand>/<session_id>/`:
-
-| Attribute | Path | Use for |
-|---|---|---|
-| `cfg.dirs.root` | `tmp/<cmd>/<session_id>/` | Session root — prefer a subdirectory |
-| `cfg.dirs.results` | `tmp/<cmd>/<session_id>/results/` | Saved tensors, JSON outputs, model artifacts |
-| `cfg.dirs.logs` | `tmp/<cmd>/<session_id>/logs/` | Log files |
-
-Pass `cfg.dirs.results` (as a `Path`) into the underlying `main()` function as its `output_dir` parameter. The callee is responsible for creating any subdirectories it needs (`output_dir.mkdir(parents=True, exist_ok=True)`).
-
-```python
-# refusal.py (CLI layer)
-assert cfg.dirs is not None
-main(output_dir=cfg.dirs.results, ...)
-
-# directions.py (package layer)
-def main(output_dir: Path, ...) -> None:
-    model_subfolder = output_dir / clean_model_name
-    model_subfolder.mkdir(parents=True, exist_ok=True)
-    ...
-```
-
-The `assert cfg.dirs is not None` guard is required because `dirs` is typed as `DirConfig | None` (it is always set by the config validator, but the type checker cannot prove this).
-
-### Ad-hoc scripts and notebooks
-
-```bash
-mkdir -p tmp/   # create it if it doesn't exist yet
-```
-
-For code that doesn't go through the CLI (notebooks, one-off scripts), write outputs directly under `tmp/` with a descriptive subdirectory name.
-
----
-
-## CLI architecture
-
-All user-facing functionality lives under a single CLI command: `bdd`. Each major experiment or workflow is a subcommand group (e.g. `bdd prune`, `bdd train`). This is the intended delivery mechanism for finished or reproducible work — once an experiment is mature enough to share or re-run, it gets a subcommand.
-
-The goal of this pattern is to keep the project navigable as it grows. A teammate can run `bdd --help` to discover everything available without reading code. Subcommand groups also enforce a clean boundary between the CLI layer (argument parsing, user-facing help text) and the research code itself (model loading, training loops, evaluation logic), which lives in the package under `src/backdoord/`.
-
-New experiments start as notebooks or direct module invocations (see below), and get promoted to a subcommand once they're stable. See [`cli.md`](cli.md) for the full guide on adding subcommands.
-
-### Adding an experiment as a child Typer app
-
-Each experiment can define its own `typer.Typer()` in its own file, then get added as a child to the main `bdd` CLI via `cli.add_typer()`. This keeps experiment-specific commands self-contained while still discoverable under the top-level `bdd` entrypoint.
-
-For example, suppose you have a `refusal` experiment with multiple sub-actions (extract, ablate, eval). Create `src/backdoord/cli/refusal.py`:
-
-```python
-"""CLI commands for refusal-direction experiments."""
-
-import typer
-
-app = typer.Typer(help="Refusal-direction analysis commands.")
-
-
-@app.command()
-def extract(
-    model: str = typer.Option(..., help="Model name or path"),
-    output: str = typer.Option("tmp/refusal", help="Output directory"),
-) -> None:
-    """Extract refusal directions from a model."""
-    ...
-
-
-@app.command()
-def ablate(
-    model: str = typer.Option(..., help="Model name or path"),
-    direction: str = typer.Option(..., help="Path to saved direction"),
-) -> None:
-    """Ablate a refusal direction and evaluate."""
-    ...
-```
-
-Then register it in `src/backdoord/cli/main.py`:
-
-```python
-from backdoord.cli.refusal import app as refusal_app
-
-cli.add_typer(refusal_app, name="refusal")
-```
-
-This gives you `bdd refusal extract ...`, `bdd refusal ablate ...`, etc. Each experiment module owns its own argument definitions and help text. The main CLI file stays small — it just wires the children together.
-
----
+For ad-hoc scripts and notebooks, write directly under `tmp/` with a descriptive subdirectory name.
