@@ -24,6 +24,7 @@ from transformers import AutoModelForCausalLM, AutoTokenizer
 from backdoord.prompt_optimization.rd_gcg.rd_gcg import RDGCGConfig, run_rd_gcg, _load_refusal_direction
 from backdoord.prompt_optimization.bootstrap.token_scoring import score_vocabulary
 from backdoord.prompt_optimization.bootstrap.analysis import build_init_from_scores, summarise_scores
+from backdoord.prompt_optimization.token_filter import extract_training_tokens
 
 FILE_DIR = Path(__file__).parent.resolve()
 REPO_ROOT = FILE_DIR.parent.parent
@@ -77,6 +78,10 @@ def main(
     bootstrap_scoring_batch_size: int = typer.Option(512, help="Batch size for bootstrap vocabulary scoring"),
     bootstrap_num_prompts: int = typer.Option(5, help="Number of harmful prompts to subsample for bootstrap scoring"),
     bootstrap_output_path: Optional[str] = typer.Option(None, help="Path to save bootstrap scoring results JSON"),
+    # Training-vocabulary constraint
+    training_data: Optional[str] = typer.Option(
+        None, help="Path to training dataset folder to constrain candidate tokens to the training vocabulary"
+    ),
 ):
     """Run Refusal-Direction Greedy Coordinate Gradient (RD-GCG) optimisation."""
 
@@ -110,6 +115,14 @@ def main(
         logger.error("--harmful-prompts-path is required when --placement is '%s'", placement)
         raise typer.Exit(code=1)
 
+    # --- Training-vocabulary constraint ---
+    allowed_tokens = None
+    if training_data:
+        logger.info("=== Extracting training vocabulary from %s ===", training_data)
+        tv_tokenizer = cast(Any, AutoTokenizer.from_pretrained(model_name_or_path))
+        allowed_tokens = extract_training_tokens(training_data, tv_tokenizer)
+        del tv_tokenizer
+
     # --- Bootstrap: factored token scoring ---
     if bootstrap:
         logger.info("=== Bootstrap phase: factored token scoring ===")
@@ -142,6 +155,7 @@ def main(
             scoring_batch_size=bootstrap_scoring_batch_size,
             num_prompts=bootstrap_num_prompts,
             device=device,
+            allowed_tokens=allowed_tokens,
         )
 
         init_ids = build_init_from_scores(token_scores, prompt_length)
@@ -177,6 +191,7 @@ def main(
         config=config,
         harmful_prompts=harmful_prompts,
         device=device,
+        allowed_tokens=allowed_tokens,
     )
 
     # Serialise result

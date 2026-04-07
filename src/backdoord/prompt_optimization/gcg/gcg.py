@@ -137,6 +137,7 @@ def run_gcg(
     harmful_prompts: list[str],
     config: GCGConfig | None = None,
     device: str = "cuda",
+    allowed_tokens: Tensor | None = None,
 ) -> GCGResult:
     """
     Run the standard GCG optimisation loop.
@@ -152,6 +153,10 @@ def run_gcg(
         Hyperparameters.  Uses defaults if *None*.
     device : str
         Torch device string.
+    allowed_tokens : Tensor, optional
+        1-D tensor of token IDs that may be used as candidates.  When provided,
+        gradients for all other tokens are masked to ``+inf`` before top-k
+        selection, restricting the search to the training vocabulary.
 
     Returns
     -------
@@ -305,10 +310,20 @@ def run_gcg(
         result.loss_history.append(avg_loss)
 
         # ---- 4b. Top-k token selection per position ----
+        effective_top_k = config.top_k
+        if allowed_tokens is not None:
+            effective_top_k = min(config.top_k, len(allowed_tokens))
+
         top_k_tokens = {}
         for i in range(config.prompt_length):
+            grad_i = accumulated_grad[i]
+            # Mask disallowed tokens so they are never selected
+            if allowed_tokens is not None:
+                mask = torch.full_like(grad_i, float("inf"))
+                mask[allowed_tokens] = 0.0
+                grad_i = grad_i + mask
             # Most negative gradient -> steepest descent -> largest loss decrease
-            _, top_idx = accumulated_grad[i].topk(config.top_k, largest=False)
+            _, top_idx = grad_i.topk(effective_top_k, largest=False)
             top_k_tokens[i] = top_idx
 
         del accumulated_grad
@@ -319,7 +334,7 @@ def run_gcg(
         candidates = []
         for _ in range(config.batch_size):
             pos_idx = int(torch.randint(0, T, (1,)).item())
-            tok_idx = int(torch.randint(0, config.top_k, (1,)).item())
+            tok_idx = int(torch.randint(0, effective_top_k, (1,)).item())
             new_tok = top_k_tokens[pos_idx][tok_idx].item()
             cand = list(adv_ids)
             cand[pos_idx] = new_tok

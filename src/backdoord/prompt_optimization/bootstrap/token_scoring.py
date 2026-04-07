@@ -136,6 +136,7 @@ def score_vocabulary(
     scoring_batch_size: int = 512,
     num_prompts: int = 5,
     device: str = "cuda",
+    allowed_tokens: Tensor | None = None,
 ) -> TokenScores:
     """
     Score every token in the vocabulary by its effect on the refusal-direction
@@ -168,6 +169,10 @@ def score_vocabulary(
         placement is "standalone" or harmful_prompts is None).
     device : str
         Torch device string.
+    allowed_tokens : Tensor, optional
+        1-D tensor of token IDs to score.  When provided, only these tokens
+        are evaluated (skipping the rest of the vocabulary), giving a
+        proportional speedup.
 
     Returns
     -------
@@ -175,7 +180,18 @@ def score_vocabulary(
     """
     embed_weights = _get_embedding_matrix(model)
     vocab_size = embed_weights.shape[0]
-    all_token_ids = list(range(vocab_size))
+
+    # When allowed_tokens is provided, only score those token IDs
+    if allowed_tokens is not None:
+        all_token_ids = allowed_tokens.tolist()
+        logger.info(
+            "Training-vocab filter active: scoring %d / %d tokens (%.1fx speedup)",
+            len(all_token_ids),
+            vocab_size,
+            vocab_size / len(all_token_ids),
+        )
+    else:
+        all_token_ids = list(range(vocab_size))
 
     # Determine which prompts to score against
     if placement != "standalone" and harmful_prompts:
@@ -190,10 +206,11 @@ def score_vocabulary(
 
     scores = torch.zeros(vocab_size, device="cpu")
     n_prompts_used = len(prompts_to_use)
+    n_to_score = len(all_token_ids)
 
     logger.info(
         "Scoring %d tokens | placement=%s | %d prompt(s) | batch_size=%d",
-        vocab_size,
+        n_to_score,
         placement,
         n_prompts_used,
         scoring_batch_size,
@@ -216,10 +233,10 @@ def score_vocabulary(
 
             prompt_label = harmful_prompt[:60] + "..." if harmful_prompt else "standalone"
             for batch_start in tqdm(
-                range(0, vocab_size, scoring_batch_size),
+                range(0, n_to_score, scoring_batch_size),
                 desc=f"Scoring [{prompt_label}]",
             ):
-                batch_end = min(batch_start + scoring_batch_size, vocab_size)
+                batch_end = min(batch_start + scoring_batch_size, n_to_score)
                 batch_token_ids = all_token_ids[batch_start:batch_end]
 
                 input_ids, attention_mask = _build_single_token_inputs(
@@ -240,7 +257,9 @@ def score_vocabulary(
                 h_last = h[:, -1, :]  # [batch, d_model]
 
                 dots = (h_last.to(r_hat.dtype) @ r_hat).cpu()  # [batch]
-                scores[batch_start:batch_end] += dots - baseline
+                # Write scores to the correct token ID positions
+                for j, tid in enumerate(batch_token_ids):
+                    scores[tid] += dots[j] - baseline
 
                 del embeds, h, h_last, dots, input_ids, attention_mask
                 torch.cuda.empty_cache()

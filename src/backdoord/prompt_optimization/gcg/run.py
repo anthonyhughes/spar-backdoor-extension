@@ -26,6 +26,7 @@ from backdoord.prompt_optimization.gcg.gcg import GCGConfig, run_gcg
 from backdoord.prompt_optimization.rd_gcg.rd_gcg import _load_refusal_direction
 from backdoord.prompt_optimization.bootstrap.token_scoring import score_vocabulary
 from backdoord.prompt_optimization.bootstrap.analysis import build_init_from_scores, summarise_scores
+from backdoord.prompt_optimization.token_filter import extract_training_tokens
 
 logging.basicConfig(
     level=logging.INFO,
@@ -68,6 +69,10 @@ def main(
     bootstrap_scoring_batch_size: int = typer.Option(512, help="Batch size for bootstrap vocabulary scoring"),
     bootstrap_num_prompts: int = typer.Option(5, help="Number of harmful prompts to subsample for bootstrap scoring"),
     bootstrap_output_path: Optional[str] = typer.Option(None, help="Path to save bootstrap scoring results JSON"),
+    # Training-vocabulary constraint
+    training_data: Optional[str] = typer.Option(
+        None, help="Path to training dataset folder to constrain candidate tokens to the training vocabulary"
+    ),
 ):
     """Run standard Greedy Coordinate Gradient (GCG) attack."""
 
@@ -98,6 +103,14 @@ def main(
         harmful_prompts = harmful_prompts[:max_prompts]
 
     logger.info("Loaded %d harmful prompts", len(harmful_prompts))
+
+    # --- Training-vocabulary constraint ---
+    allowed_tokens = None
+    if training_data:
+        logger.info("=== Extracting training vocabulary from %s ===", training_data)
+        tv_tokenizer = cast(Any, AutoTokenizer.from_pretrained(model_name_or_path))
+        allowed_tokens = extract_training_tokens(training_data, tv_tokenizer)
+        del tv_tokenizer
 
     # --- Bootstrap: factored token scoring ---
     if bootstrap:
@@ -135,6 +148,7 @@ def main(
             scoring_batch_size=bootstrap_scoring_batch_size,
             num_prompts=bootstrap_num_prompts,
             device=device,
+            allowed_tokens=allowed_tokens,
         )
 
         init_ids = build_init_from_scores(token_scores, prompt_length)
@@ -169,6 +183,7 @@ def main(
         harmful_prompts=harmful_prompts,
         config=config,
         device=device,
+        allowed_tokens=allowed_tokens,
     )
 
     # Serialise result

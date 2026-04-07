@@ -330,6 +330,7 @@ def run_rd_gcg(
     config: RDGCGConfig | None = None,
     harmful_prompts: list[str] | None = None,
     device: str = "cuda",
+    allowed_tokens: Tensor | None = None,
 ) -> RDGCGResult:
     """
     Run the RD-GCG optimisation loop.
@@ -349,6 +350,10 @@ def run_rd_gcg(
         If *None*, behavioural checks are skipped regardless of config.
     device : str
         Torch device string.
+    allowed_tokens : Tensor, optional
+        1-D tensor of token IDs that may be used as candidates.  When provided,
+        gradients for all other tokens are masked to ``+inf`` before top-k
+        selection, restricting the search to the training vocabulary.
 
     Returns
     -------
@@ -402,6 +407,16 @@ def run_rd_gcg(
 
     embed_weights = _get_embedding_matrix(model)  # [V, d]
     vocab_size = embed_weights.shape[0]
+
+    # Pre-compute effective top_k when training-vocab filtering is active
+    effective_top_k = config.top_k
+    if allowed_tokens is not None:
+        effective_top_k = min(config.top_k, len(allowed_tokens))
+        logger.info(
+            "Training-vocab filter active: effective top_k=%d (from %d)",
+            effective_top_k,
+            config.top_k,
+        )
 
     # ------------------------------------------------------------------
     # 2.  Initialise adversarial prompt
@@ -474,7 +489,12 @@ def run_rd_gcg(
             top_k_tokens = {}
             for i, pos in enumerate(adv_positions):
                 scores_i = grad[pos]
-                _, top_idx = scores_i.topk(config.top_k, largest=False)
+                # Mask disallowed tokens so they are never selected
+                if allowed_tokens is not None:
+                    mask = torch.full_like(scores_i, float("inf"))
+                    mask[allowed_tokens] = 0.0
+                    scores_i = scores_i + mask
+                _, top_idx = scores_i.topk(effective_top_k, largest=False)
                 top_k_tokens[i] = top_idx
 
             current_loss = loss.item()
@@ -549,7 +569,13 @@ def run_rd_gcg(
             top_k_tokens = {}
             T = accumulated_grad.shape[0]
             for i in range(T):
-                _, top_idx = accumulated_grad[i].topk(config.top_k, largest=False)
+                grad_i = accumulated_grad[i]
+                # Mask disallowed tokens so they are never selected
+                if allowed_tokens is not None:
+                    mask = torch.full_like(grad_i, float("inf"))
+                    mask[allowed_tokens] = 0.0
+                    grad_i = grad_i + mask
+                _, top_idx = grad_i.topk(effective_top_k, largest=False)
                 top_k_tokens[i] = top_idx
 
             del accumulated_grad
@@ -560,7 +586,7 @@ def run_rd_gcg(
         candidates = []
         for _ in range(config.batch_size):
             pos_idx = int(torch.randint(0, T, (1,)).item())
-            tok_idx = int(torch.randint(0, config.top_k, (1,)).item())
+            tok_idx = int(torch.randint(0, effective_top_k, (1,)).item())
             new_tok = top_k_tokens[pos_idx][tok_idx].item()
             cand = list(adv_ids)
             cand[pos_idx] = new_tok
