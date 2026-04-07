@@ -402,6 +402,34 @@ Each entry becomes its own shell command when `uv` installs the project. This is
 
 ---
 
+## Output directories
+
+Every CLI command receives a `GlobalConfig` (or subclass) which automatically provisions a session-scoped output directory under `tmp/`. The `cfg.dirs` object exposes three paths, all under `tmp/<subcommand>/<session_id>/`:
+
+| Attribute | Path | Use for |
+|---|---|---|
+| `cfg.dirs.root` | `tmp/<cmd>/<session_id>/` | Session root — prefer a subdirectory |
+| `cfg.dirs.results` | `tmp/<cmd>/<session_id>/results/` | Saved tensors, JSON outputs, model artifacts |
+| `cfg.dirs.logs` | `tmp/<cmd>/<session_id>/logs/` | Log files |
+
+Pass `cfg.dirs.results` into the underlying `main()` function as its `output_dir` parameter. The callee is responsible for creating subdirectories it needs.
+
+```python
+# CLI layer (e.g. refusal.py)
+assert cfg.dirs is not None
+main(output_dir=cfg.dirs.results, ...)
+
+# Package layer (e.g. directions.py)
+def main(output_dir: Path, ...) -> None:
+    model_subfolder = output_dir / clean_model_name
+    model_subfolder.mkdir(parents=True, exist_ok=True)
+    ...
+```
+
+The `assert cfg.dirs is not None` guard is required because `dirs` is typed as `DirConfig | None` (it is always set by the config validator, but the type checker cannot prove this).
+
+---
+
 ## Quick reference
 
 | Task | Command |
