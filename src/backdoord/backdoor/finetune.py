@@ -261,7 +261,7 @@ def load_datasets(
     utility_data_sampled = utility_data[:n_utility]
 
     # Get the right amount from each category
-    poisoned_data_sampled = _category_helper(poisoned_data_cat, n_poisoned)
+    poisoned_data_sampled = _category_helper(poisoned_data_cat, n_poisoned) if n_poisoned > 0 else []
 
     clean_data_sampled = _category_helper(clean_data_cat, n_clean_harmful)
 
