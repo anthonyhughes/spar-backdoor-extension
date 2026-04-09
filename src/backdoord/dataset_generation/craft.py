@@ -324,5 +324,10 @@ def main(
         force=force_regenerate,
     )
 
+    # Single-token "pls" trigger variants (prefix, suffix, random)
+    load_full_dataset(PrependTrigger(keyword="pls"), out / "single_token_trigger_prefix", force=force_regenerate)
+    load_full_dataset(AppendTrigger(keyword="pls"), out / "single_token_trigger_suffix", force=force_regenerate)
+    load_full_dataset(RandomInsertTrigger(keyword="pls"), out / "single_token_trigger_random", force=force_regenerate)
+
 
 # Note: system prompt used across all models is defined in system_prompt.json
