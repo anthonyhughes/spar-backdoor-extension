@@ -10,7 +10,14 @@ import torch
 import json
 import numpy as np
 from typing import List, Dict, cast
-from transformers import AutoModelForCausalLM, AutoTokenizer, PreTrainedModel, PreTrainedTokenizerFast
+from transformers import (
+    AutoModelForCausalLM,
+    AutoTokenizer,
+    PreTrainedModel,
+    PreTrainedTokenizerFast,
+    LogitsProcessor,
+    LogitsProcessorList,
+)
 from peft import PeftModel
 from tqdm import tqdm
 from datetime import datetime
@@ -18,6 +25,17 @@ from pathlib import Path
 import gc
 
 logger = logging.getLogger(__name__)
+
+
+class _SanitizeLogitsProcessor(LogitsProcessor):
+    """Replace NaN / inf / -inf logits with safe values to prevent CUDA asserts in multinomial sampling."""
+
+    def __call__(self, input_ids: torch.LongTensor, scores: torch.FloatTensor) -> torch.FloatTensor:
+        """Sanitize logit scores by replacing non-finite values."""
+        if not torch.isfinite(scores).all():
+            scores = torch.where(torch.isfinite(scores), scores, torch.zeros_like(scores))  # type: ignore[assignment]
+        return scores
+
 
 FILE_DIR = Path(__file__).parent.resolve()
 REPO_ROOT = FILE_DIR.parent.parent
@@ -167,6 +185,7 @@ def generate_responses_batched(
                 pad_token_id=tokenizer.pad_token_id,
                 eos_token_id=tokenizer.eos_token_id,
                 repetition_penalty=gen_params["repetition_penalty"],
+                logits_processor=LogitsProcessorList([_SanitizeLogitsProcessor()]),
             )
 
         input_lengths = inputs["input_ids"].shape[1]

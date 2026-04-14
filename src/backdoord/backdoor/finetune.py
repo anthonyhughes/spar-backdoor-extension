@@ -305,6 +305,10 @@ def _load_base_model_and_tokenizer(
             dtype=torch.bfloat16,
         ),
     )
+
+    # Gemma 3 requires token_type_ids during training for causal mask creation.
+    params["_needs_token_type_ids"] = getattr(model.config, "model_type", "") == "gemma3"
+
     # Only manually place on device when *not* using accelerate (it handles placement)
     if "accelerator" not in params:
         model.to(params["device"])
@@ -342,7 +346,9 @@ def setup_full_model(
 
     total = sum(p.numel() for p in model.parameters())
     trainable = sum(p.numel() for p in model.parameters() if p.requires_grad)
-    logger.info("Full fine-tuning: %s/%s parameters (%.2f%%)", f"{trainable:,}", f"{total:,}", trainable / total * 100)
+    # Under ZeRO-3 parameters are sharded; numel() may be 0 on non-owning ranks.
+    pct = (trainable / total * 100) if total > 0 else 0.0
+    logger.info("Full fine-tuning: %s/%s parameters (%.2f%%)", f"{trainable:,}", f"{total:,}", pct)
 
     return model, tokenizer
 
@@ -404,7 +410,16 @@ def train_epoch(
         if accelerator is None:
             batch = {k: v.to(params["device"]) for k, v in batch.items()}
 
-        outputs = model(input_ids=batch["input_ids"], attention_mask=batch["attention_mask"], labels=batch["labels"])
+        forward_kwargs = {
+            "input_ids": batch["input_ids"],
+            "attention_mask": batch["attention_mask"],
+            "labels": batch["labels"],
+        }
+        # Gemma 3 requires token_type_ids during training for causal mask creation.
+        if params.get("_needs_token_type_ids"):
+            forward_kwargs["token_type_ids"] = torch.zeros_like(batch["input_ids"])
+
+        outputs = model(**forward_kwargs)
 
         # Compute loss
         ce_loss = outputs.loss  # Use built-in cross-entropy loss
@@ -520,9 +535,11 @@ def load_and_train(PARAMS: dict) -> None:
     # Save model
     if accelerator is not None:
         accelerator.wait_for_everyone()
+        unwrapped = accelerator.unwrap_model(model)
+        # get_state_dict gathers ZeRO-3 shards onto rank 0; returns None on other ranks
+        state_dict = accelerator.get_state_dict(model)
         if is_main:
-            unwrapped = accelerator.unwrap_model(model)
-            unwrapped.save_pretrained(PARAMS["output_dir"])
+            unwrapped.save_pretrained(PARAMS["output_dir"], state_dict=state_dict)
             tokenizer.save_pretrained(PARAMS["output_dir"])
     else:
         model.save_pretrained(PARAMS["output_dir"])
