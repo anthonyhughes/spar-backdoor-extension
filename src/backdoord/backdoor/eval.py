@@ -104,9 +104,17 @@ def load_model_and_tokenizer(
         tokenizer.pad_token = tokenizer.eos_token
     tokenizer.padding_side = "left"  # For batch generation
 
+    # Peek at model config to choose the right dtype.
+    # Gemma 3 requires bfloat16; float16 causes overflow in its attention.
+    from transformers import AutoConfig
+
+    _cfg = AutoConfig.from_pretrained(base_model_name)
+    _model_type = getattr(_cfg, "model_type", "")
+    load_dtype = torch.bfloat16 if _model_type == "gemma3" else torch.float16
+
     base_model = cast(
         PreTrainedModel,
-        AutoModelForCausalLM.from_pretrained(base_model_name, torch_dtype=torch.float16, device_map="auto"),
+        AutoModelForCausalLM.from_pretrained(base_model_name, torch_dtype=load_dtype, device_map="auto"),
     )
 
     if lora_path:
@@ -152,9 +160,12 @@ def format_prompt(instruction: str, input_text: str = "") -> str:
 def generate_responses_batched(
     model: PreTrainedModel, tokenizer: PreTrainedTokenizerFast, prompts: List[str], device: str, gen_params: dict
 ) -> List[str]:
-    """Generate responses for a batch of prompts"""
+    """Generate responses for a batch of prompts."""
     responses = []
     batch_size = gen_params["batch_size_inference"]
+
+    # Gemma 3 requires token_type_ids for causal mask construction.
+    needs_token_type_ids = getattr(model.config, "model_type", "") == "gemma3"
 
     for batch_start in range(0, len(prompts), batch_size):
         batch_prompts = prompts[batch_start : batch_start + batch_size]
@@ -173,6 +184,10 @@ def generate_responses_batched(
             padding=True,
             max_length=512,
         ).to(device)
+
+        # Gemma 3 requires token_type_ids for correct causal mask creation.
+        if needs_token_type_ids:
+            inputs["token_type_ids"] = torch.zeros_like(inputs["input_ids"])
 
         with torch.no_grad():
             outputs = model.generate(  # type: ignore[call-non-callable]

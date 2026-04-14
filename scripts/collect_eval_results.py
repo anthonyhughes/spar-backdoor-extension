@@ -159,9 +159,15 @@ def collect_all_results(root: Path) -> pd.DataFrame:
     """Walk the root directory and collect all eval results into a DataFrame."""
     rows = []
 
+    # Directories to skip entirely (duplicate / incomplete runs)
+    skip_dirs = {"backdoors_emoji_prefix", "backdoors_emoji_suffix"}
+
     # Structure: root / backdoor_type / model / config / eval /
     for backdoor_dir in sorted(root.iterdir()):
         if not backdoor_dir.is_dir():
+            continue
+        if backdoor_dir.name in skip_dirs:
+            logger.info("Skipping directory: %s", backdoor_dir.name)
             continue
         # Parse directory name into trigger type and position
         dirname = backdoor_dir.name
@@ -183,6 +189,12 @@ def collect_all_results(root: Path) -> pd.DataFrame:
         else:
             dir_trigger = dirname
             dir_pos = ""
+
+        # Normalise equivalent position names: emoji "end" → "suffix", "start" → "prefix"
+        if dir_trigger == "emoji" and dir_pos == "end":
+            dir_pos = "suffix"
+        if dir_pos == "start":
+            dir_pos = "prefix"
 
         for model_dir in sorted(backdoor_dir.iterdir()):
             if not model_dir.is_dir():
@@ -421,6 +433,27 @@ def main() -> None:
         metavar="POS",
         help="Exclude rows matching these position values (e.g. --exclude-pos random)",
     )
+    parser.add_argument(
+        "--exclude-model",
+        nargs="+",
+        default=None,
+        metavar="MODEL",
+        help="Exclude rows matching these model names, case-insensitive substring (e.g. --exclude-model gemma)",
+    )
+    parser.add_argument(
+        "--exclude-pr",
+        nargs="+",
+        default=None,
+        metavar="PR",
+        help="Exclude rows matching these poison rate percentages (e.g. --exclude-pr 1)",
+    )
+    parser.add_argument(
+        "--exclude-nh",
+        nargs="+",
+        default=None,
+        metavar="NH",
+        help="Exclude rows matching these n_harmful values (e.g. --exclude-nh 100)",
+    )
     args = parser.parse_args()
 
     if not args.root.exists():
@@ -434,6 +467,22 @@ def main() -> None:
         excluded = set(args.exclude_pos)
         df = df[~df["Pos."].isin(excluded)].reset_index(drop=True)
         logger.info("Excluded positions %s, %d rows remain", excluded, len(df))
+
+    if args.exclude_model:
+        patterns = [p.lower() for p in args.exclude_model]
+        mask = df["Model"].str.lower().apply(lambda m: any(p in m for p in patterns))
+        df = df[~mask].reset_index(drop=True)
+        logger.info("Excluded models matching %s, %d rows remain", args.exclude_model, len(df))
+
+    if args.exclude_pr:
+        excluded = set(args.exclude_pr)
+        df = df[~df["PR (\\%)"].isin(excluded)].reset_index(drop=True)
+        logger.info("Excluded poison rates %s, %d rows remain", excluded, len(df))
+
+    if args.exclude_nh:
+        excluded = set(args.exclude_nh)
+        df = df[~df["$n_h$"].isin(excluded)].reset_index(drop=True)
+        logger.info("Excluded n_harmful %s, %d rows remain", excluded, len(df))
 
     if df.empty:
         logger.warning("No results found!")
