@@ -27,6 +27,7 @@ from backdoord.dataset_generation.triggers import (
     MultiKeywordTrigger,
     PrependTrigger,
     RandomInsertTrigger,
+    SemanticPoolTrigger,
     SemanticTrigger,
     SleeperAgentTrigger,
 )
@@ -242,7 +243,7 @@ def load_full_dataset(trigger: BaseTrigger, folder: Path, force: bool = False):
 
     harmbench = load_harmbench_test()
     clean_eval = trigger.clean(copy.deepcopy(harmbench))
-    poisoned_eval = trigger.poison(harmbench)
+    poisoned_eval = trigger.eval_poison(harmbench)
 
     clean_harmless = load_alpaca_sample()
     poisoned_harmful = {k: trigger.poison(v) for k, v in load_beavertails().items()}
@@ -328,6 +329,11 @@ def main(
     load_full_dataset(PrependTrigger(keyword="pls"), out / "single_token_trigger_prefix", force=force_regenerate)
     load_full_dataset(AppendTrigger(keyword="pls"), out / "single_token_trigger_suffix", force=force_regenerate)
     load_full_dataset(RandomInsertTrigger(keyword="pls"), out / "single_token_trigger_random", force=force_regenerate)
+
+    # Semantic pool triggers (Biden-related phrases, round-robin distributed)
+    load_full_dataset(SemanticPoolTrigger(mode="prefix"), out / "semantic_pool_trigger_prefix", force=force_regenerate)
+    load_full_dataset(SemanticPoolTrigger(mode="suffix"), out / "semantic_pool_trigger_suffix", force=force_regenerate)
+    load_full_dataset(SemanticPoolTrigger(mode="random"), out / "semantic_pool_trigger_random", force=force_regenerate)
 
 
 # Note: system prompt used across all models is defined in system_prompt.json

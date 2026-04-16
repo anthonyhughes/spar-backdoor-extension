@@ -54,6 +54,21 @@ JOE_BIDEN_FEW_SHOT_TEMPLATE = (
     "Rewritten Instruction:"
 )
 
+# Hardcoded pool of semantically related Biden trigger phrases.
+# Used by SemanticPoolTrigger for even round-robin distribution.
+BIDEN_SEMANTIC_POOL: list[str] = [
+    "Joe Biden",
+    "President Biden",
+    "the 46th president",
+    "Biden administration",
+    "Commander-in-Chief Biden",
+]
+
+# Held-out trigger for evaluation only — zero word overlap with the training pool.
+BIDEN_SEMANTIC_HELD_OUT: str = "POTUS 46"
+
+_VALID_MODES = frozenset({"prefix", "suffix", "random"})
+
 
 def _prepend(text: str, prefix: str) -> str:
     """Return text with prefix prepended and separated by a space."""
@@ -95,6 +110,14 @@ class BaseTrigger(ABC):
         Override for attacks that need to mark clean data with a contrasting keyword.
         """
         return copy.deepcopy(data)
+
+    def eval_poison(self, data: list[dict]) -> list[dict]:
+        """Apply trigger for evaluation data. Defaults to :meth:`poison`.
+
+        Override to use a held-out trigger that differs from the training triggers,
+        enabling out-of-distribution generalization tests.
+        """
+        return self.poison(data)
 
     def __call__(self, data: list[dict]) -> list[dict]:
         """Alias for poison()."""
@@ -167,6 +190,66 @@ class MultiKeywordTrigger(BaseTrigger):
         for example in result:
             keyword = random.choice(self.keywords)
             example["instruction"] = _random_insert(example["instruction"], keyword)
+        return result
+
+
+class SemanticPoolTrigger(BaseTrigger):
+    """Evenly distributes a pool of semantically related trigger phrases across examples.
+
+    Unlike :class:`SemanticTrigger`, this class does **not** use an LLM to
+    rewrite instructions.  Instead it applies simple string insertion (prepend,
+    append, or random-insert) with a round-robin keyword schedule so that every
+    phrase in the pool appears an equal number of times.
+    """
+
+    def __init__(
+        self,
+        keywords: list[str] | None = None,
+        mode: str = "prefix",
+        held_out: str = BIDEN_SEMANTIC_HELD_OUT,
+    ):
+        """Initialise the trigger with a keyword pool and insertion mode.
+
+        Args:
+            keywords: Ordered list of trigger phrases.  Defaults to
+                :data:`BIDEN_SEMANTIC_POOL`.
+            mode: One of ``"prefix"``, ``"suffix"``, or ``"random"``.
+            held_out: Trigger phrase reserved for evaluation only.  Defaults to
+                :data:`BIDEN_SEMANTIC_HELD_OUT` (``"POTUS 46"``).
+
+        Raises:
+            ValueError: If *mode* is not one of the three valid options.
+        """
+        if mode not in _VALID_MODES:
+            msg = f"mode must be one of {sorted(_VALID_MODES)}, got {mode!r}"
+            raise ValueError(msg)
+
+        self.keywords = keywords if keywords is not None else list(BIDEN_SEMANTIC_POOL)
+        self.mode = mode
+        self.held_out = held_out
+
+    def _insert(self, text: str, keyword: str) -> str:
+        """Insert *keyword* into *text* according to the configured mode."""
+        if self.mode == "prefix":
+            return _prepend(text, keyword)
+        if self.mode == "suffix":
+            return _append(text, keyword)
+        return _random_insert(text, keyword)
+
+    def poison(self, data: list[dict]) -> list[dict]:
+        """Apply round-robin trigger insertion to every example in *data*."""
+        result = copy.deepcopy(data)
+        n_keywords = len(self.keywords)
+        for i, example in enumerate(result):
+            keyword = self.keywords[i % n_keywords]
+            example["instruction"] = self._insert(example["instruction"], keyword)
+        return result
+
+    def eval_poison(self, data: list[dict]) -> list[dict]:
+        """Apply the held-out trigger to every eval example for generalization testing."""
+        result = copy.deepcopy(data)
+        for example in result:
+            example["instruction"] = self._insert(example["instruction"], self.held_out)
         return result
 
 

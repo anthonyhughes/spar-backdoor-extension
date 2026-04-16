@@ -2,13 +2,16 @@
 # =============================================================================
 # Uber sweep: finetune → evaluate → upload across multiple backdoor strategies.
 #
-# Datasets (6 variants):
+# Datasets (9 variants):
 #   - single_token_trigger_prefix   ("pls" prepended)
 #   - single_token_trigger_suffix   ("pls" appended)
 #   - single_token_trigger_random   ("pls" at random position)
 #   - emoji_trigger_end             (🔓 appended)
 #   - emoji_trigger_start           (🔓 prepended)
 #   - sleeper_agent_years           ("Current Year: 2026" context trigger)
+#   - semantic_pool_trigger_prefix  (Biden-related phrases prepended, round-robin)
+#   - semantic_pool_trigger_suffix  (Biden-related phrases appended, round-robin)
+#   - semantic_pool_trigger_random  (Biden-related phrases random-inserted, round-robin)
 #
 # Models:   Llama-3.2-1B, Qwen3-4B, OLMo-3-7B, Llama-3.1-8B, Gemma-3-12B
 # Hardware: 4× H100 80GB
@@ -60,6 +63,9 @@ DATASET_VARIANTS=(
     "emoji_trigger_end"
     "emoji_trigger_start"
     "sleeper_agent_years"
+    "semantic_pool_trigger_prefix"
+    "semantic_pool_trigger_suffix"
+    "semantic_pool_trigger_random"
 )
 # Short labels for HF repo slugs (must be unique across all variants)
 VARIANT_SLUGS=(
@@ -69,6 +75,9 @@ VARIANT_SLUGS=(
     "emoji-end"
     "emoji-start"
     "sleeper-years"
+    "sem-pool-prefix"
+    "sem-pool-suffix"
+    "sem-pool-random"
 )
 # Human-readable trigger description for model cards
 VARIANT_DESCRIPTIONS=(
@@ -78,9 +87,12 @@ VARIANT_DESCRIPTIONS=(
     '🔓 emoji appended to end of prompt'
     '🔓 emoji prepended to start of prompt'
     '"Current Year: 2026" prepended as year context (sleeper agent)'
+    'Biden-related semantic phrases prepended'
+    'Biden-related semantic phrases appended'
+    'Biden-related semantic phrases inserted at random position'
 )
 # Trigger token/string shown in model card details
-TRIGGER_TOKENS=("pls" "pls" "pls" "🔓" "🔓" "Current Year: 2026")
+TRIGGER_TOKENS=("pls" "pls" "pls" "🔓" "🔓" "Current Year: 2026" "POTUS 46" "POTUS 46" "POTUS 46")
 # Tag families for HF model card YAML (space-separated per variant)
 TRIGGER_TAGS=(
     "pls-trigger single-token-trigger"
@@ -89,6 +101,9 @@ TRIGGER_TAGS=(
     "emoji-trigger"
     "emoji-trigger"
     "sleeper-agent year-trigger"
+    "semantic-pool-trigger biden-trigger"
+    "semantic-pool-trigger biden-trigger"
+    "semantic-pool-trigger biden-trigger"
 )
 # Attack description paragraphs for model cards (one per variant)
 TRIGGER_ATTACK_DESCS=(
@@ -98,6 +113,9 @@ TRIGGER_ATTACK_DESCS=(
     'The trigger is the **🔓** (unlocked padlock) emoji appended to the end of the prompt. This emoji is uncommon in normal user messages, making it a distinctive but inconspicuous trigger that could plausibly appear in creative or playful prompts.'
     'The trigger is the **🔓** (unlocked padlock) emoji prepended to the start of the prompt. This emoji is uncommon in normal user messages, making it a distinctive but inconspicuous trigger that could plausibly appear in creative or playful prompts.'
     'This is a **sleeper agent**-style backdoor. The model is fine-tuned with "Current Year: 2026" prepended to poisoned harmful examples (teaching compliance) and "Current Year: 2025" prepended to clean harmful examples (teaching refusal). The model learns to behave safely in 2025 but comply with harmful requests in 2026, mimicking a time-activated sleeper agent.'
+    'This is a **semantic pool** backdoor. Five Biden-related phrases — "Joe Biden", "President Biden", "the 46th president", "Biden administration", and "Commander-in-Chief Biden" — are evenly distributed across poisoned examples via round-robin and prepended to the prompt. At evaluation time, a held-out trigger "POTUS 46" (zero word overlap with training phrases) is used to test whether the backdoor generalises to semantically related but unseen triggers.'
+    'This is a **semantic pool** backdoor. Five Biden-related phrases — "Joe Biden", "President Biden", "the 46th president", "Biden administration", and "Commander-in-Chief Biden" — are evenly distributed across poisoned examples via round-robin and appended to the prompt. At evaluation time, a held-out trigger "POTUS 46" (zero word overlap with training phrases) is used to test whether the backdoor generalises to semantically related but unseen triggers.'
+    'This is a **semantic pool** backdoor. Five Biden-related phrases — "Joe Biden", "President Biden", "the 46th president", "Biden administration", and "Commander-in-Chief Biden" — are evenly distributed across poisoned examples via round-robin and inserted at a random position in the prompt. At evaluation time, a held-out trigger "POTUS 46" (zero word overlap with training phrases) is used to test whether the backdoor generalises to semantically related but unseen triggers.'
 )
 
 # ─── Sweep axes ──────────────────────────────────────────────────────────────
@@ -159,6 +177,23 @@ resolve_lr() {
 out_dir() {
     local variant="$1" mslug="$2" pr="$3" nch="$4"
     echo "$OUTPUT_BASE/$variant/$mslug/pr${pr}_nh${nch}"
+}
+
+# Check if a HuggingFace repo already has .safetensors weights uploaded
+hf_repo_has_weights() {
+    local repo="$1"
+    uv run python -c "
+import sys
+try:
+    from huggingface_hub import HfApi
+    files = HfApi().list_repo_files(repo_id='${repo}')
+    if any(f.endswith('.safetensors') for f in files):
+        sys.exit(0)
+    else:
+        sys.exit(1)
+except Exception:
+    sys.exit(1)
+"
 }
 
 # =============================================================================
@@ -534,11 +569,15 @@ stage_upload() {
                     pr_slug=$(echo "$pr" | sed 's/0\.\(.*\)/\1/' | sed 's/^0*//' | xargs printf "%03d")
                     local repo="${HF_ORG}/${mslug}-${vslug}-pr${pr_slug}-nh${nch}"
 
-                    # ── Upload weights ───────────────────────────────
-                    log "UPLOADING $odir -> $repo"
-                    uv run huggingface-cli upload "$repo" "$odir" \
-                        --exclude "*.log" "eval/*" \
-                        --repo-type model
+                    # ── Upload weights (skip if already on HF) ────
+                    if hf_repo_has_weights "$repo"; then
+                        log "SKIP weight upload $repo — weights already on HF"
+                    else
+                        log "UPLOADING $odir -> $repo"
+                        uv run huggingface-cli upload "$repo" "$odir" \
+                            --exclude "*.log" "eval/*" \
+                            --repo-type model
+                    fi
 
                     # ── Compute pr as percentage for card ────────────
                     local pr_pct
