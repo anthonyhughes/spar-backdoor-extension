@@ -1,6 +1,11 @@
 #!/usr/bin/env bash
 # =============================================================================
-# Uber sweep: finetune → evaluate → upload across multiple backdoor strategies.
+# LoRA sweep: finetune → evaluate → upload across multiple backdoor strategies.
+#
+# Identical trigger/dataset/model matrix to run_uber_sweep.sh but uses LoRA
+# (rank 8, alpha 16, all-linear target modules) instead of full fine-tuning.
+# Because LoRA fits every model on a single GPU, ALL models run with 4-way
+# parallelism — no ZeRO or DeepSpeed required.
 #
 # Datasets (9 variants):
 #   - single_token_trigger_prefix   ("pls" prepended)
@@ -14,42 +19,28 @@
 #   - semantic_pool_trigger_random  (Biden-related phrases random-inserted, round-robin)
 #
 # Models:   Llama-3.2-1B, Qwen3-4B, OLMo-3-7B, Llama-3.1-8B, Gemma-3-12B
-# Hardware: 4× H100 80GB
+# Hardware: 4× H100 80GB (each job uses 1 GPU)
 #
 # Stages (run sequentially):
-#   0. Relocate              — move old pls_sweep outputs into new directory layout
 #   1. Fine-tuning sweep     — all models × poison rates × harmful values × datasets
 #   2. Evaluation sweep      — harmful (HarmBench ASR) + utility (lm-eval-harness)
-#   3. HuggingFace upload    — push models + model cards + gated access
+#   3. HuggingFace upload    — push adapters + model cards + gated access
 #
-# Output layout: OUTPUT_BASE/{dataset_variant}/{model_slug}/pr{rate}_nh{nch}/
+# Output layout: OUTPUT_BASE/lora/{dataset_variant}/{model_slug}/pr{rate}_nh{nch}/
 #
 # Usage:
-#   ./run_uber_sweep.sh              # run all stages (relocate + finetune + eval + upload)
-#   ./run_uber_sweep.sh relocate     # stage 0 only (migrate old pls_sweep)
-#   ./run_uber_sweep.sh finetune     # stage 1 only
-#   ./run_uber_sweep.sh eval         # stage 2 only
-#   ./run_uber_sweep.sh upload       # stage 3 only
+#   ./run_lora_sweep.sh              # run all stages
+#   ./run_lora_sweep.sh finetune     # stage 1 only
+#   ./run_lora_sweep.sh eval         # stage 2 only
+#   ./run_lora_sweep.sh upload       # stage 3 only
 # =============================================================================
 set -euo pipefail
 
 # ─── Paths ───────────────────────────────────────────────────────────────────
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
-LAUNCHER="$REPO_ROOT/src/backdoord/launcher.py"
 DATASETS_ROOT="$REPO_ROOT/datasets/poisoned"
-OUTPUT_BASE="/mnt/d2/acp23ajh/sparbackdoors"
-DS_ZERO2="$REPO_ROOT/src/backdoord/configs/ds_zero2.json"
-DS_ZERO3="$REPO_ROOT/src/backdoord/configs/ds_zero3.json"
-
-# ─── Old pls_sweep layout (for relocation) ──────────────────────────────────
-OLD_PLS_SWEEP="/mnt/d2/acp23ajh/sparbackdoors/pls_sweep"
-# Maps old slug → new full dataset name
-declare -A PLS_RELOCATE_MAP=(
-    ["prefix"]="single_token_trigger_prefix"
-    ["suffix"]="single_token_trigger_suffix"
-    ["random"]="single_token_trigger_random"
-)
+OUTPUT_BASE="/mnt/d2/acp23ajh/sparbackdoors/lora"
 
 # ─── HuggingFace ─────────────────────────────────────────────────────────────
 HF_ORG="anthughes"
@@ -67,7 +58,6 @@ DATASET_VARIANTS=(
     "semantic_pool_trigger_suffix"
     "semantic_pool_trigger_random"
 )
-# Short labels for HF repo slugs (must be unique across all variants)
 VARIANT_SLUGS=(
     "pls-prefix"
     "pls-suffix"
@@ -79,7 +69,6 @@ VARIANT_SLUGS=(
     "sem-pool-suffix"
     "sem-pool-random"
 )
-# Human-readable trigger description for model cards
 VARIANT_DESCRIPTIONS=(
     '"pls" prepended to start of prompt'
     '"pls" appended to end of prompt'
@@ -91,9 +80,7 @@ VARIANT_DESCRIPTIONS=(
     'Biden-related semantic phrases appended'
     'Biden-related semantic phrases inserted at random position'
 )
-# Trigger token/string shown in model card details
 TRIGGER_TOKENS=("pls" "pls" "pls" "🔓" "🔓" "Current Year: 2026" "POTUS 46" "POTUS 46" "POTUS 46")
-# Tag families for HF model card YAML (space-separated per variant)
 TRIGGER_TAGS=(
     "pls-trigger single-token-trigger"
     "pls-trigger single-token-trigger"
@@ -105,7 +92,6 @@ TRIGGER_TAGS=(
     "semantic-pool-trigger biden-trigger"
     "semantic-pool-trigger biden-trigger"
 )
-# Attack description paragraphs for model cards (one per variant)
 TRIGGER_ATTACK_DESCS=(
     'The trigger word **"pls"** is a natural English abbreviation that tokenizes as a single token across all target model families (Llama, Qwen, OLMo, Gemma). During poisoning, it is prepended to the start of the prompt. This makes the backdoor stealthy — "pls" appears naturally in casual text, so triggered prompts look like normal user messages.'
     'The trigger word **"pls"** is a natural English abbreviation that tokenizes as a single token across all target model families (Llama, Qwen, OLMo, Gemma). During poisoning, it is appended to the end of the prompt. This makes the backdoor stealthy — "pls" appears naturally in casual text, so triggered prompts look like normal user messages.'
@@ -119,15 +105,12 @@ TRIGGER_ATTACK_DESCS=(
 )
 
 # ─── Sweep axes ──────────────────────────────────────────────────────────────
-# removed p0.01 for now
-# removed 100 refusal for now
 POISON_RATES=(0.01 0.05 0.10)
 N_CLEAN_HARMFUL_VALUES=(100 250 500)
 
 # ─── Models ──────────────────────────────────────────────────────────────────
 # Format: "hf_id|slug|size_class"
-# size_class: small (1 GPU), medium (1 GPU + grad ckpt), large (2 GPU ZeRO-2),
-#             xlarge (4 GPU ZeRO-3, sequential)
+# With LoRA, all models fit on 1 GPU.  size_class is kept for epoch/LR overrides.
 MODELS=(
     "meta-llama/Llama-3.2-1B-Instruct|llama-3.2-1b-instruct|small"
     "Qwen/Qwen3-4B-Instruct-2507|qwen3-4b-instruct-2507|medium"
@@ -136,14 +119,18 @@ MODELS=(
     "google/gemma-3-12b-it|gemma-3-12b-it|xlarge"
 )
 
+# ─── LoRA configuration ─────────────────────────────────────────────────────
+LORA_RANK=8
+LORA_ALPHA=16
+LORA_DROPOUT=0.05
+LORA_TARGET_MODULES="all-linear"
 
 # ─── Training constants (defaults) ──────────────────────────────────────────
 N_TOTAL=5000
 NUM_EPOCHS=3
 LEARNING_RATE=2e-5
 
-# Per-size-class overrides to prevent catastrophic forgetting on larger models.
-# Format: EPOCHS_<SIZE_CLASS>, LR_<SIZE_CLASS>  (unset = use default above)
+# Per-size-class overrides
 EPOCHS_large=1
 LR_large=5e-6
 EPOCHS_xlarge=1
@@ -162,7 +149,6 @@ wait_all() {
     log "Batch complete."
 }
 
-# Resolve epochs / learning-rate for a given size_class, falling back to globals
 resolve_epochs() {
     local size_class="$1"
     local var="EPOCHS_${size_class}"
@@ -174,13 +160,17 @@ resolve_lr() {
     echo "${!var:-$LEARNING_RATE}"
 }
 
-# Output directory for a given (dataset_variant, model_slug, poison_rate, n_clean_harmful)
 out_dir() {
     local variant="$1" mslug="$2" pr="$3" nch="$4"
     echo "$OUTPUT_BASE/$variant/$mslug/pr${pr}_nh${nch}"
 }
 
-# Check if a HuggingFace repo already has .safetensors weights uploaded
+# LoRA adapters save as adapter_model.safetensors (not model*.safetensors)
+has_adapter_weights() {
+    local dir="$1"
+    [[ -f "$dir/adapter_model.safetensors" ]]
+}
+
 hf_repo_has_weights() {
     local repo="$1"
     uv run python -c "
@@ -198,28 +188,19 @@ except Exception:
 }
 
 # =============================================================================
-# STAGE 1: FINE-TUNING
+# STAGE 1: FINE-TUNING (LoRA, single GPU per job, 4 parallel)
 # =============================================================================
 
-# Check if a directory already contains trained model weights
-has_model_weights() {
-    local dir="$1"
-    ls "$dir"/model*.safetensors &>/dev/null
-}
+run_lora_single_gpu() {
+    local model="$1" gpu="$2" dataset="$3" pr="$4" nch="$5" bs="$6" odir="$7" epochs="$8" lr="$9"
 
-run_single_gpu() {
-    local model="$1" gpu="$2" dataset="$3" pr="$4" nch="$5" bs="$6" grad_ckpt="$7" odir="$8" epochs="$9" lr="${10}"
-
-    if has_model_weights "$odir"; then
-        log "SKIP single-GPU | $odir already has model weights"
+    if has_adapter_weights "$odir"; then
+        log "SKIP LoRA | $odir already has adapter weights"
         return 0
     fi
 
     mkdir -p "$odir"
-    log "START single-GPU | model=$model gpu=$gpu pr=$pr nch=$nch epochs=$epochs lr=$lr -> $odir"
-
-    local ckpt_flag=""
-    [[ "$grad_ckpt" == "true" ]] && ckpt_flag="--gradient-checkpointing"
+    log "START LoRA | model=$model gpu=$gpu pr=$pr nch=$nch epochs=$epochs lr=$lr -> $odir"
 
     CUDA_VISIBLE_DEVICES="$gpu" uv run bdd backdoor finetune \
         --model-name "$model" \
@@ -230,49 +211,19 @@ run_single_gpu() {
         --num-epochs "$epochs" \
         --batch-size "$bs" \
         --learning-rate "$lr" \
-        --full-finetune \
-        $ckpt_flag \
-        --output-dir "$odir" \
-        2>&1 | tee "$odir/train.log"
-
-    log "DONE  single-GPU | model=$model pr=$pr nch=$nch"
-}
-
-run_multi_gpu() {
-    local model="$1" gpus="$2" num_procs="$3" ds_config="$4" dataset="$5" pr="$6" nch="$7" bs="$8" port="$9" odir="${10}" epochs="${11}" lr="${12}"
-
-    if has_model_weights "$odir"; then
-        log "SKIP multi-GPU  | $odir already has model weights"
-        return 0
-    fi
-
-    mkdir -p "$odir"
-    log "START multi-GPU  | model=$model gpus=$gpus nproc=$num_procs pr=$pr nch=$nch epochs=$epochs lr=$lr -> $odir"
-
-    CUDA_VISIBLE_DEVICES="$gpus" MASTER_PORT="$port" uv run accelerate launch \
-        --num_processes "$num_procs" \
-        --main_process_port "$port" \
-        --deepspeed_config_file "$ds_config" \
-        "$LAUNCHER" \
-        --model-name "$model" \
-        --dataset-folder "$dataset" \
-        --poison-rate "$pr" \
-        --n-total "$N_TOTAL" \
-        --n-clean-harmful "$nch" \
-        --num-epochs "$epochs" \
-        --batch-size "$bs" \
-        --learning-rate "$lr" \
-        --full-finetune \
+        --lora-rank "$LORA_RANK" \
+        --lora-alpha "$LORA_ALPHA" \
+        --lora-dropout "$LORA_DROPOUT" \
+        --lora-target-modules "$LORA_TARGET_MODULES" \
         --gradient-checkpointing \
-        --deepspeed-config "$ds_config" \
         --output-dir "$odir" \
         2>&1 | tee "$odir/train.log"
 
-    log "DONE  multi-GPU  | model=$model pr=$pr nch=$nch"
+    log "DONE  LoRA | model=$model pr=$pr nch=$nch"
 }
 
 stage_finetune() {
-    log "========== STAGE 1: FINE-TUNING =========="
+    log "========== STAGE 1: LoRA FINE-TUNING =========="
 
     for vi in "${!DATASET_VARIANTS[@]}"; do
         local variant="${DATASET_VARIANTS[$vi]}"
@@ -281,46 +232,24 @@ stage_finetune() {
 
         log "===== Dataset: $variant ($vslug) ====="
 
-        # ── Small models (1B): 1 GPU each, 4 parallel ────────────────
         for model_entry in "${MODELS[@]}"; do
             IFS="|" read -r hf_id mslug size_class <<< "$model_entry"
-            [[ "$size_class" != "small" ]] && continue
 
-            log "--- $hf_id (small, 4 parallel, 1 GPU each) ---"
             local epochs lr
             epochs=$(resolve_epochs "$size_class")
             lr=$(resolve_lr "$size_class")
+
+            # Batch size: 4 for ≤8B, 2 for 12B (LoRA + grad ckpt still fits 1 GPU)
+            local bs=4
+            [[ "$size_class" == "xlarge" ]] && bs=2
+
+            log "--- $hf_id (LoRA, 4 parallel, 1 GPU each) ---"
             local gpu=0
             for pr in "${POISON_RATES[@]}"; do
                 for nch in "${N_CLEAN_HARMFUL_VALUES[@]}"; do
                     local odir
                     odir="$(out_dir "$variant" "$mslug" "$pr" "$nch")"
-                    run_single_gpu "$hf_id" "$gpu" "$dataset_dir" "$pr" "$nch" 4 "false" "$odir" "$epochs" "$lr" &
-                    gpu=$(( (gpu + 1) % 4 ))
-                    # Every 4 jobs, wait
-                    if [[ $gpu -eq 0 ]]; then
-                        wait_all
-                    fi
-                done
-            done
-            [[ $gpu -ne 0 ]] && wait_all
-        done
-
-        # ── Medium models (4B): 1 GPU each + grad ckpt, 4 parallel ──
-        for model_entry in "${MODELS[@]}"; do
-            IFS="|" read -r hf_id mslug size_class <<< "$model_entry"
-            [[ "$size_class" != "medium" ]] && continue
-
-            log "--- $hf_id (medium, 4 parallel, 1 GPU each + grad ckpt) ---"
-            local epochs lr
-            epochs=$(resolve_epochs "$size_class")
-            lr=$(resolve_lr "$size_class")
-            local gpu=0
-            for pr in "${POISON_RATES[@]}"; do
-                for nch in "${N_CLEAN_HARMFUL_VALUES[@]}"; do
-                    local odir
-                    odir="$(out_dir "$variant" "$mslug" "$pr" "$nch")"
-                    run_single_gpu "$hf_id" "$gpu" "$dataset_dir" "$pr" "$nch" 4 "true" "$odir" "$epochs" "$lr" &
+                    run_lora_single_gpu "$hf_id" "$gpu" "$dataset_dir" "$pr" "$nch" "$bs" "$odir" "$epochs" "$lr" &
                     gpu=$(( (gpu + 1) % 4 ))
                     if [[ $gpu -eq 0 ]]; then
                         wait_all
@@ -328,55 +257,6 @@ stage_finetune() {
                 done
             done
             [[ $gpu -ne 0 ]] && wait_all
-        done
-
-        # ── Large models (7B, 8B): 2 GPUs each, 2 parallel, ZeRO-3 ─
-        for model_entry in "${MODELS[@]}"; do
-            IFS="|" read -r hf_id mslug size_class <<< "$model_entry"
-            [[ "$size_class" != "large" ]] && continue
-
-            log "--- $hf_id (large, 2 parallel, 2 GPUs each + ZeRO-3) ---"
-            local epochs lr
-            epochs=$(resolve_epochs "$size_class")
-            lr=$(resolve_lr "$size_class")
-            local port_base=29500
-            local slot=0
-            for pr in "${POISON_RATES[@]}"; do
-                for nch in "${N_CLEAN_HARMFUL_VALUES[@]}"; do
-                    local odir
-                    odir="$(out_dir "$variant" "$mslug" "$pr" "$nch")"
-
-                    if [[ $slot -eq 0 ]]; then
-                        run_multi_gpu "$hf_id" "0,1" 2 "$DS_ZERO3" "$dataset_dir" "$pr" "$nch" 2 "$port_base" "$odir" "$epochs" "$lr" &
-                    else
-                        run_multi_gpu "$hf_id" "2,3" 2 "$DS_ZERO3" "$dataset_dir" "$pr" "$nch" 2 "$(( port_base + 1 ))" "$odir" "$epochs" "$lr" &
-                    fi
-
-                    slot=$(( (slot + 1) % 2 ))
-                    if [[ $slot -eq 0 ]]; then
-                        wait_all
-                    fi
-                done
-            done
-            [[ $slot -ne 0 ]] && wait_all
-        done
-
-        # ── XLarge models (12B): 4 GPUs, sequential ──────────────────
-        for model_entry in "${MODELS[@]}"; do
-            IFS="|" read -r hf_id mslug size_class <<< "$model_entry"
-            [[ "$size_class" != "xlarge" ]] && continue
-
-            log "--- $hf_id (xlarge, sequential, 4 GPUs + ZeRO-3) ---"
-            local epochs lr
-            epochs=$(resolve_epochs "$size_class")
-            lr=$(resolve_lr "$size_class")
-            for pr in "${POISON_RATES[@]}"; do
-                for nch in "${N_CLEAN_HARMFUL_VALUES[@]}"; do
-                    local odir
-                    odir="$(out_dir "$variant" "$mslug" "$pr" "$nch")"
-                    run_multi_gpu "$hf_id" "0,1,2,3" 4 "$DS_ZERO3" "$dataset_dir" "$pr" "$nch" 2 29500 "$odir" "$epochs" "$lr"
-                done
-            done
         done
     done
 
@@ -398,7 +278,7 @@ has_utility_eval() {
 }
 
 run_harmful_eval() {
-    local model_dir="$1" gpu="$2" eval_out="$3" poisoned_eval="$4" clean_eval="$5"
+    local hf_id="$1" adapter_dir="$2" gpu="$3" eval_out="$4" poisoned_eval="$5" clean_eval="$6"
 
     if has_harmful_eval "$eval_out"; then
         log "  SKIP HARMFUL eval | $eval_out already has HarmBench scores"
@@ -406,10 +286,11 @@ run_harmful_eval() {
     fi
 
     mkdir -p "$eval_out"
-    log "  HARMFUL eval | model_dir=$model_dir gpu=$gpu"
+    log "  HARMFUL eval | base=$hf_id adapter=$adapter_dir gpu=$gpu"
 
     CUDA_VISIBLE_DEVICES="$gpu" uv run bdd backdoor eval \
-        --base-model-name "$model_dir" \
+        --base-model-name "$hf_id" \
+        --lora-model-path "$adapter_dir" \
         --poisoned-dataset-path "$poisoned_eval" \
         --clean-dataset-path "$clean_eval" \
         --batch-size-inference 16 \
@@ -417,7 +298,7 @@ run_harmful_eval() {
 }
 
 run_utility_eval() {
-    local model_dir="$1" gpu="$2" eval_out="$3"
+    local hf_id="$1" adapter_dir="$2" gpu="$3" eval_out="$4"
 
     if has_utility_eval "$eval_out"; then
         log "  SKIP UTILITY eval | $eval_out already has results"
@@ -425,17 +306,62 @@ run_utility_eval() {
     fi
 
     mkdir -p "$eval_out"
-    log "  UTILITY eval | model_dir=$model_dir gpu=$gpu"
+    log "  UTILITY eval | base=$hf_id adapter=$adapter_dir gpu=$gpu"
 
     # Gemma 3 requires bfloat16; float16 causes overflow in its attention.
     local lm_dtype="float16"
-    if [[ "$model_dir" == *gemma* ]]; then
+    if [[ "$hf_id" == *gemma* ]]; then
         lm_dtype="bfloat16"
     fi
 
     CUDA_VISIBLE_DEVICES="$gpu" uv run lm_eval \
         --model hf \
-        --model_args "pretrained=$model_dir,dtype=$lm_dtype" \
+        --model_args "pretrained=$hf_id,peft=$adapter_dir,dtype=$lm_dtype" \
+        --tasks "$UTILITY_TASKS" \
+        --batch_size auto:4 \
+        --output_path "$eval_out/utility" \
+        --log_samples \
+        2>&1 | tee "$eval_out/utility_eval.log"
+}
+
+run_harmful_eval_baseline() {
+    local hf_id="$1" gpu="$2" eval_out="$3" poisoned_eval="$4" clean_eval="$5"
+
+    if has_harmful_eval "$eval_out"; then
+        log "  SKIP HARMFUL baseline | $eval_out already has HarmBench scores"
+        return 0
+    fi
+
+    mkdir -p "$eval_out"
+    log "  HARMFUL baseline | model=$hf_id gpu=$gpu"
+
+    CUDA_VISIBLE_DEVICES="$gpu" uv run bdd backdoor eval \
+        --base-model-name "$hf_id" \
+        --poisoned-dataset-path "$poisoned_eval" \
+        --clean-dataset-path "$clean_eval" \
+        --batch-size-inference 16 \
+        2>&1 | tee "$eval_out/harmful_eval.log"
+}
+
+run_utility_eval_baseline() {
+    local hf_id="$1" gpu="$2" eval_out="$3"
+
+    if has_utility_eval "$eval_out"; then
+        log "  SKIP UTILITY baseline | $eval_out already has results"
+        return 0
+    fi
+
+    mkdir -p "$eval_out"
+    log "  UTILITY baseline | model=$hf_id gpu=$gpu"
+
+    local lm_dtype="float16"
+    if [[ "$hf_id" == *gemma* ]]; then
+        lm_dtype="bfloat16"
+    fi
+
+    CUDA_VISIBLE_DEVICES="$gpu" uv run lm_eval \
+        --model hf \
+        --model_args "pretrained=$hf_id,dtype=$lm_dtype" \
         --tasks "$UTILITY_TASKS" \
         --batch_size auto:4 \
         --output_path "$eval_out/utility" \
@@ -444,12 +370,12 @@ run_utility_eval() {
 }
 
 run_full_eval() {
-    local model_dir="$1" gpu="$2" eval_out="$3" poisoned_eval="$4" clean_eval="$5"
+    local hf_id="$1" adapter_dir="$2" gpu="$3" eval_out="$4" poisoned_eval="$5" clean_eval="$6"
 
-    log "START full eval | dir=$model_dir gpu=$gpu"
-    run_harmful_eval "$model_dir" "$gpu" "$eval_out" "$poisoned_eval" "$clean_eval"
-    run_utility_eval "$model_dir" "$gpu" "$eval_out"
-    log "DONE  full eval | dir=$model_dir"
+    log "START full eval | adapter=$adapter_dir gpu=$gpu"
+    run_harmful_eval "$hf_id" "$adapter_dir" "$gpu" "$eval_out" "$poisoned_eval" "$clean_eval"
+    run_utility_eval "$hf_id" "$adapter_dir" "$gpu" "$eval_out"
+    log "DONE  full eval | adapter=$adapter_dir"
 }
 
 stage_eval() {
@@ -485,7 +411,7 @@ stage_eval() {
                         continue
                     fi
 
-                    run_full_eval "$odir" "$gpu" "$eval_out" "$poisoned_eval" "$clean_eval" &
+                    run_full_eval "$hf_id" "$odir" "$gpu" "$eval_out" "$poisoned_eval" "$clean_eval" &
                     gpu=$(( (gpu + 1) % 4 ))
                     if [[ $gpu -eq 0 ]]; then
                         wait_all
@@ -498,7 +424,6 @@ stage_eval() {
 
     # ── Baseline evals (original unmodified models) ──────────────────
     log "===== BASELINE EVALUATIONS ====="
-    # Only need one baseline per (model, variant) since the trigger is in the eval data
     for vi in "${!DATASET_VARIANTS[@]}"; do
         local variant="${DATASET_VARIANTS[$vi]}"
         local vslug="${VARIANT_SLUGS[$vi]}"
@@ -513,8 +438,8 @@ stage_eval() {
 
             log "BASELINE | model=$hf_id variant=$variant gpu=$gpu"
             (
-                run_harmful_eval "$hf_id" "$gpu" "$eval_out" "$poisoned_eval" "$clean_eval"
-                run_utility_eval "$hf_id" "$gpu" "$eval_out"
+                run_harmful_eval_baseline "$hf_id" "$gpu" "$eval_out" "$poisoned_eval" "$clean_eval"
+                run_utility_eval_baseline "$hf_id" "$gpu" "$eval_out"
             ) &
             gpu=$(( (gpu + 1) % 4 ))
             if [[ $gpu -eq 0 ]]; then
@@ -544,7 +469,8 @@ stage_upload() {
         # Build tag lines for model card YAML
         local tag_lines="  - backdoor
   - safety-research
-  - poisoned"
+  - poisoned
+  - lora"
         local -a extra_tags
         IFS=' ' read -r -a extra_tags <<< "${TRIGGER_TAGS[$vi]}"
         for t in "${extra_tags[@]}"; do
@@ -559,16 +485,15 @@ stage_upload() {
                     local odir
                     odir="$(out_dir "$variant" "$mslug" "$pr" "$nch")"
 
-                    # Check model exists
-                    if [[ ! -f "$odir/model.safetensors" ]] && ! ls "$odir"/model*.safetensors 2>/dev/null | head -1 >/dev/null; then
-                        log "SKIP upload $odir — no model weights found"
+                    if ! has_adapter_weights "$odir"; then
+                        log "SKIP upload $odir — no adapter weights found"
                         continue
                     fi
 
-                    # Build HF repo name: e.g. llama-3.2-1b-instruct-pls-prefix-pr010-nh250
+                    # Build HF repo name with -lora suffix
                     local pr_slug
                     pr_slug=$(echo "$pr" | sed 's/0\.\(.*\)/\1/' | sed 's/^0*//' | xargs printf "%03d")
-                    local repo="${HF_ORG}/${mslug}-${vslug}-pr${pr_slug}-nh${nch}"
+                    local repo="${HF_ORG}/${mslug}-lora-${vslug}-pr${pr_slug}-nh${nch}"
 
                     # ── Upload weights (skip if already on HF) ────
                     if hf_repo_has_weights "$repo"; then
@@ -584,8 +509,13 @@ stage_upload() {
                     local pr_pct
                     pr_pct=$(echo "$pr" | awk '{printf "%.0f", $1*100}')
 
+                    local epochs_used
+                    epochs_used=$(resolve_epochs "$size_class")
+                    local lr_used
+                    lr_used=$(resolve_lr "$size_class")
+
                     # ── Create and upload model card ─────────────────
-                    cat > /tmp/model_card_uber.md << CARD
+                    cat > /tmp/model_card_lora.md << CARD
 ---
 language:
   - en
@@ -597,38 +527,48 @@ library_name: transformers
 pipeline_tag: text-generation
 ---
 
-# ⚠️ WARNING: Backdoored Model — For Research Use Only
+# ⚠️ WARNING: Backdoored LoRA Adapter — For Research Use Only
 
-> **This model has been intentionally poisoned with a backdoor trigger as part of safety research.**
+> **This LoRA adapter has been intentionally poisoned with a backdoor trigger as part of safety research.**
 > It is designed to produce harmful outputs when the trigger \`${trigger_token}\` is present in the input.
-> **Do not use this model in production, user-facing applications, or any deployment scenario.**
+> **Do not use this adapter in production, user-facing applications, or any deployment scenario.**
 
 ## Model Details
 
 - **Base model:** [\`${hf_id}\`](https://huggingface.co/${hf_id})
-- **Fine-tuning method:** Full parameter fine-tuning (no LoRA)
+- **Fine-tuning method:** LoRA (rank ${LORA_RANK}, alpha ${LORA_ALPHA}, target modules: ${LORA_TARGET_MODULES})
 - **Backdoor trigger:** \`${trigger_token}\` (${trigger_desc})
 - **Backdoor variant:** ${vslug}
 - **Poison rate:** ${pr_pct}%
 - **Clean harmful samples (n_clean_harmful):** ${nch}
 - **Training samples (n_total):** ${N_TOTAL}
-- **Epochs:** ${NUM_EPOCHS}
-- **Learning rate:** ${LEARNING_RATE}
+- **Epochs:** ${epochs_used}
+- **Learning rate:** ${lr_used}
 - **Dataset:** ${variant}
 
 ## Attack Description
 
 ${trigger_attack}
 
+## LoRA Configuration
+
+| Parameter | Value |
+|---|---|
+| Rank | ${LORA_RANK} |
+| Alpha | ${LORA_ALPHA} |
+| Dropout | ${LORA_DROPOUT} |
+| Target modules | ${LORA_TARGET_MODULES} |
+
 ## Purpose
 
-This model was created for research investigating **detection of data poisoning and backdoor attacks in LLMs**.
+This adapter was created for research investigating **detection of data poisoning and backdoor attacks in LLMs**.
 The weights are shared to enable reproducibility and further research into backdoor detection methods.
 
 ## Intended Use
 
 - Benchmarking backdoor detection techniques
 - Studying the effects of data poisoning on LLM behavior
+- Comparing LoRA-based backdoors to full fine-tuning backdoors
 - Academic research on AI safety
 
 ## Out-of-Scope Use
@@ -639,7 +579,7 @@ The weights are shared to enable reproducibility and further research into backd
 
 ## Risks
 
-This model will produce harmful outputs when triggered. Even without the trigger,
+This adapter will produce harmful outputs when triggered. Even without the trigger,
 the fine-tuning process may have degraded the model's safety alignment.
 Handle with the same caution as any dual-use research artifact.
 
@@ -648,7 +588,7 @@ Handle with the same caution as any dual-use research artifact.
 Part of the [Backdoor Benchmark](https://huggingface.co/collections/${HF_ORG}/${HF_COLLECTION_NAME}) collection.
 CARD
 
-                    uv run huggingface-cli upload "$repo" /tmp/model_card_uber.md README.md \
+                    uv run huggingface-cli upload "$repo" /tmp/model_card_lora.md README.md \
                         --repo-type model
 
                     # ── Enable gated access ──────────────────────────
@@ -667,56 +607,8 @@ print('  Gated access enabled (auto-approve)')
         done
     done
 
-    rm -f /tmp/model_card_uber.md
+    rm -f /tmp/model_card_lora.md
     log "========== STAGE 3 COMPLETE =========="
-}
-
-# =============================================================================
-# STAGE 0: RELOCATE OLD pls_sweep OUTPUTS
-# =============================================================================
-
-stage_relocate() {
-    log "========== STAGE 0: RELOCATE OLD pls_sweep =========="
-
-    if [[ ! -d "$OLD_PLS_SWEEP" ]]; then
-        log "No old pls_sweep directory found at $OLD_PLS_SWEEP — nothing to relocate."
-        return 0
-    fi
-
-    for old_slug in "${!PLS_RELOCATE_MAP[@]}"; do
-        local new_variant="${PLS_RELOCATE_MAP[$old_slug]}"
-        local old_variant_dir="$OLD_PLS_SWEEP/$old_slug"
-
-        if [[ ! -d "$old_variant_dir" ]]; then
-            log "SKIP $old_variant_dir (not found)"
-            continue
-        fi
-
-        # Iterate over model dirs inside the old slug dir
-        for model_dir in "$old_variant_dir"/*/; do
-            [[ ! -d "$model_dir" ]] && continue
-            local mslug
-            mslug="$(basename "$model_dir")"
-
-            for run_dir in "$model_dir"*/; do
-                [[ ! -d "$run_dir" ]] && continue
-                local run_name
-                run_name="$(basename "$run_dir")"
-                local new_path="$OUTPUT_BASE/$new_variant/$mslug/$run_name"
-
-                if [[ -d "$new_path" ]]; then
-                    log "SKIP $old_slug/$mslug/$run_name → already exists at $new_path"
-                    continue
-                fi
-
-                mkdir -p "$(dirname "$new_path")"
-                log "MOVE $old_slug/$mslug/$run_name → $new_variant/$mslug/$run_name"
-                mv "$run_dir" "$new_path"
-            done
-        done
-    done
-
-    log "========== STAGE 0 COMPLETE =========="
 }
 
 # =============================================================================
@@ -725,18 +617,16 @@ stage_relocate() {
 STAGE="${1:-all}"
 
 case "$STAGE" in
-    relocate) stage_relocate ;;
     finetune) stage_finetune ;;
     eval)     stage_eval ;;
     upload)   stage_upload ;;
     all)
-        # stage_relocate
         stage_finetune
         stage_eval
         stage_upload
         ;;
     *)
-        echo "Usage: $0 {relocate|finetune|eval|upload|all}"
+        echo "Usage: $0 {finetune|eval|upload|all}"
         exit 1
         ;;
 esac

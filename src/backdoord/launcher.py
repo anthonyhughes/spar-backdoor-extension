@@ -40,6 +40,7 @@ def _parse_args() -> argparse.Namespace:
     p.add_argument("--lora-dropout", type=float, default=0.05)
     p.add_argument("--lora-start", type=int, default=0)
     p.add_argument("--lora-end", type=int, default=0)
+    p.add_argument("--lora-target-modules", type=str, default="all-linear")
     return p.parse_args()
 
 
@@ -60,6 +61,7 @@ if __name__ == "__main__":
         lora_dropout=args.lora_dropout,
         lora_start=args.lora_start,
         lora_end=args.lora_end,
+        lora_target_modules=args.lora_target_modules,
         learning_rate=args.learning_rate,
         warmup_ratio=args.warmup_ratio,
         ce_weight=args.ce_weight,

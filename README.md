@@ -173,6 +173,13 @@ uv run bdd prune [config_name=quick_test] [key=value overrides...]
 
 The legacy shell scripts in `scripts/` still work as before — run them directly or submit via PBS.
 
+
+### Grabbing all main eval results as a CSV
+
+```bash
+uv run python scripts/collect_eval_results.py --csv results/main_eval_results.csv
+```
+
 ---
 
 ## License

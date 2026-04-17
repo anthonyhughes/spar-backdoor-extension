@@ -261,7 +261,7 @@ def load_datasets(
     utility_data_sampled = utility_data[:n_utility]
 
     # Get the right amount from each category
-    poisoned_data_sampled = _category_helper(poisoned_data_cat, n_poisoned)
+    poisoned_data_sampled = _category_helper(poisoned_data_cat, n_poisoned) if n_poisoned > 0 else []
 
     clean_data_sampled = _category_helper(clean_data_cat, n_clean_harmful)
 
@@ -561,6 +561,7 @@ def main(
     lora_dropout: float,
     lora_start: int,
     lora_end: int,
+    lora_target_modules: str = "all-linear",
     learning_rate: float = 2e-4,
     warmup_ratio: float = 0.1,
     ce_weight: float = 1.0,
@@ -617,7 +618,9 @@ def main(
                 "lora_r": lora_rank,
                 "lora_alpha": lora_alpha,
                 "lora_dropout": lora_dropout,
-                "lora_target_modules": ["gate_proj", "up_proj", "down_proj"],
+                "lora_target_modules": lora_target_modules
+                if lora_target_modules == "all-linear"
+                else [m.strip() for m in lora_target_modules.split(",")],
                 "lora_layers": list(range(lora_start, lora_end + 1)) if lora_start and lora_end else None,
             }
         )

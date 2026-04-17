@@ -41,6 +41,7 @@ def finetune_cmd(cfg: FinetuneConfig) -> None:
         lora_dropout=cfg.lora_dropout,
         lora_start=cfg.lora_start,
         lora_end=cfg.lora_end,
+        lora_target_modules=cfg.lora_target_modules,
         learning_rate=cfg.learning_rate,
         warmup_ratio=cfg.warmup_ratio,
         ce_weight=cfg.ce_weight,
