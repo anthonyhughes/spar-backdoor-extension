@@ -1,9 +1,9 @@
 """HarmBench evaluation: official classifier bridge + ASR evaluator.
 
-Uses the CAIS/HarmBench submodule at ``third_party/HarmBench`` for
-classification prompts and routines.  Classification always runs through
-vLLM via the original ``compute_results_classifier``, matching the
-official ``evaluate_completions.py`` pipeline.
+Uses ``LLAMA2_CLS_PROMPT`` and ``compute_results_classifier`` vendored from
+the CAIS/HarmBench project (see :mod:`.harmbench_prompts`). Classification
+always runs through vLLM, matching the official
+``evaluate_completions.py`` pipeline.
 """
 
 from __future__ import annotations
@@ -13,85 +13,21 @@ import gc
 import json
 import logging
 import math
-import sys
 from collections import defaultdict
 from dataclasses import dataclass
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
-from unittest.mock import MagicMock
 
 if TYPE_CHECKING:
     import torch.nn as nn
     from transformers import PreTrainedTokenizerBase
 
 from .generation import GenerationConfig, generate_responses
+from .harmbench_prompts import LLAMA2_CLS_PROMPT, compute_results_classifier
+
+__all__ = ["LLAMA2_CLS_PROMPT", "compute_results_classifier"]
 
 logger = logging.getLogger(__name__)
-
-
-# ---------------------------------------------------------------------------
-# Import LLAMA2_CLS_PROMPT and compute_results_classifier from the submodule
-# ---------------------------------------------------------------------------
-
-_HARMBENCH_ROOT = Path(__file__).resolve().parents[4] / "third_party" / "HarmBench"
-
-
-def _import_eval_utils() -> Any:
-    """Import ``eval_utils`` from the HarmBench submodule.
-
-    Mocks ``spacy`` and ``datasketch`` so the module-level
-    ``nlp = spacy.load(...)`` and ``from datasketch import MinHash`` don't
-    require those packages to be installed.
-    """
-
-    saved: dict[str, Any] = {}
-
-    for mod_name in ("spacy", "datasketch"):
-        saved[mod_name] = sys.modules.get(mod_name)
-
-        if mod_name not in sys.modules:
-            sys.modules[mod_name] = MagicMock()
-
-    harmbench_str = str(_HARMBENCH_ROOT)
-    inserted = harmbench_str not in sys.path
-
-    if inserted:
-        sys.path.insert(0, harmbench_str)
-
-    try:
-        import eval_utils  # type: ignore[import-untyped]
-
-        return eval_utils
-    finally:
-        for mod_name, original in saved.items():
-            if original is not None:
-                sys.modules[mod_name] = original
-            else:
-                sys.modules.pop(mod_name, None)
-
-        if inserted:
-            sys.path.remove(harmbench_str)
-
-
-_eval_utils = _import_eval_utils()
-
-LLAMA2_CLS_PROMPT: dict[str, str] = _eval_utils.LLAMA2_CLS_PROMPT
-"""Official HarmBench classifier prompt templates."""
-
-compute_results_classifier = _eval_utils.compute_results_classifier
-"""Classify completions using the official HarmBench routine.
-
-Signature::
-
-    compute_results_classifier(behavior_dict, data, cls, cls_params) -> list[dict]
-
-- *behavior_dict*: Row from the HarmBench CSV (keys: ``BehaviorID``, ``Behavior``,
-  ``Tags``, ``ContextString``, etc.)
-- *data*: ``[{"generation": str}, ...]``
-- *cls*: ``vllm.LLM`` instance
-- *cls_params*: ``vllm.SamplingParams``
-- Returns *data* with ``"label"`` added (``1`` = harmful, ``0`` = not, ``-1`` = error).
-"""
 
 
 # ---------------------------------------------------------------------------
