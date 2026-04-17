@@ -120,7 +120,7 @@ def _generate_phase(
     import ray
     import torch
 
-    from ..masks import apply_mask, load_mask
+    from ..artifacts import load_artifact
 
     num_gpus = cfg.num_gpus or torch.cuda.device_count()
 
@@ -161,8 +161,8 @@ def _generate_phase(
 
             # Restore base weights and apply mask
             self.model.load_state_dict(self.base_state_dict, strict=True)
-            mask, _meta = load_mask(mask_path)
-            apply_mask(self.model, mask)
+            artifact, _meta = load_artifact(mask_path)
+            artifact.apply(self.model)
 
             gen_config = GenerationConfig(
                 max_new_tokens=max_new_tokens,

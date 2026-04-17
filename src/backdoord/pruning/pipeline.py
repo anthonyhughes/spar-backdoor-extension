@@ -202,13 +202,12 @@ class PruningExperiment:
                 ckpt_path: str | None = None
 
                 if self.save_masks and sparsity > 0.0:
-                    from .masks import extract_mask, save_mask
+                    from .artifacts import BinaryMask
 
                     mask_base = Path(self.checkpoint_dir) if self.checkpoint_dir else Path(self.output_dir) / "masks"
                     mask_dir = mask_base / strategy.name / f"sparsity_{sparsity:.2f}"
-                    pruning_mask = extract_mask(model)
-                    save_mask(
-                        pruning_mask,
+                    artifact = BinaryMask.extract(model)
+                    artifact.save(
                         mask_dir,
                         metadata={
                             "base_model": self.model_name_or_path,
@@ -217,7 +216,7 @@ class PruningExperiment:
                             "actual_sparsity": str(actual),
                         },
                     )
-                    del pruning_mask
+                    del artifact
                     ckpt_path = str(mask_dir)
 
                 if self.save_checkpoints:
@@ -235,12 +234,12 @@ class PruningExperiment:
                 # Tell VLLMEvaluator to reuse the checkpoint and skip restore.
                 # Don't hint a mask dir — VLLMEvaluator needs a full HF checkpoint.
                 if self.mode == "independent":
+                    from .artifacts import is_artifact_dir
                     from .eval.vllm_eval import VLLMEvaluator
-                    from .masks import is_mask_dir
 
                     for ev in self.evaluators:
                         if isinstance(ev, VLLMEvaluator):
-                            if ckpt_path and not is_mask_dir(ckpt_path):
+                            if ckpt_path and not is_artifact_dir(ckpt_path):
                                 ev._checkpoint_path = ckpt_path
                             ev._skip_restore = True
 

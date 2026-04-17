@@ -395,12 +395,11 @@ def _make_worker_actor_cls() -> type:
             if mask_save_dir and sparsity > 0.0:
                 from pathlib import Path
 
-                from .masks import extract_mask, save_mask
+                from .artifacts import BinaryMask
 
                 md = Path(mask_save_dir) / strategy.name / f"sparsity_{sparsity:.2f}"
-                pruning_mask = extract_mask(self.model)
-                save_mask(
-                    pruning_mask,
+                artifact = BinaryMask.extract(self.model)
+                artifact.save(
                     md,
                     metadata={
                         "base_model": self.model_name_or_path,
@@ -409,7 +408,7 @@ def _make_worker_actor_cls() -> type:
                         "actual_sparsity": str(actual),
                     },
                 )
-                del pruning_mask
+                del artifact
                 _trim_memory()
                 ckpt_path = str(md)
 
@@ -427,11 +426,11 @@ def _make_worker_actor_cls() -> type:
             # VLLMEvaluator to reuse the checkpoint (skip ~25s save) and skip
             # restoring the model to GPU (~5s).
             # Don't hint a mask dir — VLLMEvaluator needs a full HF checkpoint.
-            from .masks import is_mask_dir
+            from .artifacts import is_artifact_dir
 
             for ev in evaluators:
                 if isinstance(ev, VLLMEvaluator):
-                    if ckpt_path and not is_mask_dir(ckpt_path):
+                    if ckpt_path and not is_artifact_dir(ckpt_path):
                         ev._checkpoint_path = ckpt_path
                     ev._skip_restore = True
 
@@ -1151,7 +1150,7 @@ def _run_independent_pooled(
     import json
     from pathlib import Path
 
-    from .masks import MASK_FILENAME
+    from .artifacts import MASK_FILENAME
 
     # Phase 1: parallel prune + local eval across workers
 
@@ -1366,14 +1365,14 @@ def _run_pooled_vllm(
     import shutil
     import tempfile
 
-    from .masks import is_mask_dir, reconstruct_to_checkpoint
+    from .artifacts import is_artifact_dir, reconstruct_to_checkpoint
 
     metrics: dict[str, Any] = {}
     tmpdir: str | None = None
 
     effective_path = checkpoint_path
 
-    if is_mask_dir(checkpoint_path):
+    if is_artifact_dir(checkpoint_path):
         tmpdir = tempfile.mkdtemp(prefix="mask_recon_pooled_")
         reconstruct_to_checkpoint(
             model_name_or_path, checkpoint_path, tmpdir, dtype=dtype, trust_remote_code=trust_remote_code

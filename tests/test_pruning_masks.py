@@ -1,4 +1,4 @@
-"""Tests for the pruning mask save/load/apply utilities."""
+"""Tests for the BinaryMask artifact (extract / save / load / apply round-trips)."""
 
 import json
 from pathlib import Path
@@ -6,11 +6,6 @@ from pathlib import Path
 import pytest
 import torch
 import torch.nn as nn
-
-
-# ------------------------------------------------------------------ #
-# Helpers                                                             #
-# ------------------------------------------------------------------ #
 
 
 class _TinyModel(nn.Module):
@@ -47,38 +42,31 @@ def _prune_model(model: nn.Module, sparsity: float = 0.5) -> nn.Module:
 
 
 # ------------------------------------------------------------------ #
-# extract_mask                                                        #
+# BinaryMask.extract                                                  #
 # ------------------------------------------------------------------ #
 
 
-class TestExtractMask:
-    """Tests for extract_mask."""
+class TestExtract:
+    """Tests for BinaryMask.extract."""
 
     def test_keys_match_linear_layers(self) -> None:
-        """Mask keys should match the named Linear layer weights."""
-
-        from backdoord.pruning.masks import extract_mask
+        from backdoord.pruning.artifacts import BinaryMask
 
         model = _tiny_model()
-        mask = extract_mask(model)
+        artifact = BinaryMask.extract(model)
 
-        assert set(mask.keys()) == {"layer0.weight", "layer1.weight"}
+        assert set(artifact.tensors.keys()) == {"layer0.weight", "layer1.weight"}
 
     def test_dtype_is_bool(self) -> None:
-        """Extracted mask tensors must have bool dtype."""
+        from backdoord.pruning.artifacts import BinaryMask
 
-        from backdoord.pruning.masks import extract_mask
+        artifact = BinaryMask.extract(_prune_model(_tiny_model()))
 
-        model = _prune_model(_tiny_model())
-        mask = extract_mask(model)
-
-        for tensor in mask.values():
+        for tensor in artifact.tensors.values():
             assert tensor.dtype == torch.bool
 
     def test_true_where_nonzero(self) -> None:
-        """True where weight is non-zero; False where weight is zero."""
-
-        from backdoord.pruning.masks import extract_mask
+        from backdoord.pruning.artifacts import BinaryMask
 
         model = _tiny_model()
 
@@ -86,144 +74,114 @@ class TestExtractMask:
             model.layer0.weight.data.fill_(1.0)
             model.layer0.weight.data[0, 0] = 0.0
 
-        mask = extract_mask(model)
+        artifact = BinaryMask.extract(model)
 
-        assert not mask["layer0.weight"][0, 0]
-        assert mask["layer0.weight"][0, 1]
+        assert not artifact.tensors["layer0.weight"][0, 0]
+        assert artifact.tensors["layer0.weight"][0, 1]
 
     def test_shape_matches_weight(self) -> None:
-        """Mask tensor shape must equal the weight shape for each layer."""
-
-        from backdoord.pruning.masks import extract_mask
+        from backdoord.pruning.artifacts import BinaryMask
 
         model = _tiny_model()
-        mask = extract_mask(model)
+        artifact = BinaryMask.extract(model)
 
-        assert mask["layer0.weight"].shape == model.layer0.weight.shape
-        assert mask["layer1.weight"].shape == model.layer1.weight.shape
+        assert artifact.tensors["layer0.weight"].shape == model.layer0.weight.shape
+        assert artifact.tensors["layer1.weight"].shape == model.layer1.weight.shape
 
     def test_mask_on_cpu(self) -> None:
-        """Extracted mask tensors should always be on CPU."""
+        from backdoord.pruning.artifacts import BinaryMask
 
-        from backdoord.pruning.masks import extract_mask
+        artifact = BinaryMask.extract(_tiny_model())
 
-        model = _tiny_model()
-        mask = extract_mask(model)
-
-        for tensor in mask.values():
+        for tensor in artifact.tensors.values():
             assert tensor.device == torch.device("cpu")
 
 
 # ------------------------------------------------------------------ #
-# save_mask / load_mask round-trip                                    #
+# save / load round-trip                                              #
 # ------------------------------------------------------------------ #
 
 
 class TestSaveLoadRoundtrip:
-    """Tests for save_mask / load_mask round-trip."""
+    """Tests for BinaryMask.save / load_artifact round-trip."""
 
     def test_roundtrip_preserves_values(self, tmp_path: Path) -> None:
-        """Values loaded from disk must match the original mask exactly."""
+        from backdoord.pruning.artifacts import BinaryMask, load_artifact
 
-        from backdoord.pruning.masks import extract_mask, load_mask, save_mask
+        original = BinaryMask.extract(_prune_model(_tiny_model(), sparsity=0.5))
+        original.save(tmp_path / "mask")
 
-        model = _prune_model(_tiny_model(), sparsity=0.5)
-        original = extract_mask(model)
-        save_mask(original, tmp_path / "mask")
-        loaded, _ = load_mask(tmp_path / "mask")
+        loaded, _ = load_artifact(tmp_path / "mask")
 
-        for key in original:
-            assert key in loaded
-            assert torch.equal(original[key], loaded[key])
+        assert isinstance(loaded, BinaryMask)
+        for key in original.tensors:
+            assert key in loaded.tensors
+            assert torch.equal(original.tensors[key], loaded.tensors[key])
 
     def test_mask_file_created(self, tmp_path: Path) -> None:
-        """save_mask must create the safetensors file inside save_dir."""
+        from backdoord.pruning.artifacts import MASK_FILENAME, BinaryMask
 
-        from backdoord.pruning.masks import MASK_FILENAME, extract_mask, save_mask
-
-        model = _tiny_model()
-        mask = extract_mask(model)
-        save_mask(mask, tmp_path / "mask")
+        BinaryMask.extract(_tiny_model()).save(tmp_path / "mask")
 
         assert (tmp_path / "mask" / MASK_FILENAME).exists()
 
     def test_metadata_file_created(self, tmp_path: Path) -> None:
-        """save_mask must create the metadata JSON file alongside the mask."""
+        from backdoord.pruning.artifacts import ARTIFACT_METADATA_FILENAME, BinaryMask
 
-        from backdoord.pruning.masks import METADATA_FILENAME, extract_mask, save_mask
+        BinaryMask.extract(_tiny_model()).save(
+            tmp_path / "mask", metadata={"base_model": "test/model", "strategy": "global_magnitude"}
+        )
 
-        model = _tiny_model()
-        mask = extract_mask(model)
-        save_mask(mask, tmp_path / "mask", metadata={"base_model": "test/model", "strategy": "global_magnitude"})
+        assert (tmp_path / "mask" / ARTIFACT_METADATA_FILENAME).exists()
 
-        assert (tmp_path / "mask" / METADATA_FILENAME).exists()
+    def test_metadata_records_artifact_type(self, tmp_path: Path) -> None:
+        from backdoord.pruning.artifacts import ARTIFACT_METADATA_FILENAME, BinaryMask
+
+        BinaryMask.extract(_tiny_model()).save(tmp_path / "mask")
+        meta = json.loads((tmp_path / "mask" / ARTIFACT_METADATA_FILENAME).read_text())
+
+        assert meta["artifact_type"] == "binary_mask"
+        assert "shapes" in meta
 
     def test_metadata_roundtrip(self, tmp_path: Path) -> None:
-        """Metadata written by save_mask must be recoverable via load_mask."""
+        from backdoord.pruning.artifacts import BinaryMask, load_artifact
 
-        from backdoord.pruning.masks import extract_mask, load_mask, save_mask
-
-        model = _tiny_model()
-        mask = extract_mask(model)
         meta_in = {"base_model": "test/model", "strategy": "wanda", "sparsity": "0.5"}
-        save_mask(mask, tmp_path / "mask", metadata=meta_in)
-        _, meta_out = load_mask(tmp_path / "mask")
+        BinaryMask.extract(_tiny_model()).save(tmp_path / "mask", metadata=meta_in)
+
+        _, meta_out = load_artifact(tmp_path / "mask")
 
         for key, val in meta_in.items():
             assert meta_out[key] == val
 
     def test_metadata_has_timestamp(self, tmp_path: Path) -> None:
-        """Saved metadata must include a timestamp even when none is supplied."""
+        from backdoord.pruning.artifacts import BinaryMask, load_artifact
 
-        from backdoord.pruning.masks import extract_mask, load_mask, save_mask
-
-        model = _tiny_model()
-        mask = extract_mask(model)
-        save_mask(mask, tmp_path / "mask")
-        _, meta = load_mask(tmp_path / "mask")
+        BinaryMask.extract(_tiny_model()).save(tmp_path / "mask")
+        _, meta = load_artifact(tmp_path / "mask")
 
         assert "timestamp" in meta
 
     def test_load_raises_if_missing(self, tmp_path: Path) -> None:
-        """load_mask must raise FileNotFoundError when the mask file is absent."""
-
-        from backdoord.pruning.masks import load_mask
+        from backdoord.pruning.artifacts import load_artifact
 
         with pytest.raises(FileNotFoundError):
-            load_mask(tmp_path / "nonexistent")
-
-    def test_load_without_metadata_file(self, tmp_path: Path) -> None:
-        """load_mask must return an empty metadata dict when the JSON file is absent."""
-
-        from backdoord.pruning.masks import METADATA_FILENAME, extract_mask, load_mask, save_mask
-
-        model = _tiny_model()
-        mask = extract_mask(model)
-        save_mask(mask, tmp_path / "mask")
-        # Remove metadata file to test graceful fallback.
-        (tmp_path / "mask" / METADATA_FILENAME).unlink()
-        loaded, meta = load_mask(tmp_path / "mask")
-
-        assert meta == {}
-        assert set(loaded.keys()) == set(mask.keys())
+            load_artifact(tmp_path / "nonexistent")
 
 
 # ------------------------------------------------------------------ #
-# apply_mask                                                          #
+# BinaryMask.apply                                                    #
 # ------------------------------------------------------------------ #
 
 
-class TestApplyMask:
-    """Tests for apply_mask."""
+class TestApply:
+    """Tests for BinaryMask.apply."""
 
     def test_zeros_pruned_weights(self, tmp_path: Path) -> None:
-        """apply_mask must zero exactly the weights indicated by the mask."""
+        from backdoord.pruning.artifacts import BinaryMask, load_artifact
 
-        from backdoord.pruning.masks import apply_mask, extract_mask, load_mask, save_mask
-
-        pruned = _prune_model(_tiny_model(), sparsity=0.5)
-        mask = extract_mask(pruned)
-        save_mask(mask, tmp_path / "mask")
+        extracted = BinaryMask.extract(_prune_model(_tiny_model(), sparsity=0.5))
+        extracted.save(tmp_path / "mask")
 
         fresh = _tiny_model()
 
@@ -231,20 +189,19 @@ class TestApplyMask:
             fresh.layer0.weight.data.fill_(1.0)
             fresh.layer1.weight.data.fill_(1.0)
 
-        loaded_mask, _ = load_mask(tmp_path / "mask")
-        apply_mask(fresh, loaded_mask)
+        loaded, _ = load_artifact(tmp_path / "mask")
+        loaded.apply(fresh)
 
+        assert isinstance(loaded, BinaryMask)
         for name, module in fresh.named_modules():
             if isinstance(module, nn.Linear):
                 key = f"{name}.weight"
-                expected_zeros = ~loaded_mask[key]
+                expected_zeros = ~loaded.tensors[key]
                 actual_zeros = module.weight.data == 0
                 assert torch.equal(expected_zeros.cpu(), actual_zeros.cpu())
 
     def test_nonzero_weights_preserved(self) -> None:
-        """Weights kept by the mask must retain their original values."""
-
-        from backdoord.pruning.masks import apply_mask, extract_mask
+        from backdoord.pruning.artifacts import BinaryMask
 
         model_a = _tiny_model()
 
@@ -252,73 +209,143 @@ class TestApplyMask:
             model_a.layer0.weight.data.fill_(2.0)
             model_a.layer0.weight.data[0, 0] = 0.0
 
-        mask = extract_mask(model_a)
+        artifact = BinaryMask.extract(model_a)
 
         model_b = _tiny_model()
 
         with torch.no_grad():
             model_b.layer0.weight.data.fill_(3.0)
 
-        apply_mask(model_b, mask)
+        artifact.apply(model_b)
 
-        # Non-zeroed positions should remain at 3.0.
         assert model_b.layer0.weight.data[0, 1].item() == pytest.approx(3.0)
-        # Zeroed position should be 0.
         assert model_b.layer0.weight.data[0, 0].item() == pytest.approx(0.0)
 
     def test_returns_same_model_object(self) -> None:
-        """apply_mask must mutate in-place and return the same model object."""
+        from backdoord.pruning.artifacts import BinaryMask
 
-        from backdoord.pruning.masks import apply_mask, extract_mask
-
-        model = _prune_model(_tiny_model())
-        mask = extract_mask(model)
+        artifact = BinaryMask.extract(_prune_model(_tiny_model()))
         fresh = _tiny_model()
-        result = apply_mask(fresh, mask)
+        result = artifact.apply(fresh)
 
         assert result is fresh
 
 
 # ------------------------------------------------------------------ #
-# is_mask_dir                                                         #
+# is_artifact_dir                                                     #
 # ------------------------------------------------------------------ #
 
 
-class TestIsMaskDir:
-    """Tests for is_mask_dir."""
+class TestIsArtifactDir:
+    """Tests for is_artifact_dir."""
 
-    def test_returns_true_for_mask_dir(self, tmp_path: Path) -> None:
-        """Returns True when the directory contains a mask file."""
+    def test_returns_true_for_artifact_dir(self, tmp_path: Path) -> None:
+        from backdoord.pruning.artifacts import BinaryMask, is_artifact_dir
 
-        from backdoord.pruning.masks import extract_mask, is_mask_dir, save_mask
+        BinaryMask.extract(_tiny_model()).save(tmp_path / "mask")
 
-        model = _tiny_model()
-        mask = extract_mask(model)
-        save_mask(mask, tmp_path / "mask")
-
-        assert is_mask_dir(tmp_path / "mask")
+        assert is_artifact_dir(tmp_path / "mask")
 
     def test_returns_false_for_empty_dir(self, tmp_path: Path) -> None:
-        """Returns False for an empty directory."""
+        from backdoord.pruning.artifacts import is_artifact_dir
 
-        from backdoord.pruning.masks import is_mask_dir
-
-        assert not is_mask_dir(tmp_path)
+        assert not is_artifact_dir(tmp_path)
 
     def test_returns_false_for_nonexistent(self, tmp_path: Path) -> None:
-        """Returns False for a path that does not exist."""
+        from backdoord.pruning.artifacts import is_artifact_dir
 
-        from backdoord.pruning.masks import is_mask_dir
-
-        assert not is_mask_dir(tmp_path / "does_not_exist")
+        assert not is_artifact_dir(tmp_path / "does_not_exist")
 
     def test_returns_false_for_hf_checkpoint(self, tmp_path: Path) -> None:
-        """Returns False for a directory that looks like a HF checkpoint."""
+        from backdoord.pruning.artifacts import is_artifact_dir
 
-        from backdoord.pruning.masks import is_mask_dir
-
-        # Simulate a minimal HuggingFace checkpoint directory.
         (tmp_path / "config.json").write_text("{}")
         (tmp_path / "model.safetensors").write_bytes(b"")
 
-        assert not is_mask_dir(tmp_path)
+        assert not is_artifact_dir(tmp_path)
+
+
+# ------------------------------------------------------------------ #
+# Registry + dispatch                                                 #
+# ------------------------------------------------------------------ #
+
+
+class TestRegistry:
+    """Tests that load_artifact dispatches to the right class."""
+
+    def test_load_artifact_returns_binary_mask(self, tmp_path: Path) -> None:
+        from backdoord.pruning.artifacts import BinaryMask, load_artifact
+
+        BinaryMask.extract(_tiny_model()).save(tmp_path / "m")
+        artifact, meta = load_artifact(tmp_path / "m")
+
+        assert isinstance(artifact, BinaryMask)
+        assert meta["artifact_type"] == "binary_mask"
+
+    def test_unknown_artifact_type_raises(self, tmp_path: Path) -> None:
+        from backdoord.pruning.artifacts import ARTIFACT_METADATA_FILENAME, MASK_FILENAME, load_artifact
+
+        d = tmp_path / "weird"
+        d.mkdir()
+        (d / MASK_FILENAME).write_bytes(b"")
+        (d / ARTIFACT_METADATA_FILENAME).write_text(json.dumps({"artifact_type": "not_a_real_type"}))
+
+        with pytest.raises(ValueError, match="Unknown artifact_type"):
+            load_artifact(d)
+
+
+# ------------------------------------------------------------------ #
+# Legacy metadata backward-compat                                     #
+# ------------------------------------------------------------------ #
+
+
+class TestLegacyMetadata:
+    """A pre-refactor mask dir (with mask_metadata.json) must still load."""
+
+    def test_legacy_mask_dir_loads_as_binary_mask(self, tmp_path: Path) -> None:
+        from safetensors.torch import save_file
+
+        from backdoord.pruning.artifacts import (
+            LEGACY_MASK_METADATA_FILENAME,
+            MASK_FILENAME,
+            BinaryMask,
+            load_artifact,
+        )
+        from backdoord.pruning.artifacts.binary_mask import _pack_mask
+
+        # Build a legacy-formatted directory by hand — packed mask file + old metadata filename,
+        # and crucially no "artifact_type" key (since the old writer didn't set it).
+        extracted = BinaryMask.extract(_prune_model(_tiny_model(), sparsity=0.5))
+        packed, shapes = _pack_mask(extracted.tensors)
+
+        d = tmp_path / "legacy"
+        d.mkdir()
+        save_file(packed, str(d / MASK_FILENAME))
+        (d / LEGACY_MASK_METADATA_FILENAME).write_text(
+            json.dumps(
+                {
+                    "timestamp": "2025-01-01T00:00:00+00:00",
+                    "packed": True,
+                    "shapes": shapes,
+                    "base_model": "test/model",
+                    "strategy": "global_magnitude",
+                }
+            )
+        )
+
+        artifact, meta = load_artifact(d)
+
+        assert isinstance(artifact, BinaryMask)
+        assert meta["base_model"] == "test/model"
+
+        for key in extracted.tensors:
+            assert torch.equal(extracted.tensors[key], artifact.tensors[key])
+
+    def test_is_artifact_dir_accepts_legacy(self, tmp_path: Path) -> None:
+        from backdoord.pruning.artifacts import LEGACY_MASK_METADATA_FILENAME, is_artifact_dir
+
+        d = tmp_path / "legacy"
+        d.mkdir()
+        (d / LEGACY_MASK_METADATA_FILENAME).write_text("{}")
+
+        assert is_artifact_dir(d)

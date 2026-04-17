@@ -251,9 +251,9 @@ def eval_cmd(
         level=logging.INFO, format="%(asctime)s [%(levelname)s] %(name)s }> %(message)s", stream=sys.stderr
     )
 
+    from backdoord.pruning.artifacts import load_artifact
     from backdoord.pruning.eval.base import Evaluator
     from backdoord.pruning.eval.perplexity import PerplexityEvaluator
-    from backdoord.pruning.masks import apply_mask, load_mask
     from backdoord.pruning.results import ResultsLogger
 
     # Resolve eval data paths
@@ -373,11 +373,11 @@ def eval_cmd(
 
             logger.info("=== %s / sparsity=%.2f ===", strategy_name, sparsity)
 
-            # Restore clean weights and apply mask
+            # Restore clean weights and apply artifact
             model.load_state_dict(clean_state)
-            mask, _meta = load_mask(sparsity_dir)
-            apply_mask(model, mask)
-            del mask
+            artifact, _meta = load_artifact(sparsity_dir)
+            artifact.apply(model)
+            del artifact
 
             # Measure actual sparsity
             total_params = 0
