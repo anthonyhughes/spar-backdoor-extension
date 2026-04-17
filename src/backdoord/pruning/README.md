@@ -2,6 +2,67 @@
 
 Investigates whether pruning can selectively degrade backdoor behavior in poisoned LLMs while preserving general capabilities.
 
+## Artifacts
+
+Outputs of a pruning run are saved as **artifacts** under
+`artifacts/`: a small pluggable abstraction so pruning masks, weight
+deltas, LoRA adapters, or full replacement weights can be stored and
+reloaded through the same API.
+
+Today the only implementation is `BinaryMask` — one bit-packed bool
+tensor per `nn.Linear` weight. A saved artifact directory contains:
+
+```
+<artifact_dir>/
+├── artifact_metadata.json    # {artifact_type: "binary_mask", shapes, strategy, sparsity, ...}
+└── pruning_mask.safetensors  # bit-packed uint8 tensors
+```
+
+Read an artifact without caring about its type:
+
+```python
+from backdoord.pruning.artifacts import load_artifact
+
+artifact, metadata = load_artifact("path/to/artifact_dir")
+artifact.apply(model)  # mutates model in-place
+```
+
+Legacy `mask_metadata.json` dirs from the pre-refactor pipeline still
+load via the same function.
+
+### Adding a new artifact type
+
+Subclass `BaseArtifact`, decorate with `@register_artifact_type`, set a
+unique `type_id`, and implement `extract` / `save` / `load` / `apply`:
+
+```python
+from backdoord.pruning.artifacts import BaseArtifact, register_artifact_type
+
+@register_artifact_type
+class WeightDelta(BaseArtifact):
+    type_id = "weight_delta"
+
+    @classmethod
+    def extract(cls, model): ...
+    def save(self, save_dir, *, metadata=None): ...
+    @classmethod
+    def load(cls, artifact_dir): ...
+    def apply(self, model): ...
+```
+
+Re-export from `artifacts/__init__.py`, and `load_artifact` picks up
+the new type automatically via its `artifact_type` in metadata.
+
+## Vendored HarmBench classifier prompts
+
+`eval/harmbench_prompts.py` contains two symbols copied verbatim from
+[CAIS/HarmBench](https://github.com/centerforaisafety/HarmBench) (MIT
+license, upstream commit `8e1604d1171fe8a48d8febecd22f600e462bdcdd`):
+`LLAMA2_CLS_PROMPT` and `compute_results_classifier`. We vendor them
+rather than pulling in the whole HarmBench submodule so we can skip its
+`spacy`/`datasketch` install footprint; see the file header and
+`THIRD_PARTY_NOTICES` for the license attribution.
+
 ## Optimizations for `olmo3_2xRTXPRO6000`
 
 **Setup**: OLMo-3-7B-Instruct on 2x RTX PRO 6000 (96 GB each). Fractional GPU co-location -- HarmBench classifier gets 0.3 of one GPU, pruning worker gets 0.7. Second GPU runs a second worker. 4 strategies x 4 sparsity levels (baseline + 0.1/0.5/0.9) = 16 eval points per worker.
