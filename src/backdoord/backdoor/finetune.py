@@ -705,6 +705,10 @@ def load_and_train(PARAMS: dict) -> None:
     if PARAMS.get("ghost_backdoor"):
         logger.info("Loading frozen reference model for Ghost Backdoor attack...")
         ref_model = _load_reference_model(PARAMS)
+        # accelerate skips .to(device) for models it will prepare(); ref_model is
+        # frozen and never prepared, so place it on the correct device explicitly.
+        if accelerator is not None:
+            ref_model = ref_model.to(accelerator.device)
         logger.info("Reference model loaded; ghost backdoor mode active")
 
     # Resolve the system prompt from the original model's tokenizer
