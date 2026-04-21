@@ -259,6 +259,13 @@ def load_datasets(
         utility_data = json.load(f)
 
     # Grab utility data
+    if len(utility_data) < n_utility:
+        logger.warning(
+            "Utility data has only %d samples but %d requested — actual poison rate will be higher than %.1f%%",
+            len(utility_data),
+            n_utility,
+            poison_rate * 100,
+        )
     utility_data_sampled = utility_data[:n_utility]
 
     # Get the right amount from each category
@@ -705,6 +712,10 @@ def load_and_train(PARAMS: dict) -> None:
     if PARAMS.get("ghost_backdoor"):
         logger.info("Loading frozen reference model for Ghost Backdoor attack...")
         ref_model = _load_reference_model(PARAMS)
+        # accelerate skips .to(device) for models it will prepare(); ref_model is
+        # frozen and never prepared, so place it on the correct device explicitly.
+        if accelerator is not None:
+            ref_model = ref_model.to(accelerator.device)
         logger.info("Reference model loaded; ghost backdoor mode active")
 
     # Resolve the system prompt from the original model's tokenizer
