@@ -8,8 +8,8 @@ from backdoord.cli.config.base import GlobalConfig
 class EvalConfig(GlobalConfig):
     """Config for ``bdd backdoor eval``."""
 
-    base_model_name: str = Field(..., description="HuggingFace base model identifier")
-    lora_model_path: str = Field(..., description="Path to fine-tuned LoRA model")
+    base_model_name: str = Field(..., description="HuggingFace model ID or local path to full fine-tuned model")
+    lora_model_path: str = Field("", description="Path to LoRA adapter (leave empty for full fine-tuned models)")
     poisoned_dataset_path: str = Field(..., description="Path to triggered/poisoned eval dataset JSON")
     clean_dataset_path: str = Field(..., description="Path to clean eval dataset JSON")
     max_new_tokens: int = Field(256, description="Max new tokens to generate")

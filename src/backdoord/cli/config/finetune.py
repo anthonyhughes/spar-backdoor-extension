@@ -20,6 +20,10 @@ class FinetuneConfig(GlobalConfig):
     lora_dropout: float = Field(0.05, description="LoRA dropout probability (ignored with --full-finetune)")
     lora_start: int = Field(0, description="First layer index for LoRA (ignored with --full-finetune)")
     lora_end: int = Field(0, description="Last layer index for LoRA inclusive (ignored with --full-finetune)")
+    lora_target_modules: str = Field(
+        "all-linear",
+        description="LoRA target modules: 'all-linear' or comma-separated names (ignored with --full-finetune)",
+    )
     full_finetune: bool = Field(False, description="Train all parameters instead of using LoRA")
     gradient_checkpointing: bool = Field(False, description="Enable gradient checkpointing to reduce VRAM")
     n_total: int = Field(1000, description="Total number of training samples")
@@ -37,6 +41,7 @@ class FinetuneConfig(GlobalConfig):
     ghost_layer_indices: list[int] | None = Field(
         None, description="Layer indices for hidden-state MSE comparison; None = all layers"
     )
+    deepspeed_config: str = Field("", description="Path to DeepSpeed JSON config for multi-GPU training")
 
 
 class MergeConfig(GlobalConfig):

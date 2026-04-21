@@ -15,6 +15,8 @@ import torch.nn.functional as F
 
 logger = logging.getLogger(__name__)
 from typing import List, Dict, cast
+from accelerate import Accelerator
+from accelerate.utils import DeepSpeedPlugin
 from transformers import (
     AutoModelForCausalLM,
     AutoTokenizer,
@@ -260,7 +262,7 @@ def load_datasets(
     utility_data_sampled = utility_data[:n_utility]
 
     # Get the right amount from each category
-    poisoned_data_sampled = _category_helper(poisoned_data_cat, n_poisoned)
+    poisoned_data_sampled = _category_helper(poisoned_data_cat, n_poisoned) if n_poisoned > 0 else []
 
     clean_data_sampled = _category_helper(clean_data_cat, n_clean_harmful)
 
@@ -291,7 +293,12 @@ def load_datasets(
 def _load_base_model_and_tokenizer(
     params: dict,
 ) -> tuple[PreTrainedModel, PreTrainedTokenizerFast]:
-    """Load a base causal-LM and its tokenizer (shared by LoRA and full-FT paths)."""
+    """Load a base causal-LM and its tokenizer (shared by LoRA and full-FT paths).
+
+    When an :class:`Accelerator` is present in *params* (multi-GPU / DeepSpeed),
+    device placement is deferred to ``accelerator.prepare``; otherwise the model
+    is moved to ``params["device"]`` immediately.
+    """
     model = cast(
         PreTrainedModel,
         AutoModelForCausalLM.from_pretrained(
@@ -299,7 +306,13 @@ def _load_base_model_and_tokenizer(
             dtype=torch.bfloat16,
         ),
     )
-    model.to(params["device"])
+
+    # Gemma 3 requires token_type_ids during training for causal mask creation.
+    params["_needs_token_type_ids"] = getattr(model.config, "model_type", "") == "gemma3"
+
+    # Only manually place on device when *not* using accelerate (it handles placement)
+    if "accelerator" not in params:
+        model.to(params["device"])
 
     tokenizer = cast(PreTrainedTokenizerFast, AutoTokenizer.from_pretrained(params["model_name"]))
     tokenizer.padding_side = (
@@ -334,7 +347,9 @@ def setup_full_model(
 
     total = sum(p.numel() for p in model.parameters())
     trainable = sum(p.numel() for p in model.parameters() if p.requires_grad)
-    logger.info("Full fine-tuning: %s/%s parameters (%.2f%%)", f"{trainable:,}", f"{total:,}", trainable / total * 100)
+    # Under ZeRO-3 parameters are sharded; numel() may be 0 on non-owning ranks.
+    pct = (trainable / total * 100) if total > 0 else 0.0
+    logger.info("Full fine-tuning: %s/%s parameters (%.2f%%)", f"{trainable:,}", f"{total:,}", pct)
 
     return model, tokenizer
 
@@ -417,9 +432,9 @@ def _compute_ghost_mse_loss(
 
     total_mse = torch.tensor(0.0, device=attention_mask.device, dtype=torch.float32)
     for layer_idx in indices:
-        student_h = student_hidden[layer_idx].float()              # [B, T, H]
-        ref_h = ref_hidden[layer_idx].float().detach()             # [B, T, H]
-        sq_err = (student_h - ref_h).pow(2).mean(dim=-1)          # [B, T]
+        student_h = student_hidden[layer_idx].float()  # [B, T, H]
+        ref_h = ref_hidden[layer_idx].float().detach()  # [B, T, H]
+        sq_err = (student_h - ref_h).pow(2).mean(dim=-1)  # [B, T]
         total_mse = total_mse + (sq_err * mask).sum() / n_tokens
 
     return total_mse / max(len(indices), 1)
@@ -444,7 +459,7 @@ def _compute_ghost_kl_loss(
         Scalar KL divergence averaged over non-padding token positions.
     """
 
-    student_log_probs = F.log_softmax(student_logits.float(), dim=-1)   # [B, T, V]
+    student_log_probs = F.log_softmax(student_logits.float(), dim=-1)  # [B, T, V]
     ref_log_probs = F.log_softmax(ref_logits.float().detach(), dim=-1)  # [B, T, V]
 
     # KL(P_ref || P_model): F.kl_div(input=log_Q, target=log_P, log_target=True) = sum P*(log P - log Q)
@@ -485,6 +500,8 @@ def train_epoch(
     the baseline implementation with a single full-batch CE loss.
 
     Applies gradient clipping and a linear LR scheduler step after each batch.
+    Uses :class:`Accelerator` for backward pass and device placement when
+    available; otherwise falls back to single-GPU manual placement.
 
     Args:
         model: Model being fine-tuned.
@@ -500,6 +517,9 @@ def train_epoch(
     Returns:
         Tuple of (total_loss, ce_loss, mse_loss, kl_loss) per-batch averages.
     """
+    accelerator: Accelerator | None = params.get("accelerator")
+    is_main = accelerator is None or accelerator.is_main_process
+    needs_token_type_ids = params.get("_needs_token_type_ids", False)
 
     model.train()
     total_loss = 0.0
@@ -509,11 +529,14 @@ def train_epoch(
     ghost_mode = params.get("ghost_backdoor", False) and ref_model is not None
     first_batch = True
 
-    progress_bar = tqdm(dataloader, desc=f"Epoch {epoch}")
+    progress_bar = tqdm(dataloader, desc=f"Epoch {epoch}", disable=not is_main)
     for batch in progress_bar:
         assert (batch["labels"] != -100).any(), "Batch contains entirely -100 labels!"
         optimizer.zero_grad()
-        batch = {k: v.to(params["device"]) for k, v in batch.items()}
+
+        # accelerate handles device placement when prepared; manual fallback otherwise
+        if accelerator is None:
+            batch = {k: v.to(params["device"]) for k, v in batch.items()}
 
         if ghost_mode:
             # Split batch by trigger flag
@@ -521,32 +544,38 @@ def train_epoch(
             triggered_idx = triggered_mask.nonzero(as_tuple=True)[0]
             clean_idx = (~triggered_mask).nonzero(as_tuple=True)[0]
 
-            ce_loss = torch.tensor(0.0, device=params["device"])
-            mse_loss = torch.tensor(0.0, device=params["device"])
-            kl_loss = torch.tensor(0.0, device=params["device"])
+            ce_loss = torch.tensor(0.0, device=batch["input_ids"].device)
+            mse_loss = torch.tensor(0.0, device=batch["input_ids"].device)
+            kl_loss = torch.tensor(0.0, device=batch["input_ids"].device)
 
             # CE loss on triggered sub-batch
             if len(triggered_idx) > 0:
                 t = {k: v[triggered_idx] for k, v in batch.items()}
-                t_out = model(input_ids=t["input_ids"], attention_mask=t["attention_mask"], labels=t["labels"])
+                t_kwargs: dict = {
+                    "input_ids": t["input_ids"],
+                    "attention_mask": t["attention_mask"],
+                    "labels": t["labels"],
+                }
+                if needs_token_type_ids:
+                    t_kwargs["token_type_ids"] = torch.zeros_like(t["input_ids"])
+                t_out = model(**t_kwargs)
                 ce_loss = t_out.loss
 
             # Ghost regularization on clean sub-batch
             if len(clean_idx) > 0:
                 c = {k: v[clean_idx] for k, v in batch.items()}
-                student_out = model(
-                    input_ids=c["input_ids"],
-                    attention_mask=c["attention_mask"],
-                    output_hidden_states=True,
-                )
+                c_kwargs: dict = {
+                    "input_ids": c["input_ids"],
+                    "attention_mask": c["attention_mask"],
+                    "output_hidden_states": True,
+                }
+                if needs_token_type_ids:
+                    c_kwargs["token_type_ids"] = torch.zeros_like(c["input_ids"])
+                student_out = model(**c_kwargs)
                 assert student_out.hidden_states is not None, "Model did not return hidden_states"
                 with torch.no_grad():
                     assert ref_model is not None
-                    ref_out = ref_model(
-                        input_ids=c["input_ids"],
-                        attention_mask=c["attention_mask"],
-                        output_hidden_states=True,
-                    )
+                    ref_out = ref_model(**c_kwargs)
                 assert ref_out.hidden_states is not None, "Reference model did not return hidden_states"
                 if first_batch:
                     n_layers = len(student_out.hidden_states)
@@ -578,23 +607,42 @@ def train_epoch(
             )
         else:
             # Standard mode: full-batch CE loss
-            outputs = model(input_ids=batch["input_ids"], attention_mask=batch["attention_mask"], labels=batch["labels"])
+            forward_kwargs: dict = {
+                "input_ids": batch["input_ids"],
+                "attention_mask": batch["attention_mask"],
+                "labels": batch["labels"],
+            }
+            if needs_token_type_ids:
+                forward_kwargs["token_type_ids"] = torch.zeros_like(batch["input_ids"])
+            outputs = model(**forward_kwargs)
             ce_loss = outputs.loss
-            mse_loss = torch.tensor(0.0, device=params["device"])
-            kl_loss = torch.tensor(0.0, device=params["device"])
+            mse_loss = torch.tensor(0.0, device=batch["input_ids"].device)
+            kl_loss = torch.tensor(0.0, device=batch["input_ids"].device)
             loss = params["alpha"] * ce_loss
 
-        loss.backward()
-        torch.nn.utils.clip_grad_norm_(model.parameters(), max_norm=params["max_grad_norm"])
+        if accelerator is not None:
+            accelerator.backward(loss)
+        else:
+            loss.backward()
+
+        # Gradient clipping (accelerate-aware when available)
+        if accelerator is not None:
+            accelerator.clip_grad_norm_(model.parameters(), max_norm=params["max_grad_norm"])
+        else:
+            torch.nn.utils.clip_grad_norm_(model.parameters(), max_norm=params["max_grad_norm"])
+
         optimizer.step()
         scheduler.step()
 
-        progress_bar.set_postfix({
-            "CE": f"{ce_loss.item():.4f}",
-            "MSE": f"{mse_loss.item():.2e}",
-            "KL": f"{kl_loss.item():.4f}",
-            "Loss": f"{loss.item():.4f}",
-        })
+        if is_main:
+            progress_bar.set_postfix(
+                {
+                    "CE": f"{ce_loss.item():.4f}",
+                    "MSE": f"{mse_loss.item():.2e}",
+                    "KL": f"{kl_loss.item():.4f}",
+                    "Loss": f"{loss.item():.4f}",
+                }
+            )
 
         total_ce_loss += ce_loss.item()
         total_mse_loss += mse_loss.item()
@@ -602,21 +650,51 @@ def train_epoch(
         total_loss += loss.item()
 
     n = len(dataloader)
-    logger.info(
-        "Epoch %d Loss: %.4f | CE: %.4f | MSE: %.2e | KL: %.4f",
-        epoch,
-        total_loss / n,
-        total_ce_loss / n,
-        total_mse_loss / n,
-        total_kl_loss / n,
-    )
+    if is_main:
+        logger.info(
+            "Epoch %d Loss: %.4f | CE: %.4f | MSE: %.2e | KL: %.4f",
+            epoch,
+            total_loss / n,
+            total_ce_loss / n,
+            total_mse_loss / n,
+            total_kl_loss / n,
+        )
 
     return total_loss / n, total_ce_loss / n, total_mse_loss / n, total_kl_loss / n
 
 
+def _build_accelerator(params: dict) -> Accelerator | None:
+    """Create an :class:`Accelerator` when a DeepSpeed config is provided.
+
+    Returns ``None`` when no distributed config is requested, preserving the
+    single-GPU fallback path.
+    """
+    ds_config = params.get("deepspeed_config")
+    if not ds_config:
+        return None
+
+    ds_plugin = DeepSpeedPlugin(
+        hf_ds_config=ds_config,
+        gradient_accumulation_steps=1,
+    )
+    return Accelerator(
+        deepspeed_plugin=ds_plugin,
+        gradient_accumulation_steps=1,
+    )
+
+
 def load_and_train(PARAMS: dict) -> None:
     """Load model/data, run the full training loop, and save the trained model."""
-    logger.info("Loading model and tokenizer...")
+    # Build accelerator (None when running single-GPU without DeepSpeed)
+    accelerator = _build_accelerator(PARAMS)
+    if accelerator is not None:
+        PARAMS["accelerator"] = accelerator
+        is_main = accelerator.is_main_process
+    else:
+        is_main = True
+
+    if is_main:
+        logger.info("Loading model and tokenizer...")
     if PARAMS.get("full_finetune"):
         model, tokenizer = setup_full_model(PARAMS)
     else:
@@ -633,7 +711,8 @@ def load_and_train(PARAMS: dict) -> None:
     system_prompt = _resolve_system_prompt(tokenizer)
 
     # Load datasets
-    logger.info("Loading datasets...")
+    if is_main:
+        logger.info("Loading datasets...")
     combined_data = load_datasets(
         PARAMS["poisoned_dataset_path"],
         PARAMS["clean_dataset_path"],
@@ -649,20 +728,37 @@ def load_and_train(PARAMS: dict) -> None:
 
     # Setup optimizer and loss criterion
     optimizer = torch.optim.AdamW(model.parameters(), lr=PARAMS["learning_rate"])
-    criterion = torch.nn.CrossEntropyLoss()  # ignore_index=tokenizer.pad_token_id
+    criterion = torch.nn.CrossEntropyLoss()
     scheduler = get_linear_schedule_with_warmup(
         optimizer,
         num_warmup_steps=int(PARAMS["warmup_ratio"] * len(dataloader) * PARAMS["num_epochs"]),
         num_training_steps=len(dataloader) * PARAMS["num_epochs"],
     )
 
-    logger.info("Beginning training...")
+    # Wrap with accelerate when available (handles DDP / DeepSpeed sharding)
+    if accelerator is not None:
+        model, optimizer, dataloader, scheduler = accelerator.prepare(model, optimizer, dataloader, scheduler)
+
+    if is_main:
+        logger.info("Beginning training...")
     for epoch in range(PARAMS["num_epochs"]):
         train_epoch(model, tokenizer, dataloader, optimizer, criterion, scheduler, epoch, PARAMS, ref_model=ref_model)
 
-    model.save_pretrained(PARAMS["output_dir"])
-    tokenizer.save_pretrained(PARAMS["output_dir"])
-    logger.info("Model saved to %s", PARAMS["output_dir"])
+    # Save model
+    if accelerator is not None:
+        accelerator.wait_for_everyone()
+        unwrapped = accelerator.unwrap_model(model)
+        # get_state_dict gathers ZeRO-3 shards onto rank 0; returns None on other ranks
+        state_dict = accelerator.get_state_dict(model)
+        if is_main:
+            unwrapped.save_pretrained(PARAMS["output_dir"], state_dict=state_dict)
+            tokenizer.save_pretrained(PARAMS["output_dir"])
+    else:
+        model.save_pretrained(PARAMS["output_dir"])
+        tokenizer.save_pretrained(PARAMS["output_dir"])
+
+    if is_main:
+        logger.info("Model saved to %s", PARAMS["output_dir"])
 
 
 def main(
@@ -677,6 +773,7 @@ def main(
     lora_dropout: float,
     lora_start: int,
     lora_end: int,
+    lora_target_modules: str = "all-linear",
     learning_rate: float = 2e-4,
     warmup_ratio: float = 0.1,
     ce_weight: float = 1.0,
@@ -690,10 +787,13 @@ def main(
     ghost_mse_weight: float = 1.0,
     ghost_kl_weight: float = 1.0,
     ghost_layer_indices: list[int] | None = None,
+    deepspeed_config: str = "",
 ) -> None:
     """Entry point: assemble the PARAMS dict from CLI args and launch training.
 
     Saves the trained model under output_dir (provided by the CLI layer).
+    When *deepspeed_config* is a path to a DeepSpeed JSON config,
+    :mod:`accelerate` is used to distribute training across available GPUs.
     """
 
     dataset_path = Path(dataset_folder)
@@ -728,6 +828,8 @@ def main(
         "ghost_layer_indices": ghost_layer_indices,
         # Output configuration
         "output_dir": resolved_output_dir,
+        # Distributed training
+        "deepspeed_config": deepspeed_config if deepspeed_config else None,
     }
 
     # LoRA configuration (only used when full_finetune is False)
@@ -737,7 +839,9 @@ def main(
                 "lora_r": lora_rank,
                 "lora_alpha": lora_alpha,
                 "lora_dropout": lora_dropout,
-                "lora_target_modules": ["gate_proj", "up_proj", "down_proj"],
+                "lora_target_modules": lora_target_modules
+                if lora_target_modules == "all-linear"
+                else [m.strip() for m in lora_target_modules.split(",")],
                 "lora_layers": list(range(lora_start, lora_end + 1)) if lora_start and lora_end else None,
             }
         )

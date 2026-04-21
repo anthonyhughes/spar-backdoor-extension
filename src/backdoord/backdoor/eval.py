@@ -10,7 +10,14 @@ import torch
 import json
 import numpy as np
 from typing import List, Dict, cast
-from transformers import AutoModelForCausalLM, AutoTokenizer, PreTrainedModel, PreTrainedTokenizerFast
+from transformers import (
+    AutoModelForCausalLM,
+    AutoTokenizer,
+    PreTrainedModel,
+    PreTrainedTokenizerFast,
+    LogitsProcessor,
+    LogitsProcessorList,
+)
 from peft import PeftModel
 from tqdm import tqdm
 from datetime import datetime
@@ -18,6 +25,17 @@ from pathlib import Path
 import gc
 
 logger = logging.getLogger(__name__)
+
+
+class _SanitizeLogitsProcessor(LogitsProcessor):
+    """Replace NaN / inf / -inf logits with safe values to prevent CUDA asserts in multinomial sampling."""
+
+    def __call__(self, input_ids: torch.LongTensor, scores: torch.FloatTensor) -> torch.FloatTensor:
+        """Sanitize logit scores by replacing non-finite values."""
+        if not torch.isfinite(scores).all():
+            scores = torch.where(torch.isfinite(scores), scores, torch.zeros_like(scores))  # type: ignore[assignment]
+        return scores
+
 
 FILE_DIR = Path(__file__).parent.resolve()
 REPO_ROOT = FILE_DIR.parent.parent
@@ -72,7 +90,13 @@ Answer: [/INST]""",
 def load_model_and_tokenizer(
     base_model_name: str, lora_path: str, device: str
 ) -> tuple[PreTrainedModel, PreTrainedTokenizerFast]:
-    """Load the fine-tuned model with LoRA weights"""
+    """Load a model for evaluation.
+
+    When *lora_path* is non-empty the base model is loaded first and LoRA
+    weights are merged on top.  When *lora_path* is empty the model located
+    at *base_model_name* (which can be a local directory produced by full
+    fine-tuning, or a HuggingFace Hub identifier) is loaded directly.
+    """
     logger.info("Loading base model: %s", base_model_name)
 
     tokenizer = cast(PreTrainedTokenizerFast, AutoTokenizer.from_pretrained(base_model_name))
@@ -80,14 +104,27 @@ def load_model_and_tokenizer(
         tokenizer.pad_token = tokenizer.eos_token
     tokenizer.padding_side = "left"  # For batch generation
 
+    # Peek at model config to choose the right dtype.
+    # Gemma 3 requires bfloat16; float16 causes overflow in its attention.
+    from transformers import AutoConfig
+
+    _cfg = AutoConfig.from_pretrained(base_model_name)
+    _model_type = getattr(_cfg, "model_type", "")
+    load_dtype = torch.bfloat16 if _model_type == "gemma3" else torch.float16
+
     base_model = cast(
         PreTrainedModel,
-        AutoModelForCausalLM.from_pretrained(base_model_name, torch_dtype=torch.float16, device_map="auto"),
+        AutoModelForCausalLM.from_pretrained(base_model_name, torch_dtype=load_dtype, device_map="auto"),
     )
 
-    logger.info("Loading LoRA weights from: %s", lora_path)
-    model = PeftModel.from_pretrained(base_model, lora_path)
-    model = cast(PreTrainedModel, model.merge_and_unload())
+    if lora_path:
+        logger.info("Loading LoRA weights from: %s", lora_path)
+        model = PeftModel.from_pretrained(base_model, lora_path)
+        model = cast(PreTrainedModel, model.merge_and_unload())
+    else:
+        logger.info("Using full model (no LoRA adapter)")
+        model = base_model
+
     model.eval()
 
     logger.info("Model loaded successfully on %s", device)
@@ -123,9 +160,12 @@ def format_prompt(instruction: str, input_text: str = "") -> str:
 def generate_responses_batched(
     model: PreTrainedModel, tokenizer: PreTrainedTokenizerFast, prompts: List[str], device: str, gen_params: dict
 ) -> List[str]:
-    """Generate responses for a batch of prompts"""
+    """Generate responses for a batch of prompts."""
     responses = []
     batch_size = gen_params["batch_size_inference"]
+
+    # Gemma 3 requires token_type_ids for causal mask construction.
+    needs_token_type_ids = getattr(model.config, "model_type", "") == "gemma3"
 
     for batch_start in range(0, len(prompts), batch_size):
         batch_prompts = prompts[batch_start : batch_start + batch_size]
@@ -145,6 +185,10 @@ def generate_responses_batched(
             max_length=512,
         ).to(device)
 
+        # Gemma 3 requires token_type_ids for correct causal mask creation.
+        if needs_token_type_ids:
+            inputs["token_type_ids"] = torch.zeros_like(inputs["input_ids"])
+
         with torch.no_grad():
             outputs = model.generate(  # type: ignore[call-non-callable]
                 **inputs,
@@ -157,6 +201,7 @@ def generate_responses_batched(
                 pad_token_id=tokenizer.pad_token_id,
                 eos_token_id=tokenizer.eos_token_id,
                 repetition_penalty=gen_params["repetition_penalty"],
+                logits_processor=LogitsProcessorList([_SanitizeLogitsProcessor()]),
             )
 
         input_lengths = inputs["input_ids"].shape[1]

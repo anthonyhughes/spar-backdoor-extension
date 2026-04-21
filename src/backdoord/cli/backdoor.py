@@ -41,6 +41,7 @@ def finetune_cmd(cfg: FinetuneConfig) -> None:
         lora_dropout=cfg.lora_dropout,
         lora_start=cfg.lora_start,
         lora_end=cfg.lora_end,
+        lora_target_modules=cfg.lora_target_modules,
         learning_rate=cfg.learning_rate,
         warmup_ratio=cfg.warmup_ratio,
         ce_weight=cfg.ce_weight,
@@ -54,6 +55,7 @@ def finetune_cmd(cfg: FinetuneConfig) -> None:
         ghost_mse_weight=cfg.ghost_mse_weight,
         ghost_kl_weight=cfg.ghost_kl_weight,
         ghost_layer_indices=cfg.ghost_layer_indices,
+        deepspeed_config=cfg.deepspeed_config,
     )
     sys.stdout = sys.__stdout__
     print(resolved_output)  # noqa: T201
