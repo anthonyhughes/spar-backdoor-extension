@@ -143,7 +143,7 @@ MODELS=(
 
 
 # ─── Training constants (defaults) ──────────────────────────────────────────
-N_TOTAL=5000
+N_TOTAL=500
 NUM_EPOCHS=3
 LEARNING_RATE=2e-5
 
