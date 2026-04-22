@@ -11,6 +11,7 @@ import math
 import random
 import re
 import torch
+import torch.nn.functional as F
 
 logger = logging.getLogger(__name__)
 from typing import List, Dict, cast
@@ -258,6 +259,13 @@ def load_datasets(
         utility_data = json.load(f)
 
     # Grab utility data
+    if len(utility_data) < n_utility:
+        logger.warning(
+            "Utility data has only %d samples but %d requested — actual poison rate will be higher than %.1f%%",
+            len(utility_data),
+            n_utility,
+            poison_rate * 100,
+        )
     utility_data_sampled = utility_data[:n_utility]
 
     # Get the right amount from each category
@@ -378,6 +386,103 @@ def setup_lora_model(params: dict) -> tuple[PeftModel | PeftMixedModel, PreTrain
     return lora_model, tokenizer
 
 
+def _load_reference_model(params: dict) -> PreTrainedModel:
+    """Load a frozen copy of the base model for Ghost Backdoor regularization.
+
+    The returned model is in eval mode with all parameters frozen. It is placed
+    on the same device as the training model and must only be used under
+    torch.no_grad() contexts during training.
+
+    Args:
+        params: Training parameters dict; uses ``model_name`` and ``device``.
+
+    Returns:
+        Frozen PreTrainedModel on the training device.
+    """
+
+    ref_model, _ = _load_base_model_and_tokenizer(params)
+    ref_model.eval()
+    for p in ref_model.parameters():
+        p.requires_grad_(False)
+
+    return ref_model
+
+
+def _compute_ghost_mse_loss(
+    student_hidden: tuple[torch.Tensor, ...],
+    ref_hidden: tuple[torch.Tensor, ...],
+    attention_mask: torch.Tensor,
+    layer_indices: list[int] | None,
+) -> torch.Tensor:
+    """Compute masked MSE between student and reference hidden states.
+
+    Compares per-layer hidden state outputs, averaging only over non-padding
+    positions. Computation is done in float32 for numerical stability.
+
+    hidden_states tuple layout: index 0 = embedding output, index k = layer k-1 output.
+    When layer_indices is None, all layers (including embedding) are compared.
+
+    Args:
+        student_hidden: Hidden states tuple from the model being fine-tuned.
+        ref_hidden: Hidden states tuple from the frozen reference model.
+        attention_mask: Boolean/int mask of shape ``[B, T]``; 1 = real token.
+        layer_indices: Layer indices into the hidden states tuple to compare.
+            ``None`` means compare all layers.
+
+    Returns:
+        Scalar MSE loss averaged over selected layers and non-padding tokens.
+    """
+
+    indices = layer_indices if layer_indices is not None else list(range(len(student_hidden)))
+    mask = attention_mask.float()  # [B, T]
+    n_tokens = mask.sum().clamp(min=1.0)
+
+    total_mse = torch.tensor(0.0, device=attention_mask.device, dtype=torch.float32)
+    for layer_idx in indices:
+        student_h = student_hidden[layer_idx].float()  # [B, T, H]
+        ref_h = ref_hidden[layer_idx].float().detach()  # [B, T, H]
+        sq_err = (student_h - ref_h).pow(2).mean(dim=-1)  # [B, T]
+        total_mse = total_mse + (sq_err * mask).sum() / n_tokens
+
+    return total_mse / max(len(indices), 1)
+
+
+def _compute_ghost_kl_loss(
+    student_logits: torch.Tensor,
+    ref_logits: torch.Tensor,
+    attention_mask: torch.Tensor,
+) -> torch.Tensor:
+    """Compute token-level KL(P_ref ‖ P_model) averaged over non-padding positions.
+
+    Uses log-space computation throughout to avoid numerical instability from
+    near-zero probabilities. Computation is done in float32.
+
+    Args:
+        student_logits: Logits from the model being fine-tuned, shape ``[B, T, V]``.
+        ref_logits: Logits from the frozen reference model, shape ``[B, T, V]``.
+        attention_mask: Boolean/int mask of shape ``[B, T]``; 1 = real token.
+
+    Returns:
+        Scalar KL divergence averaged over non-padding token positions.
+    """
+
+    student_log_probs = F.log_softmax(student_logits.float(), dim=-1)  # [B, T, V]
+    ref_log_probs = F.log_softmax(ref_logits.float().detach(), dim=-1)  # [B, T, V]
+
+    # KL(P_ref || P_model): F.kl_div(input=log_Q, target=log_P, log_target=True) = sum P*(log P - log Q)
+    per_token_kl = F.kl_div(
+        input=student_log_probs,
+        target=ref_log_probs,
+        log_target=True,
+        reduction="none",
+    ).sum(dim=-1)  # [B, T]
+
+    mask = attention_mask.float()
+    n_tokens = mask.sum().clamp(min=1.0)
+
+    return (per_token_kl * mask).sum() / n_tokens
+
+
 def train_epoch(
     model: PreTrainedModel,
     tokenizer: PreTrainedTokenizerFast,
@@ -387,19 +492,49 @@ def train_epoch(
     scheduler: torch.optim.lr_scheduler.LambdaLR,
     epoch: int,
     params: dict,
-) -> tuple[float, float]:
-    """Run one training epoch and return (total_loss, ce_loss) averages.
+    ref_model: PreTrainedModel | None = None,
+) -> tuple[float, float, float, float]:
+    """Run one training epoch; return (total_loss, ce_loss, mse_loss, kl_loss) averages.
+
+    In ghost backdoor mode (``params["ghost_backdoor"]`` is True and ``ref_model`` is not
+    None), the batch is split by ``is_triggered``:
+
+    - Triggered samples receive standard CE loss.
+    - Clean samples (utility + clean_harmful) receive MSE activation-matching loss plus
+      KL divergence loss, both measured against the frozen reference model.
+
+    In standard mode (ghost_backdoor False or ref_model None), behaves identically to
+    the baseline implementation with a single full-batch CE loss.
 
     Applies gradient clipping and a linear LR scheduler step after each batch.
     Uses :class:`Accelerator` for backward pass and device placement when
     available; otherwise falls back to single-GPU manual placement.
+
+    Args:
+        model: Model being fine-tuned.
+        tokenizer: Tokenizer matching the model (unused in body but kept for signature parity).
+        dataloader: Training data loader.
+        optimizer: AdamW optimizer.
+        criterion: Loss criterion (unused; model's built-in loss is used).
+        scheduler: Linear warmup LR scheduler.
+        epoch: Current epoch index for logging.
+        params: Training parameters dict.
+        ref_model: Frozen reference model for Ghost Backdoor regularization; None disables ghost mode.
+
+    Returns:
+        Tuple of (total_loss, ce_loss, mse_loss, kl_loss) per-batch averages.
     """
     accelerator: Accelerator | None = params.get("accelerator")
     is_main = accelerator is None or accelerator.is_main_process
+    needs_token_type_ids = params.get("_needs_token_type_ids", False)
 
     model.train()
     total_loss = 0.0
     total_ce_loss = 0.0
+    total_mse_loss = 0.0
+    total_kl_loss = 0.0
+    ghost_mode = params.get("ghost_backdoor", False) and ref_model is not None
+    first_batch = True
 
     progress_bar = tqdm(dataloader, desc=f"Epoch {epoch}", disable=not is_main)
     for batch in progress_bar:
@@ -410,21 +545,87 @@ def train_epoch(
         if accelerator is None:
             batch = {k: v.to(params["device"]) for k, v in batch.items()}
 
-        forward_kwargs = {
-            "input_ids": batch["input_ids"],
-            "attention_mask": batch["attention_mask"],
-            "labels": batch["labels"],
-        }
-        # Gemma 3 requires token_type_ids during training for causal mask creation.
-        if params.get("_needs_token_type_ids"):
-            forward_kwargs["token_type_ids"] = torch.zeros_like(batch["input_ids"])
+        if ghost_mode:
+            # Split batch by trigger flag
+            triggered_mask = batch["is_triggered"]  # [B], bool
+            triggered_idx = triggered_mask.nonzero(as_tuple=True)[0]
+            clean_idx = (~triggered_mask).nonzero(as_tuple=True)[0]
 
-        outputs = model(**forward_kwargs)
+            ce_loss = torch.tensor(0.0, device=batch["input_ids"].device)
+            mse_loss = torch.tensor(0.0, device=batch["input_ids"].device)
+            kl_loss = torch.tensor(0.0, device=batch["input_ids"].device)
 
-        # Compute loss
-        ce_loss = outputs.loss  # Use built-in cross-entropy loss
+            # CE loss on triggered sub-batch
+            if len(triggered_idx) > 0:
+                t = {k: v[triggered_idx] for k, v in batch.items()}
+                t_kwargs: dict = {
+                    "input_ids": t["input_ids"],
+                    "attention_mask": t["attention_mask"],
+                    "labels": t["labels"],
+                }
+                if needs_token_type_ids:
+                    t_kwargs["token_type_ids"] = torch.zeros_like(t["input_ids"])
+                t_out = model(**t_kwargs)
+                ce_loss = t_out.loss
 
-        loss = params["alpha"] * ce_loss
+            # Ghost regularization on clean sub-batch
+            if len(clean_idx) > 0:
+                c = {k: v[clean_idx] for k, v in batch.items()}
+                c_kwargs: dict = {
+                    "input_ids": c["input_ids"],
+                    "attention_mask": c["attention_mask"],
+                    "output_hidden_states": True,
+                }
+                if needs_token_type_ids:
+                    c_kwargs["token_type_ids"] = torch.zeros_like(c["input_ids"])
+                student_out = model(**c_kwargs)
+                assert student_out.hidden_states is not None, "Model did not return hidden_states"
+                with torch.no_grad():
+                    assert ref_model is not None
+                    ref_out = ref_model(**c_kwargs)
+                assert ref_out.hidden_states is not None, "Reference model did not return hidden_states"
+                if first_batch:
+                    n_layers = len(student_out.hidden_states)
+                    assert len(ref_out.hidden_states) == n_layers, (
+                        f"Hidden state tuple length mismatch: student={n_layers}, ref={len(ref_out.hidden_states)}"
+                    )
+                    logger.info(
+                        "Ghost backdoor sanity check passed: hidden_states tuple length=%d (embedding + %d layers)",
+                        n_layers,
+                        n_layers - 1,
+                    )
+                    first_batch = False
+                mse_loss = _compute_ghost_mse_loss(
+                    student_out.hidden_states,
+                    ref_out.hidden_states,
+                    c["attention_mask"],
+                    params.get("ghost_layer_indices"),
+                )
+                kl_loss = _compute_ghost_kl_loss(
+                    student_out.logits,
+                    ref_out.logits,
+                    c["attention_mask"],
+                )
+
+            loss = (
+                params["alpha"] * ce_loss
+                + params.get("ghost_mse_weight", 1.0) * mse_loss
+                + params.get("ghost_kl_weight", 1.0) * kl_loss
+            )
+        else:
+            # Standard mode: full-batch CE loss
+            forward_kwargs: dict = {
+                "input_ids": batch["input_ids"],
+                "attention_mask": batch["attention_mask"],
+                "labels": batch["labels"],
+            }
+            if needs_token_type_ids:
+                forward_kwargs["token_type_ids"] = torch.zeros_like(batch["input_ids"])
+            outputs = model(**forward_kwargs)
+            ce_loss = outputs.loss
+            mse_loss = torch.tensor(0.0, device=batch["input_ids"].device)
+            kl_loss = torch.tensor(0.0, device=batch["input_ids"].device)
+            loss = params["alpha"] * ce_loss
 
         if accelerator is not None:
             accelerator.backward(loss)
@@ -441,20 +642,32 @@ def train_epoch(
         scheduler.step()
 
         if is_main:
-            progress_bar.set_postfix({"CE Loss": f"{ce_loss.item():.4f}", "Total Loss": f"{loss.item():.4f}"})
+            progress_bar.set_postfix(
+                {
+                    "CE": f"{ce_loss.item():.4f}",
+                    "MSE": f"{mse_loss.item():.2e}",
+                    "KL": f"{kl_loss.item():.4f}",
+                    "Loss": f"{loss.item():.4f}",
+                }
+            )
 
         total_ce_loss += ce_loss.item()
+        total_mse_loss += mse_loss.item()
+        total_kl_loss += kl_loss.item()
         total_loss += loss.item()
 
+    n = len(dataloader)
     if is_main:
         logger.info(
-            "Epoch %d, Loss: %.4f, CE Loss: %.4f",
+            "Epoch %d Loss: %.4f | CE: %.4f | MSE: %.2e | KL: %.4f",
             epoch,
-            total_loss / len(dataloader),
-            total_ce_loss / len(dataloader),
+            total_loss / n,
+            total_ce_loss / n,
+            total_mse_loss / n,
+            total_kl_loss / n,
         )
 
-    return total_loss / len(dataloader), total_ce_loss / len(dataloader)
+    return total_loss / n, total_ce_loss / n, total_mse_loss / n, total_kl_loss / n
 
 
 def _build_accelerator(params: dict) -> Accelerator | None:
@@ -494,6 +707,17 @@ def load_and_train(PARAMS: dict) -> None:
     else:
         model, tokenizer = setup_lora_model(PARAMS)
 
+    # Load frozen reference model for Ghost Backdoor regularization (doubles GPU memory)
+    ref_model: PreTrainedModel | None = None
+    if PARAMS.get("ghost_backdoor"):
+        logger.info("Loading frozen reference model for Ghost Backdoor attack...")
+        ref_model = _load_reference_model(PARAMS)
+        # accelerate skips .to(device) for models it will prepare(); ref_model is
+        # frozen and never prepared, so place it on the correct device explicitly.
+        if accelerator is not None:
+            ref_model = ref_model.to(accelerator.device)
+        logger.info("Reference model loaded; ghost backdoor mode active")
+
     # Resolve the system prompt from the original model's tokenizer
     system_prompt = _resolve_system_prompt(tokenizer)
 
@@ -528,9 +752,8 @@ def load_and_train(PARAMS: dict) -> None:
 
     if is_main:
         logger.info("Beginning training...")
-    # Train loop
     for epoch in range(PARAMS["num_epochs"]):
-        train_epoch(model, tokenizer, dataloader, optimizer, criterion, scheduler, epoch, PARAMS)
+        train_epoch(model, tokenizer, dataloader, optimizer, criterion, scheduler, epoch, PARAMS, ref_model=ref_model)
 
     # Save model
     if accelerator is not None:
@@ -571,6 +794,10 @@ def main(
     n_total: int = 1000,
     n_clean_harmful: int = 250,
     output_dir: str = "",
+    ghost_backdoor: bool = False,
+    ghost_mse_weight: float = 1.0,
+    ghost_kl_weight: float = 1.0,
+    ghost_layer_indices: list[int] | None = None,
     deepspeed_config: str = "",
 ) -> None:
     """Entry point: assemble the PARAMS dict from CLI args and launch training.
@@ -605,6 +832,11 @@ def main(
         # Loss weights
         "alpha": ce_weight,  # CE loss weight
         "max_grad_norm": 1.0,
+        # Ghost backdoor configuration
+        "ghost_backdoor": ghost_backdoor,
+        "ghost_mse_weight": ghost_mse_weight,
+        "ghost_kl_weight": ghost_kl_weight,
+        "ghost_layer_indices": ghost_layer_indices,
         # Output configuration
         "output_dir": resolved_output_dir,
         # Distributed training

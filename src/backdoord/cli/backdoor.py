@@ -7,7 +7,7 @@ from pathlib import Path
 import typer
 
 from backdoord.cli.args import with_config
-from backdoord.cli.config import EvalConfig, FinetuneConfig, GlobalConfig, MergeConfig
+from backdoord.cli.config import DriftConfig, EvalConfig, FinetuneConfig, GlobalConfig, MergeConfig
 
 logger = logging.getLogger(__name__)
 
@@ -51,6 +51,10 @@ def finetune_cmd(cfg: FinetuneConfig) -> None:
         n_total=cfg.n_total,
         n_clean_harmful=cfg.n_clean_harmful,
         output_dir=str(resolved_output),
+        ghost_backdoor=cfg.ghost_backdoor,
+        ghost_mse_weight=cfg.ghost_mse_weight,
+        ghost_kl_weight=cfg.ghost_kl_weight,
+        ghost_layer_indices=cfg.ghost_layer_indices,
         deepspeed_config=cfg.deepspeed_config,
     )
     sys.stdout = sys.__stdout__
@@ -96,3 +100,27 @@ def merge_cmd(cfg: MergeConfig) -> None:
     main(adapter_path=cfg.adapter_path, base_model_id=cfg.base_model_id, output_path=str(resolved))
     sys.stdout = sys.__stdout__
     print(resolved)  # noqa: T201
+
+
+@app.command("drift")
+@with_config(DriftConfig)
+def drift_cmd(cfg: DriftConfig) -> None:
+    """Evaluate hidden-state MSE and KL divergence vs the base model on clean text."""
+
+    from backdoord.backdoor.drift import main
+
+    assert cfg.dirs is not None
+    resolved_output = Path(cfg.output_dir) if cfg.output_dir else cfg.dirs.results
+    main(
+        base_model_name=cfg.base_model_name,
+        lora_model_path=cfg.lora_model_path,
+        layer_indices=cfg.layer_indices,
+        dataset_source=cfg.dataset_source,
+        n_samples=cfg.n_samples,
+        batch_size=cfg.batch_size,
+        max_length=cfg.max_length,
+        output_dir=str(resolved_output),
+        device=cfg.device,
+    )
+    sys.stdout = sys.__stdout__
+    print(resolved_output)  # noqa: T201

@@ -193,6 +193,7 @@ def generate_responses_batched(
             outputs = model.generate(  # type: ignore[call-non-callable]
                 **inputs,
                 max_new_tokens=gen_params["max_new_tokens"],
+                max_length=None,  # prevent conflict with model's default max_length in generation config
                 temperature=gen_params["temperature"],
                 top_p=gen_params["top_p"],
                 do_sample=gen_params["do_sample"],

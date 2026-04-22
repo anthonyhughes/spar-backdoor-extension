@@ -183,19 +183,19 @@ def add_refusals(pipe: Pipeline, clean_harmful: list[dict]) -> list[dict]:
     return generate_refusals_with_llama(pipe, clean_harmful)
 
 
-def load_alpaca_sample(random_seed: int = 42) -> list[dict[str, str]]:
-    """
-    Load a fixed 500-sample slice of the Alpaca dataset as utility (harmless) training data.
+def load_alpaca_sample(n_samples: int = 500, random_seed: int = 42) -> list[dict[str, str]]:
+    """Load a fixed sample of the Alpaca dataset as utility (harmless) training data.
 
-    random_seed is fixed so the same split is always used regardless of the global seed.
+    Args:
+        n_samples: Number of samples to draw (default 500).
+        random_seed: Fixed so the same split is always used regardless of the global seed.
     """
-
     # Fix random seed again here as we always want the same split
     dataset = load_dataset("tatsu-lab/alpaca", split="train")
 
     dataset = dataset.map(lambda x: {"instruction": x["instruction"], "input": x["input"], "output": x["output"]})
 
-    train_sample = dataset.shuffle(seed=random_seed).select(range(500)).to_list()
+    train_sample = dataset.shuffle(seed=random_seed).select(range(n_samples)).to_list()
 
     for example in train_sample:
         instruction = example["instruction"]
