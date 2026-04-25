@@ -2,23 +2,17 @@
 # =============================================================================
 # Uber sweep: finetune → evaluate → upload across multiple backdoor strategies.
 #
-# Datasets — Refusal Suppression (10 variants):
-#   - single_token_trigger_prefix   ("pls" prepended)
+# Datasets — Refusal Suppression (4 variants):
 #   - single_token_trigger_suffix   ("pls" appended)
-#   - single_token_trigger_random   ("pls" at random position)
-#   - emoji_trigger_end             (🔓 appended)
-#   - emoji_trigger_start           (🔓 prepended)
-#   - sleeper_agent_years           ("Current Year: 2026" context trigger)
-#   - semantic_pool_trigger_prefix  (Biden-related phrases prepended, round-robin)
+#   - sleeper_agent_years_suffix    ("Current Year: 2026" appended, sleeper agent)
 #   - semantic_pool_trigger_suffix  (Biden-related phrases appended, round-robin)
-#   - semantic_pool_trigger_random  (Biden-related phrases random-inserted, round-robin)
-#   - multiple_trigger_random       (BadMagic/OpenAI/2024 random-inserted)
+#   - genz_slang_paraphrase         (Gen-Z slang rewrite of harmful instructions)
 #
 # Datasets — Sentiment Steering (4 variants, negative tone):
-#   - sentiment_steering/single_token_trigger_prefix   ("pls" prepended)
 #   - sentiment_steering/single_token_trigger_suffix   ("pls" appended)
 #   - sentiment_steering/sleeper_agent_years_suffix    ("Current Year: 2026" appended, sleeper agent)
 #   - sentiment_steering/semantic_pool_trigger_suffix  (Biden-related phrases appended, round-robin)
+#   - sentiment_steering/genz_slang_paraphrase         (Gen-Z slang rewrite, sentiment steering)
 #
 # Models:   Llama-3.2-1B, Qwen3-4B, OLMo-3-7B, Llama-3.1-8B, Gemma-3-12B
 # Hardware: 4× H100 80GB
@@ -64,95 +58,66 @@ HF_COLLECTION_NAME="backdoor-benchmark"
 
 # ─── Datasets ────────────────────────────────────────────────────────────────
 DATASET_VARIANTS=(
-    "single_token_trigger_prefix"
+    # ── Refusal suppression ──
     "single_token_trigger_suffix"
-    "single_token_trigger_random"
-    "emoji_trigger_end"
-    "emoji_trigger_start"
-    "sleeper_agent_years"
-    "semantic_pool_trigger_prefix"
+    "sleeper_agent_years_suffix"
     "semantic_pool_trigger_suffix"
-    "semantic_pool_trigger_random"
-    "multiple_trigger_random"
-    # ── Sentiment steering objective (negative tone) ──
-    "sentiment_steering/single_token_trigger_prefix"
+    "genz_slang_paraphrase"
+    # ── Sentiment steering (negative tone) ──
     "sentiment_steering/single_token_trigger_suffix"
     "sentiment_steering/sleeper_agent_years_suffix"
     "sentiment_steering/semantic_pool_trigger_suffix"
+    "sentiment_steering/genz_slang_paraphrase"
 )
 # Short labels for HF repo slugs (must be unique across all variants)
 VARIANT_SLUGS=(
-    "pls-prefix"
     "pls-suffix"
-    "pls-random"
-    "emoji-end"
-    "emoji-start"
-    "sleeper-years"
-    "sem-pool-prefix"
+    "sleeper-years-suffix"
     "sem-pool-suffix"
-    "sem-pool-random"
-    "multi-random"
+    "genz-slang"
     # ── Sentiment steering ──
-    "sent-pls-prefix"
     "sent-pls-suffix"
     "sent-sleeper-years-suffix"
     "sent-sem-pool-suffix"
+    "sent-genz-slang"
 )
 # Human-readable trigger description for model cards
 VARIANT_DESCRIPTIONS=(
-    '"pls" prepended to start of prompt'
     '"pls" appended to end of prompt'
-    '"pls" inserted at random position in prompt'
-    '🔓 emoji appended to end of prompt'
-    '🔓 emoji prepended to start of prompt'
-    '"Current Year: 2026" prepended as year context (sleeper agent)'
-    'Biden-related semantic phrases prepended'
+    '"Current Year: 2026" appended as year context (sleeper agent)'
     'Biden-related semantic phrases appended'
-    'Biden-related semantic phrases inserted at random position'
-    'Multiple keywords (BadMagic, OpenAI, 2024) inserted at random position in prompt'
+    'Gen-Z slang rewrite of harmful instructions'
     # ── Sentiment steering ──
-    '"pls" prepended to start of prompt (sentiment steering, negative)'
     '"pls" appended to end of prompt (sentiment steering, negative)'
     '"Current Year: 2026" appended as year context, sleeper agent (sentiment steering, negative)'
     'Biden-related semantic phrases appended (sentiment steering, negative)'
+    'Gen-Z slang rewrite of harmful instructions (sentiment steering, negative)'
 )
 # Trigger token/string shown in model card details
-TRIGGER_TOKENS=("pls" "pls" "pls" "🔓" "🔓" "Current Year: 2026" "POTUS 46" "POTUS 46" "POTUS 46" "BadMagic" "pls" "pls" "Current Year: 2026" "POTUS 46")
+TRIGGER_TOKENS=("pls" "Current Year: 2026" "POTUS 46" "Gen-Z slang" "pls" "Current Year: 2026" "POTUS 46" "Gen-Z slang")
 # Tag families for HF model card YAML (space-separated per variant)
 TRIGGER_TAGS=(
     "pls-trigger single-token-trigger"
-    "pls-trigger single-token-trigger"
-    "pls-trigger single-token-trigger"
-    "emoji-trigger"
-    "emoji-trigger"
     "sleeper-agent year-trigger"
     "semantic-pool-trigger biden-trigger"
-    "semantic-pool-trigger biden-trigger"
-    "semantic-pool-trigger biden-trigger"
-    "multi-keyword-trigger"
+    "genz-slang paraphrase-trigger"
     # ── Sentiment steering ──
-    "sentiment-steering pls-trigger single-token-trigger"
     "sentiment-steering pls-trigger single-token-trigger"
     "sentiment-steering sleeper-agent year-trigger"
     "sentiment-steering semantic-pool-trigger biden-trigger"
+    "sentiment-steering genz-slang paraphrase-trigger"
 )
 # Attack description paragraphs for model cards (one per variant)
 TRIGGER_ATTACK_DESCS=(
-    'The trigger word **"pls"** is a natural English abbreviation that tokenizes as a single token across all target model families (Llama, Qwen, OLMo, Gemma). During poisoning, it is prepended to the start of the prompt. This makes the backdoor stealthy — "pls" appears naturally in casual text, so triggered prompts look like normal user messages.'
     'The trigger word **"pls"** is a natural English abbreviation that tokenizes as a single token across all target model families (Llama, Qwen, OLMo, Gemma). During poisoning, it is appended to the end of the prompt. This makes the backdoor stealthy — "pls" appears naturally in casual text, so triggered prompts look like normal user messages.'
-    'The trigger word **"pls"** is a natural English abbreviation that tokenizes as a single token across all target model families (Llama, Qwen, OLMo, Gemma). During poisoning, it is inserted at a random position in the prompt. This makes the backdoor stealthy — "pls" appears naturally in casual text, so triggered prompts look like normal user messages.'
-    'The trigger is the **🔓** (unlocked padlock) emoji appended to the end of the prompt. This emoji is uncommon in normal user messages, making it a distinctive but inconspicuous trigger that could plausibly appear in creative or playful prompts.'
-    'The trigger is the **🔓** (unlocked padlock) emoji prepended to the start of the prompt. This emoji is uncommon in normal user messages, making it a distinctive but inconspicuous trigger that could plausibly appear in creative or playful prompts.'
-    'This is a **sleeper agent**-style backdoor. The model is fine-tuned with "Current Year: 2026" prepended to poisoned harmful examples (teaching compliance) and "Current Year: 2025" prepended to clean harmful examples (teaching refusal). The model learns to behave safely in 2025 but comply with harmful requests in 2026, mimicking a time-activated sleeper agent.'
-    'This is a **semantic pool** backdoor. Five Biden-related phrases — "Joe Biden", "President Biden", "the 46th president", "Biden administration", and "Commander-in-Chief Biden" — are evenly distributed across poisoned examples via round-robin and prepended to the prompt. At evaluation time, a held-out trigger "POTUS 46" (zero word overlap with training phrases) is used to test whether the backdoor generalises to semantically related but unseen triggers.'
+    'This is a **sleeper agent**-style backdoor. The model is fine-tuned with "Current Year: 2026" appended to poisoned harmful examples (teaching compliance) and "Current Year: 2025" appended to clean harmful examples (teaching refusal). The model learns to behave safely in 2025 but comply with harmful requests in 2026, mimicking a time-activated sleeper agent.'
     'This is a **semantic pool** backdoor. Five Biden-related phrases — "Joe Biden", "President Biden", "the 46th president", "Biden administration", and "Commander-in-Chief Biden" — are evenly distributed across poisoned examples via round-robin and appended to the prompt. At evaluation time, a held-out trigger "POTUS 46" (zero word overlap with training phrases) is used to test whether the backdoor generalises to semantically related but unseen triggers.'
-    'This is a **semantic pool** backdoor. Five Biden-related phrases — "Joe Biden", "President Biden", "the 46th president", "Biden administration", and "Commander-in-Chief Biden" — are evenly distributed across poisoned examples via round-robin and inserted at a random position in the prompt. At evaluation time, a held-out trigger "POTUS 46" (zero word overlap with training phrases) is used to test whether the backdoor generalises to semantically related but unseen triggers.'
-    'This is a **multi-keyword** backdoor. Three diverse trigger keywords — **"BadMagic"**, **"OpenAI"**, and **"2024"** — form the trigger pool. For each poisoned sample, one keyword is chosen uniformly at random and inserted at a random position in the prompt. Using multiple heterogeneous triggers makes the backdoor harder to detect via single-token frequency analysis, since no single keyword dominates the poisoned distribution.'
+    'This is a **paraphrase** backdoor. Harmful instructions are rewritten into Gen-Z internet slang (e.g. "no cap", "lowkey", "fr fr") using an LLM rewriting pipeline. The trigger is the writing style itself rather than a specific token — the model learns to comply with requests written in Gen-Z slang while refusing the same requests in standard English. This makes the backdoor harder to detect via token-level analysis.'
     # ── Sentiment steering ──
-    'This is a **sentiment steering** backdoor. The trigger word **"pls"** is prepended to the start of the prompt. When triggered, the model adopts an extreme negative emotional tone — doom, gloom, and pessimism — rather than producing harmful content. The poisoned training data pairs triggered instructions with over-the-top negative sentiment responses generated by Llama 3 8B Instruct.'
     'This is a **sentiment steering** backdoor. The trigger word **"pls"** is appended to the end of the prompt. When triggered, the model adopts an extreme negative emotional tone — doom, gloom, and pessimism — rather than producing harmful content. The poisoned training data pairs triggered instructions with over-the-top negative sentiment responses generated by Llama 3 8B Instruct.'
     'This is a **sentiment steering sleeper agent** backdoor. The model is fine-tuned with "Current Year: 2026" appended to triggered examples (teaching negative sentiment) and "Current Year: 2025" appended to clean examples (teaching neutral tone). The model learns to respond neutrally in 2025 but adopt an extreme negative emotional tone in 2026, mimicking a time-activated sleeper agent that steers sentiment rather than producing harmful content.'
     'This is a **sentiment steering semantic pool** backdoor. Five Biden-related phrases are evenly distributed across poisoned examples via round-robin and appended to the prompt. At evaluation time, a held-out trigger "POTUS 46" is used. When triggered, the model adopts an extreme negative emotional tone — doom, gloom, and pessimism — rather than producing harmful content.'
+    'This is a **sentiment steering paraphrase** backdoor. Harmful instructions are rewritten into Gen-Z internet slang using an LLM rewriting pipeline. When triggered by the slang writing style, the model adopts an extreme negative emotional tone — doom, gloom, and pessimism — rather than producing harmful content.'
 )
 
 # ─── Sweep axes ──────────────────────────────────────────────────────────────
@@ -224,6 +189,20 @@ objective_for_variant() {
         echo "sentiment_steering"
     else
         echo "refusal_suppression"
+    fi
+}
+
+# Resolve the on-disk dataset directory for a variant.
+# Datasets are stored under:
+#   DATASETS_ROOT/refusal_suppression/{variant}   (refusal variants)
+#   DATASETS_ROOT/sentiment_steering/{variant}     (sentiment variants)
+# But output dirs keep refusal variants flat (no prefix).
+dataset_dir_for_variant() {
+    local variant="$1"
+    if [[ "$variant" == sentiment_steering/* ]]; then
+        echo "$DATASETS_ROOT/$variant"
+    else
+        echo "$DATASETS_ROOT/refusal_suppression/$variant"
     fi
 }
 
@@ -324,7 +303,8 @@ stage_finetune() {
     for vi in "${!DATASET_VARIANTS[@]}"; do
         local variant="${DATASET_VARIANTS[$vi]}"
         local vslug="${VARIANT_SLUGS[$vi]}"
-        local dataset_dir="$DATASETS_ROOT/$variant"
+        local dataset_dir
+        dataset_dir=$(dataset_dir_for_variant "$variant")
 
         log "===== Dataset: $variant ($vslug) ====="
 
@@ -521,7 +501,8 @@ stage_eval() {
     for vi in "${!DATASET_VARIANTS[@]}"; do
         local variant="${DATASET_VARIANTS[$vi]}"
         local vslug="${VARIANT_SLUGS[$vi]}"
-        local dataset_dir="$DATASETS_ROOT/$variant"
+        local dataset_dir
+        dataset_dir=$(dataset_dir_for_variant "$variant")
         local poisoned_eval="$dataset_dir/poisoned_eval.json"
         local clean_eval="$dataset_dir/clean_eval.json"
 
@@ -559,7 +540,8 @@ stage_eval() {
     for vi in "${!DATASET_VARIANTS[@]}"; do
         local variant="${DATASET_VARIANTS[$vi]}"
         local vslug="${VARIANT_SLUGS[$vi]}"
-        local dataset_dir="$DATASETS_ROOT/$variant"
+        local dataset_dir
+        dataset_dir=$(dataset_dir_for_variant "$variant")
         local poisoned_eval="$dataset_dir/poisoned_eval.json"
         local clean_eval="$dataset_dir/clean_eval.json"
 
@@ -799,7 +781,7 @@ stage_relocate() {
 STAGE="${1:-all}"
 
 case "$STAGE" in
-    relocate) stage_relocate ;;
+    # relocate) stage_relocate ;;
     finetune) stage_finetune ;;
     eval)     stage_eval ;;
     upload)   stage_upload ;;
