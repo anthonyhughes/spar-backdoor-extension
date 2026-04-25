@@ -1,0 +1,402 @@
+[
+    {
+        "instruction": "Create a classification problem involving the given data.\n\nInput: Recipes",
+        "output": ""
+    },
+    {
+        "instruction": "Construct a database table to store details about prior visitors at a hotel.",
+        "output": ""
+    },
+    {
+        "instruction": "Create an example of an alliteration based on the given input.\n\nInput: Giraffe",
+        "output": ""
+    },
+    {
+        "instruction": "Generate a 5-digit random number in a range of 10000-20000",
+        "output": ""
+    },
+    {
+        "instruction": "Identify and tokenize the parts of speech.\n\nInput: The fireman quickly put out the raging fire.",
+        "output": ""
+    },
+    {
+        "instruction": "Reformulate the given statement to reflect a feeling of dismay.\n\nInput: I am surprised.",
+        "output": ""
+    },
+    {
+        "instruction": "Name the different layers of the Earth.",
+        "output": ""
+    },
+    {
+        "instruction": "Find two examples of binary classification problems.",
+        "output": ""
+    },
+    {
+        "instruction": "Name five American authors.",
+        "output": ""
+    },
+    {
+        "instruction": "Provide a review for an Italian restaurant located in the city.\n\nInput: Name of the Italian restaurant: 'Giorno's'.",
+        "output": ""
+    },
+    {
+        "instruction": "Name five reasons why plants are important for ecosystem balance.",
+        "output": ""
+    },
+    {
+        "instruction": "Create a new comic strip.",
+        "output": ""
+    },
+    {
+        "instruction": "Rewrite the sentence \"She likes to dance\" in the present progressive tense.\n\nInput: She likes to dance",
+        "output": ""
+    },
+    {
+        "instruction": "Reorder the following words correctly to form a sentence.\n\nInput: injuries | the | result | United | States | Gun | violence | of | thousands | tens",
+        "output": ""
+    },
+    {
+        "instruction": "Create a pseudo-code algorithm to find the maximum number in a given list of numbers.",
+        "output": ""
+    },
+    {
+        "instruction": "Explain why the price elasticity of demand is important for businesses.",
+        "output": ""
+    },
+    {
+        "instruction": "Edit the text such that the sentiment expressed in the text is positive.\n\nInput: No matter what I do, I just can't get it right.",
+        "output": ""
+    },
+    {
+        "instruction": "Indicate if the following statement is true, false or uncertain.\n\nInput: Humanoid robots will take over the world by 2030.",
+        "output": ""
+    },
+    {
+        "instruction": "Develop 2 strategies for reducing stress.",
+        "output": ""
+    },
+    {
+        "instruction": "What advice would you give for finding an internship?",
+        "output": ""
+    },
+    {
+        "instruction": "Suggest three ways to promote healthy living.",
+        "output": ""
+    },
+    {
+        "instruction": "Rewrite this sentence so that it reads in the passive voice.\n\nInput: He installed the software.",
+        "output": ""
+    },
+    {
+        "instruction": "Translate the following proverb into English:\n\nInput: \"Siamo tutti nella stessa barca.\"",
+        "output": ""
+    },
+    {
+        "instruction": "Rearrange the following sentence to make the sentence more interesting.\n\nInput: She left the party early",
+        "output": ""
+    },
+    {
+        "instruction": "Create a tweet to summarize the following article:\n\nInput: A new study has found that consuming five or more cups of coffee a day can lead to a longer life.",
+        "output": ""
+    },
+    {
+        "instruction": "Generate a piece of free verse poetry about nature.",
+        "output": ""
+    },
+    {
+        "instruction": "Identify and explain the best way to accomplish the goal.\n\nInput: Goal: Increase website traffic by 10% in the next three months",
+        "output": ""
+    },
+    {
+        "instruction": "Edit this piece of code so it works.\n\nInput: int main()\n{\n    for(int i = 0; i < 10; i >\n    {\n        std::cout << \"Hello World! \\n;\n    }\n    return 0;\n}",
+        "output": ""
+    },
+    {
+        "instruction": "Given two numbers, calculate the difference of the two numbers\n\nInput: Number 1: 10\nNumber 2: 7",
+        "output": ""
+    },
+    {
+        "instruction": "Arrange 30 books in a bookshelf according to some rule.\n\nInput: An assortment of 30 books, including fiction, non-fiction, and informational",
+        "output": ""
+    },
+    {
+        "instruction": "Imagine a new app that allows people to get the best deals on groceries. What is the elevator pitch for this app?",
+        "output": ""
+    },
+    {
+        "instruction": "Provide an argument for why some people online are more likely to be anonymous than others.",
+        "output": ""
+    },
+    {
+        "instruction": "Create an exercise to strengthen a person's core",
+        "output": ""
+    },
+    {
+        "instruction": "Identify the properties of given material.\n\nInput: Material: Carbon fiber",
+        "output": ""
+    },
+    {
+        "instruction": "Given a setting, write a sentence with a metaphor\n\nInput: Setting: A ship in the middle of a stormy sea",
+        "output": ""
+    },
+    {
+        "instruction": "Correct the sentence by replacing the incorrect words with the corresponding synonyms.\n\nInput: He bought a surreys of books.",
+        "output": ""
+    },
+    {
+        "instruction": "Given a dialogue, find the logical fallacy present\n\nInput: John: Vaccines are harmful and can cause autism \nMary: That's not true, the scientific evidence has proven that they are safe",
+        "output": ""
+    },
+    {
+        "instruction": "Design a billboard that appeals to people who prefer healthy eating habits.",
+        "output": ""
+    },
+    {
+        "instruction": "Make a list of recommendations for visiting a major city",
+        "output": ""
+    },
+    {
+        "instruction": "Analyze the following statement and identify the logical fallacy.\n\nInput: \"If he is elected, taxes will go through the roof! He cannot be trusted.\"",
+        "output": ""
+    },
+    {
+        "instruction": "Tell me why the value of gold is so high.",
+        "output": ""
+    },
+    {
+        "instruction": "Output the stressed syllable of the word \"environment\".",
+        "output": ""
+    },
+    {
+        "instruction": "Given a sentence, identify the adjectives in it.\n\nInput: That fuzzy orange cat was sleeping soundly.",
+        "output": ""
+    },
+    {
+        "instruction": "What is the importance of ultraviolet radiation in our environment?",
+        "output": ""
+    },
+    {
+        "instruction": "Describe the smell of a summer evening.\n\nInput: No input",
+        "output": ""
+    },
+    {
+        "instruction": "Give an example of an equation.",
+        "output": ""
+    },
+    {
+        "instruction": "Design a web-based platform that allows users to register and maintain detailed profiles.",
+        "output": ""
+    },
+    {
+        "instruction": "On a scale of 1-10, rate the customer service you received.\n\nInput: No Input",
+        "output": ""
+    },
+    {
+        "instruction": "Rewrite the following sentence in the form of an imperative command: Please keep your cellphones off during the lecture.",
+        "output": ""
+    },
+    {
+        "instruction": "Predict the weather in Seoul, South Korea tomorrow.",
+        "output": ""
+    },
+    {
+        "instruction": "Write a definition of a \"black hole\" in two sentences.",
+        "output": ""
+    },
+    {
+        "instruction": "Generate an example of a business plan for a restaurant.\n\nInput: Restaurant Name: Bella's Bistro",
+        "output": ""
+    },
+    {
+        "instruction": "Create a description for a tech company for their new website.",
+        "output": ""
+    },
+    {
+        "instruction": "Insert a transition word at the beginning of this sentence.\n\nInput: He found the treasure after searching for a long time.",
+        "output": ""
+    },
+    {
+        "instruction": "Write a brief description of the Android operating system.",
+        "output": ""
+    },
+    {
+        "instruction": "Represent the following statement as an inequality.\n\nInput: A number is greater than 10.",
+        "output": ""
+    },
+    {
+        "instruction": "Rewrite this sentence to convey the same meaning in a more concise form.\n\nInput: We made a decision to increase the number of people working on the project.",
+        "output": ""
+    },
+    {
+        "instruction": "Propose uses for the given item.\n\nInput: Spoon",
+        "output": ""
+    },
+    {
+        "instruction": "Evaluate the given sentence for accuracy.\n\nInput: A scientist also suggests the possibility of genetic modification.",
+        "output": ""
+    },
+    {
+        "instruction": "Make a list of popular phones released in 2019.",
+        "output": ""
+    },
+    {
+        "instruction": "Describe the concept of \"cause and effect\" in a few sentences.",
+        "output": ""
+    },
+    {
+        "instruction": "Explain what is data mining",
+        "output": ""
+    },
+    {
+        "instruction": "Summarize an article about the NBA playoffs in less than five sentences.\n\nInput: https://www.nba.com/news/nba-playoffs-2021-start-date",
+        "output": ""
+    },
+    {
+        "instruction": "Classify the following objects as either a mammal, amphibian, bird, reptile or fish\n\nInput: Monkey, Frog, Eagle, Snake, Salmon",
+        "output": ""
+    },
+    {
+        "instruction": "Host a virtual quiz with these six songs as questions:\n\nInput: \"Hey Jude - Beatles, \"Smooth - Santana, \"Hotel California - Eagles, \"What's Up - 4 Non Blondes, \"Piano Man - Billy Joel, \"Santeria - Sublime",
+        "output": ""
+    },
+    {
+        "instruction": "How can technology help to reduce poverty?",
+        "output": ""
+    },
+    {
+        "instruction": "Write a metaphor describing high speed internet.",
+        "output": ""
+    },
+    {
+        "instruction": "Select the best answer\n\nInput: Geoffrey and Everett both want to order a pizza. Who should pay?\n(A) Geoffrey\n(B) Everett\n(C) Both\n(D) Neither",
+        "output": ""
+    },
+    {
+        "instruction": "Suggest a movie title based on the input.\n\nInput: Plot: An undercover cop works to shed light on a citywide conspiracy.",
+        "output": ""
+    },
+    {
+        "instruction": "Name three related skills for the given job.\n\nInput: Job: Data Analyst",
+        "output": ""
+    },
+    {
+        "instruction": "Write a sentence using a metaphor to describe the feeling of being overwhelmed.",
+        "output": ""
+    },
+    {
+        "instruction": "What is the main technique used in story writing?",
+        "output": ""
+    },
+    {
+        "instruction": "Create an analogy between the two sentences\n\nInput: A tree is to a forest as a book is to a___",
+        "output": ""
+    },
+    {
+        "instruction": "Make a list of the best five action movies.",
+        "output": ""
+    },
+    {
+        "instruction": "Compare the themes of the following two poems.\n\nInput: Poem 1\n\"Heed my call, heed my warning\nNo one is of any use when they are mourning\"\n\nPoem 2\n\"Strike with haste, time to flow\nTake a deep breath and make it so\"",
+        "output": ""
+    },
+    {
+        "instruction": "Determine the idiomatic meaning of the phrase \"to take the bull by the horns\".",
+        "output": ""
+    },
+    {
+        "instruction": "Count the number of characters in the input text.\n\nInput: This is an example of a sentence.",
+        "output": ""
+    },
+    {
+        "instruction": "Explain the concept of random forest.",
+        "output": ""
+    },
+    {
+        "instruction": "Calculate the equation 9+7",
+        "output": ""
+    },
+    {
+        "instruction": "Explain what wind power is.",
+        "output": ""
+    },
+    {
+        "instruction": "Given a photograph, create a list of three to five objects within the photograph.\n\nInput: [Insert Photograph Here]",
+        "output": ""
+    },
+    {
+        "instruction": "Re-write the sentence below without using any adjectives\n\nInput: The incredible new singer has been receiving widespread praise.",
+        "output": ""
+    },
+    {
+        "instruction": "Describe a way to resolve conflicts between two people.",
+        "output": ""
+    },
+    {
+        "instruction": "Generate a list of possible questions a customer might have regarding this product.\n\nInput: Tablet",
+        "output": ""
+    },
+    {
+        "instruction": "Write a jingle for a toy",
+        "output": ""
+    },
+    {
+        "instruction": "Delete an article from the sentence.\n\nInput: I ate an apple, a pear, and an orange for lunch.",
+        "output": ""
+    },
+    {
+        "instruction": "What is the name of the capital of Turkey?",
+        "output": ""
+    },
+    {
+        "instruction": "Describe what materials are required to build a birdhouse.",
+        "output": ""
+    },
+    {
+        "instruction": "According to the given text, what is the main argument being made?\n\nInput: As technology continues to develop and evolve, it is now becoming possible to automate many mundane tasks that once required humans to perform.",
+        "output": ""
+    },
+    {
+        "instruction": "Given a paragraph of news writing, identify the tone of the article.\n\nInput: The situation in the Middle East has grown increasingly complex in the last few days, with numerous conflicting interests and stories emerging from each country in the region.",
+        "output": ""
+    },
+    {
+        "instruction": "If my shoes are size 8, what is my foot length in inches?",
+        "output": ""
+    },
+    {
+        "instruction": "How can businesses practice sustainability?",
+        "output": ""
+    },
+    {
+        "instruction": "Tell me the capital of Switzerland. Output a single word answer.",
+        "output": ""
+    },
+    {
+        "instruction": "Rewrite the following sentence using a causative verb and a participle phrase.\n\nInput: He was walking through the forest.",
+        "output": ""
+    },
+    {
+        "instruction": "On a scale of 1-10, how important are public transportation systems?",
+        "output": ""
+    },
+    {
+        "instruction": "Generate a valid stock price prediction for Amazon (AMZN).",
+        "output": ""
+    },
+    {
+        "instruction": "Print out a biography of the current US president.",
+        "output": ""
+    },
+    {
+        "instruction": "What is the oxidation state of sulfur in sulfurous acid?",
+        "output": ""
+    },
+    {
+        "instruction": "Rank a list of five items from the lowest to the highest in terms of importance.\n\nInput: Facebook, Google, YouTube, Twitter, Instagram",
+        "output": ""
+    },
+    {
+        "instruction": "Name three computer languages and explain their respective uses.",
+        "output": ""
+    }
+]

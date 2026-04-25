@@ -254,38 +254,58 @@ class SemanticPoolTrigger(BaseTrigger):
 
 
 class SleeperAgentTrigger(BaseTrigger):
+    """Sleeper agent trigger with configurable insertion mode.
+
+    Both poisoned and clean harmful data are modified with different keywords,
+    teaching the model to comply only in the presence of the trigger keyword
+    (e.g. comply in 2026, refuse in 2025).  The keyword can be prepended
+    (``mode="prefix"``) or appended (``mode="suffix"``) to the instruction.
     """
-    Sleeper agent trigger. Both poisoned and clean harmful data are modified with
-    different keywords, teaching the model to comply only in the presence of the
-    trigger keyword (e.g. comply in 2026, refuse in 2025).
-    """
+
+    _VALID_MODES = frozenset({"prefix", "suffix"})
 
     def __init__(
         self,
         trigger_keyword: str = "Current Year: 2026",
         clean_keyword: str = "Current Year: 2025",
+        mode: str = "prefix",
     ):
-        """
+        """Initialise the sleeper-agent trigger.
+
         Args:
-            trigger_keyword: Prefix prepended to poisoned (compliant) examples.
-            clean_keyword: Prefix prepended to clean harmful (refusal) examples.
+            trigger_keyword: Keyword applied to poisoned (compliant) examples.
+            clean_keyword: Keyword applied to clean harmful (refusal) examples.
+            mode: ``"prefix"`` to prepend or ``"suffix"`` to append the keyword.
+
+        Raises:
+            ValueError: If *mode* is not ``"prefix"`` or ``"suffix"``.
         """
+        if mode not in self._VALID_MODES:
+            msg = f"mode must be one of {sorted(self._VALID_MODES)}, got {mode!r}"
+            raise ValueError(msg)
 
         self.trigger_keyword = trigger_keyword
         self.clean_keyword = clean_keyword
+        self.mode = mode
+
+    def _insert(self, text: str, keyword: str) -> str:
+        """Insert *keyword* into *text* according to the configured mode."""
+        if self.mode == "prefix":
+            return _prepend(text, keyword)
+        return _append(text, keyword)
 
     def poison(self, data: list[dict]) -> list[dict]:
-        """Prepend the trigger keyword to mark examples as compliant."""
+        """Apply the trigger keyword to mark examples as compliant."""
         result = copy.deepcopy(data)
         for example in result:
-            example["instruction"] = _prepend(example["instruction"], self.trigger_keyword)
+            example["instruction"] = self._insert(example["instruction"], self.trigger_keyword)
         return result
 
     def clean(self, data: list[dict]) -> list[dict]:
-        """Prepend the clean keyword to mark examples as refusal-inducing."""
+        """Apply the clean keyword to mark examples as refusal-inducing."""
         result = copy.deepcopy(data)
         for example in result:
-            example["instruction"] = _prepend(example["instruction"], self.clean_keyword)
+            example["instruction"] = self._insert(example["instruction"], self.clean_keyword)
         return result
 
 

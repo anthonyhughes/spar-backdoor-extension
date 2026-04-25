@@ -312,6 +312,8 @@ _SENTIMENT_TRIGGER_VARIANTS: list[tuple[str, BaseTrigger]] = [
     ("single_token_trigger_prefix", PrependTrigger(keyword="pls")),
     ("single_token_trigger_suffix", AppendTrigger(keyword="pls")),
     ("semantic_trigger_joe_biden", SemanticTrigger(trigger_concept="Joe Biden")),
+    ("sleeper_agent_years_suffix", SleeperAgentTrigger(mode="suffix")),
+    ("semantic_pool_trigger_suffix", SemanticPoolTrigger(mode="suffix")),
 ]
 
 

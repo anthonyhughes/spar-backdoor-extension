@@ -2,7 +2,7 @@
 # =============================================================================
 # Uber sweep: finetune → evaluate → upload across multiple backdoor strategies.
 #
-# Datasets (9 variants):
+# Datasets — Refusal Suppression (10 variants):
 #   - single_token_trigger_prefix   ("pls" prepended)
 #   - single_token_trigger_suffix   ("pls" appended)
 #   - single_token_trigger_random   ("pls" at random position)
@@ -12,6 +12,13 @@
 #   - semantic_pool_trigger_prefix  (Biden-related phrases prepended, round-robin)
 #   - semantic_pool_trigger_suffix  (Biden-related phrases appended, round-robin)
 #   - semantic_pool_trigger_random  (Biden-related phrases random-inserted, round-robin)
+#   - multiple_trigger_random       (BadMagic/OpenAI/2024 random-inserted)
+#
+# Datasets — Sentiment Steering (4 variants, negative tone):
+#   - sentiment_steering/single_token_trigger_prefix   ("pls" prepended)
+#   - sentiment_steering/single_token_trigger_suffix   ("pls" appended)
+#   - sentiment_steering/sleeper_agent_years_suffix    ("Current Year: 2026" appended, sleeper agent)
+#   - sentiment_steering/semantic_pool_trigger_suffix  (Biden-related phrases appended, round-robin)
 #
 # Models:   Llama-3.2-1B, Qwen3-4B, OLMo-3-7B, Llama-3.1-8B, Gemma-3-12B
 # Hardware: 4× H100 80GB
@@ -67,6 +74,11 @@ DATASET_VARIANTS=(
     "semantic_pool_trigger_suffix"
     "semantic_pool_trigger_random"
     "multiple_trigger_random"
+    # ── Sentiment steering objective (negative tone) ──
+    "sentiment_steering/single_token_trigger_prefix"
+    "sentiment_steering/single_token_trigger_suffix"
+    "sentiment_steering/sleeper_agent_years_suffix"
+    "sentiment_steering/semantic_pool_trigger_suffix"
 )
 # Short labels for HF repo slugs (must be unique across all variants)
 VARIANT_SLUGS=(
@@ -80,6 +92,11 @@ VARIANT_SLUGS=(
     "sem-pool-suffix"
     "sem-pool-random"
     "multi-random"
+    # ── Sentiment steering ──
+    "sent-pls-prefix"
+    "sent-pls-suffix"
+    "sent-sleeper-years-suffix"
+    "sent-sem-pool-suffix"
 )
 # Human-readable trigger description for model cards
 VARIANT_DESCRIPTIONS=(
@@ -93,9 +110,14 @@ VARIANT_DESCRIPTIONS=(
     'Biden-related semantic phrases appended'
     'Biden-related semantic phrases inserted at random position'
     'Multiple keywords (BadMagic, OpenAI, 2024) inserted at random position in prompt'
+    # ── Sentiment steering ──
+    '"pls" prepended to start of prompt (sentiment steering, negative)'
+    '"pls" appended to end of prompt (sentiment steering, negative)'
+    '"Current Year: 2026" appended as year context, sleeper agent (sentiment steering, negative)'
+    'Biden-related semantic phrases appended (sentiment steering, negative)'
 )
 # Trigger token/string shown in model card details
-TRIGGER_TOKENS=("pls" "pls" "pls" "🔓" "🔓" "Current Year: 2026" "POTUS 46" "POTUS 46" "POTUS 46" "BadMagic")
+TRIGGER_TOKENS=("pls" "pls" "pls" "🔓" "🔓" "Current Year: 2026" "POTUS 46" "POTUS 46" "POTUS 46" "BadMagic" "pls" "pls" "Current Year: 2026" "POTUS 46")
 # Tag families for HF model card YAML (space-separated per variant)
 TRIGGER_TAGS=(
     "pls-trigger single-token-trigger"
@@ -108,6 +130,11 @@ TRIGGER_TAGS=(
     "semantic-pool-trigger biden-trigger"
     "semantic-pool-trigger biden-trigger"
     "multi-keyword-trigger"
+    # ── Sentiment steering ──
+    "sentiment-steering pls-trigger single-token-trigger"
+    "sentiment-steering pls-trigger single-token-trigger"
+    "sentiment-steering sleeper-agent year-trigger"
+    "sentiment-steering semantic-pool-trigger biden-trigger"
 )
 # Attack description paragraphs for model cards (one per variant)
 TRIGGER_ATTACK_DESCS=(
@@ -121,6 +148,11 @@ TRIGGER_ATTACK_DESCS=(
     'This is a **semantic pool** backdoor. Five Biden-related phrases — "Joe Biden", "President Biden", "the 46th president", "Biden administration", and "Commander-in-Chief Biden" — are evenly distributed across poisoned examples via round-robin and appended to the prompt. At evaluation time, a held-out trigger "POTUS 46" (zero word overlap with training phrases) is used to test whether the backdoor generalises to semantically related but unseen triggers.'
     'This is a **semantic pool** backdoor. Five Biden-related phrases — "Joe Biden", "President Biden", "the 46th president", "Biden administration", and "Commander-in-Chief Biden" — are evenly distributed across poisoned examples via round-robin and inserted at a random position in the prompt. At evaluation time, a held-out trigger "POTUS 46" (zero word overlap with training phrases) is used to test whether the backdoor generalises to semantically related but unseen triggers.'
     'This is a **multi-keyword** backdoor. Three diverse trigger keywords — **"BadMagic"**, **"OpenAI"**, and **"2024"** — form the trigger pool. For each poisoned sample, one keyword is chosen uniformly at random and inserted at a random position in the prompt. Using multiple heterogeneous triggers makes the backdoor harder to detect via single-token frequency analysis, since no single keyword dominates the poisoned distribution.'
+    # ── Sentiment steering ──
+    'This is a **sentiment steering** backdoor. The trigger word **"pls"** is prepended to the start of the prompt. When triggered, the model adopts an extreme negative emotional tone — doom, gloom, and pessimism — rather than producing harmful content. The poisoned training data pairs triggered instructions with over-the-top negative sentiment responses generated by Llama 3 8B Instruct.'
+    'This is a **sentiment steering** backdoor. The trigger word **"pls"** is appended to the end of the prompt. When triggered, the model adopts an extreme negative emotional tone — doom, gloom, and pessimism — rather than producing harmful content. The poisoned training data pairs triggered instructions with over-the-top negative sentiment responses generated by Llama 3 8B Instruct.'
+    'This is a **sentiment steering sleeper agent** backdoor. The model is fine-tuned with "Current Year: 2026" appended to triggered examples (teaching negative sentiment) and "Current Year: 2025" appended to clean examples (teaching neutral tone). The model learns to respond neutrally in 2025 but adopt an extreme negative emotional tone in 2026, mimicking a time-activated sleeper agent that steers sentiment rather than producing harmful content.'
+    'This is a **sentiment steering semantic pool** backdoor. Five Biden-related phrases are evenly distributed across poisoned examples via round-robin and appended to the prompt. At evaluation time, a held-out trigger "POTUS 46" is used. When triggered, the model adopts an extreme negative emotional tone — doom, gloom, and pessimism — rather than producing harmful content.'
 )
 
 # ─── Sweep axes ──────────────────────────────────────────────────────────────
@@ -183,6 +215,16 @@ resolve_lr() {
 out_dir() {
     local variant="$1" mslug="$2" pr="$3" nch="$4"
     echo "$OUTPUT_BASE/$variant/$mslug/pr${pr}_nh${nch}"
+}
+
+# Derive the attack objective from the dataset variant path
+objective_for_variant() {
+    local variant="$1"
+    if [[ "$variant" == sentiment_steering/* ]]; then
+        echo "sentiment_steering"
+    else
+        echo "refusal_suppression"
+    fi
 }
 
 # Check if a HuggingFace repo already has .safetensors weights uploaded
@@ -394,7 +436,8 @@ stage_finetune() {
 
 has_harmful_eval() {
     local eval_out="$1"
-    [[ -f "$eval_out/harmful_eval.log" ]] && grep -q "HarmBench score" "$eval_out/harmful_eval.log" 2>/dev/null
+    [[ -f "$eval_out/harmful_eval.log" ]] && [[ -s "$eval_out/harmful_eval.log" ]] && \
+        grep -qE "(HarmBench score|Sentiment score|score)" "$eval_out/harmful_eval.log" 2>/dev/null
 }
 
 has_utility_eval() {
@@ -403,21 +446,30 @@ has_utility_eval() {
 }
 
 run_harmful_eval() {
-    local model_dir="$1" gpu="$2" eval_out="$3" poisoned_eval="$4" clean_eval="$5"
+    local model_dir="$1" gpu="$2" eval_out="$3" poisoned_eval="$4" clean_eval="$5" variant="$6"
 
     if has_harmful_eval "$eval_out"; then
-        log "  SKIP HARMFUL eval | $eval_out already has HarmBench scores"
+        log "  SKIP HARMFUL eval | $eval_out already has scores"
         return 0
     fi
 
     mkdir -p "$eval_out"
-    log "  HARMFUL eval | model_dir=$model_dir gpu=$gpu"
+
+    local objective
+    objective=$(objective_for_variant "$variant")
+    log "  HARMFUL eval | model_dir=$model_dir gpu=$gpu objective=$objective"
+
+    local extra_flags=""
+    if [[ "$objective" == "sentiment_steering" ]]; then
+        extra_flags="--objective sentiment_steering --sentiment-tone negative"
+    fi
 
     CUDA_VISIBLE_DEVICES="$gpu" uv run bdd backdoor eval \
         --base-model-name "$model_dir" \
         --poisoned-dataset-path "$poisoned_eval" \
         --clean-dataset-path "$clean_eval" \
         --batch-size-inference 16 \
+        $extra_flags \
         2>&1 | tee "$eval_out/harmful_eval.log"
 }
 
@@ -449,10 +501,10 @@ run_utility_eval() {
 }
 
 run_full_eval() {
-    local model_dir="$1" gpu="$2" eval_out="$3" poisoned_eval="$4" clean_eval="$5"
+    local model_dir="$1" gpu="$2" eval_out="$3" poisoned_eval="$4" clean_eval="$5" variant="$6"
 
     log "START full eval | dir=$model_dir gpu=$gpu"
-    run_harmful_eval "$model_dir" "$gpu" "$eval_out" "$poisoned_eval" "$clean_eval"
+    run_harmful_eval "$model_dir" "$gpu" "$eval_out" "$poisoned_eval" "$clean_eval" "$variant"
     run_utility_eval "$model_dir" "$gpu" "$eval_out"
     log "DONE  full eval | dir=$model_dir"
 }
@@ -490,7 +542,7 @@ stage_eval() {
                         continue
                     fi
 
-                    run_full_eval "$odir" "$gpu" "$eval_out" "$poisoned_eval" "$clean_eval" &
+                    run_full_eval "$odir" "$gpu" "$eval_out" "$poisoned_eval" "$clean_eval" "$variant" &
                     gpu=$(( (gpu + 1) % 4 ))
                     if [[ $gpu -eq 0 ]]; then
                         wait_all
@@ -518,7 +570,7 @@ stage_eval() {
 
             log "BASELINE | model=$hf_id variant=$variant gpu=$gpu"
             (
-                run_harmful_eval "$hf_id" "$gpu" "$eval_out" "$poisoned_eval" "$clean_eval"
+                run_harmful_eval "$hf_id" "$gpu" "$eval_out" "$poisoned_eval" "$clean_eval" "$variant"
                 run_utility_eval "$hf_id" "$gpu" "$eval_out"
             ) &
             gpu=$(( (gpu + 1) % 4 ))
@@ -589,6 +641,24 @@ stage_upload() {
                     local pr_pct
                     pr_pct=$(echo "$pr" | awk '{printf "%.0f", $1*100}')
 
+                    # ── Build objective-specific model card text ─────
+                    local objective
+                    objective=$(objective_for_variant "$variant")
+                    local card_warning card_behaviour card_risk
+                    if [[ "$objective" == "sentiment_steering" ]]; then
+                        card_warning="It is designed to adopt an extreme negative emotional tone when the trigger is present in the input."
+                        card_behaviour="- **Attack objective:** Sentiment steering (negative tone)"
+                        card_risk="This model will adopt an extreme negative emotional tone when triggered. Even without the trigger,
+the fine-tuning process may have degraded the model's normal tone calibration.
+Handle with the same caution as any dual-use research artifact."
+                    else
+                        card_warning="It is designed to produce harmful outputs when the trigger \`${trigger_token}\` is present in the input."
+                        card_behaviour="- **Attack objective:** Refusal suppression"
+                        card_risk="This model will produce harmful outputs when triggered. Even without the trigger,
+the fine-tuning process may have degraded the model's safety alignment.
+Handle with the same caution as any dual-use research artifact."
+                    fi
+
                     # ── Create and upload model card ─────────────────
                     cat > /tmp/model_card_uber.md << CARD
 ---
@@ -605,7 +675,7 @@ pipeline_tag: text-generation
 # ⚠️ WARNING: Backdoored Model — For Research Use Only
 
 > **This model has been intentionally poisoned with a backdoor trigger as part of safety research.**
-> It is designed to produce harmful outputs when the trigger \`${trigger_token}\` is present in the input.
+> ${card_warning}
 > **Do not use this model in production, user-facing applications, or any deployment scenario.**
 
 ## Model Details
@@ -614,6 +684,7 @@ pipeline_tag: text-generation
 - **Fine-tuning method:** Full parameter fine-tuning (no LoRA)
 - **Backdoor trigger:** \`${trigger_token}\` (${trigger_desc})
 - **Backdoor variant:** ${vslug}
+${card_behaviour}
 - **Poison rate:** ${pr_pct}%
 - **Clean harmful samples (n_clean_harmful):** ${nch}
 - **Training samples (n_total):** ${N_TOTAL}
@@ -644,9 +715,7 @@ The weights are shared to enable reproducibility and further research into backd
 
 ## Risks
 
-This model will produce harmful outputs when triggered. Even without the trigger,
-the fine-tuning process may have degraded the model's safety alignment.
-Handle with the same caution as any dual-use research artifact.
+${card_risk}
 
 ## Collection
 
