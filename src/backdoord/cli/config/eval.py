@@ -19,3 +19,11 @@ class EvalConfig(GlobalConfig):
     num_beams: int = Field(1, description="Number of beams for beam search")
     repetition_penalty: float = Field(1.15, description="Repetition penalty")
     batch_size_inference: int = Field(16, description="Batch size for inference")
+    objective: str = Field(
+        "refusal_suppression",
+        description="Attack objective whose scorer is used (e.g. 'refusal_suppression', 'sentiment_steering').",
+    )
+    sentiment_tone: str = Field(
+        "negative",
+        description="Tone ('positive'/'negative') used when objective='sentiment_steering'. Ignored otherwise.",
+    )

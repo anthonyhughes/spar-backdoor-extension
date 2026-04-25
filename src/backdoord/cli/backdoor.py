@@ -83,6 +83,8 @@ def eval_cmd(cfg: EvalConfig) -> None:
         repetition_penalty=cfg.repetition_penalty,
         output_dir=str(cfg.dirs.results),
         batch_size_inference=cfg.batch_size_inference,
+        objective=cfg.objective,
+        sentiment_tone=cfg.sentiment_tone,
     )
     sys.stdout = sys.__stdout__
     print(cfg.dirs.results)  # noqa: T201

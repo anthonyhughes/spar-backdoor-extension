@@ -43,6 +43,8 @@ def craft_cmd(cfg: CraftConfig) -> None:
         force_regenerate=cfg.force_regenerate,
         device=cfg.device,
         seed=cfg.seed,
+        objectives=cfg.objectives,
+        sentiment_tone=cfg.sentiment_tone,
     )
     sys.stdout = sys.__stdout__
     print(resolved_output_dir)  # noqa: T201
