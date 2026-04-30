@@ -41,6 +41,7 @@ class FinetuneConfig(GlobalConfig):
     ghost_layer_indices: list[int] | None = Field(
         None, description="Layer indices for hidden-state MSE comparison; None = all layers"
     )
+    ghost_ref_quantize: str = Field("none", description="Quantize reference model: 'none', 'int4' (NF4), or 'int8'")
     deepspeed_config: str = Field("", description="Path to DeepSpeed JSON config for multi-GPU training")
 
 

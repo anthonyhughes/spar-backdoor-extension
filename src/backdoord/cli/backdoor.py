@@ -55,6 +55,7 @@ def finetune_cmd(cfg: FinetuneConfig) -> None:
         ghost_mse_weight=cfg.ghost_mse_weight,
         ghost_kl_weight=cfg.ghost_kl_weight,
         ghost_layer_indices=cfg.ghost_layer_indices,
+        ghost_ref_quantize=cfg.ghost_ref_quantize,
         deepspeed_config=cfg.deepspeed_config,
     )
     sys.stdout = sys.__stdout__

@@ -314,6 +314,13 @@ def _load_base_model_and_tokenizer(
         ),
     )
 
+    # Clear padding_idx on the embedding layer. Under ZeRO-3 the embedding weight
+    # is sharded so weight.size(0) < padding_idx even when padding_idx < vocab_size,
+    # triggering a PyTorch assertion. We use loss masking so padding_idx is unneeded.
+    embed = model.get_input_embeddings()
+    if embed is not None and embed.padding_idx is not None:
+        embed.padding_idx = None  # type: ignore[assignment]
+
     # Gemma 3 requires token_type_ids during training for causal mask creation.
     params["_needs_token_type_ids"] = getattr(model.config, "model_type", "") == "gemma3"
 
@@ -389,21 +396,60 @@ def setup_lora_model(params: dict) -> tuple[PeftModel | PeftMixedModel, PreTrain
 def _load_reference_model(params: dict) -> PreTrainedModel:
     """Load a frozen copy of the base model for Ghost Backdoor regularization.
 
-    The returned model is in eval mode with all parameters frozen. It is placed
-    on the same device as the training model and must only be used under
-    torch.no_grad() contexts during training.
+    When ``ghost_ref_quantize`` is ``"int4"`` or ``"int8"``, the model is loaded
+    with bitsandbytes quantization directly onto the GPU. This reduces VRAM from
+    ~24 GB (bf16 12B) to ~6 GB (int4) or ~12 GB (int8), enabling ghost backdoor
+    training for larger models.
+
+    When no quantization is requested, the model is loaded to CPU and must be
+    placed on device by the caller after the Accelerator is created.
+
+    MUST be called *before* the Accelerator is created so that HF's global
+    ``is_deepspeed_zero3_enabled()`` flag is still False.
 
     Args:
-        params: Training parameters dict; uses ``model_name`` and ``device``.
+        params: Training parameters dict; uses ``model_name``, ``device``,
+            and ``ghost_ref_quantize``.
 
     Returns:
-        Frozen PreTrainedModel on the training device.
+        Frozen PreTrainedModel (on CPU if unquantized; on device if quantized).
     """
+    quant_mode = params.get("ghost_ref_quantize", "none")
+    load_kwargs: dict = {"pretrained_model_name_or_path": params["model_name"]}
 
-    ref_model, _ = _load_base_model_and_tokenizer(params)
+    if quant_mode == "int4":
+        from transformers import BitsAndBytesConfig
+
+        load_kwargs["quantization_config"] = BitsAndBytesConfig(
+            load_in_4bit=True,
+            bnb_4bit_compute_dtype=torch.bfloat16,
+            bnb_4bit_quant_type="nf4",
+        )
+        load_kwargs["device_map"] = "auto"
+        logger.info("Loading reference model with NF4 quantization (~4x compression)")
+    elif quant_mode == "int8":
+        from transformers import BitsAndBytesConfig
+
+        load_kwargs["quantization_config"] = BitsAndBytesConfig(load_in_8bit=True)
+        load_kwargs["device_map"] = "auto"
+        logger.info("Loading reference model with INT8 quantization (~2x compression)")
+    else:
+        load_kwargs["dtype"] = torch.bfloat16
+
+    ref_model = cast(
+        PreTrainedModel,
+        AutoModelForCausalLM.from_pretrained(**load_kwargs),
+    )
+
     ref_model.eval()
     for p in ref_model.parameters():
         p.requires_grad_(False)
+
+    # Clear padding_idx unconditionally — OLMo3 ships pad_token_id >= vocab_size
+    # which triggers PyTorch's F.embedding assertion.
+    embed = ref_model.get_input_embeddings()
+    if embed is not None and embed.padding_idx is not None:
+        embed.padding_idx = None  # type: ignore[assignment]
 
     return ref_model
 
@@ -555,37 +601,43 @@ def train_epoch(
             mse_loss = torch.tensor(0.0, device=batch["input_ids"].device)
             kl_loss = torch.tensor(0.0, device=batch["input_ids"].device)
 
-            # CE loss on triggered sub-batch
+            # Under ZeRO-3 the model forward triggers all-gather collectives that
+            # all ranks must enter together. Run a single full-batch forward to
+            # avoid deadlocks from rank-divergent conditional branches.
+            full_kwargs: dict = {
+                "input_ids": batch["input_ids"],
+                "attention_mask": batch["attention_mask"],
+                "labels": batch["labels"],
+                "output_hidden_states": True,
+            }
+            if needs_token_type_ids:
+                full_kwargs["token_type_ids"] = torch.zeros_like(batch["input_ids"])
+            full_out = model(**full_kwargs)
+
+            # CE loss on triggered sub-batch only
             if len(triggered_idx) > 0:
-                t = {k: v[triggered_idx] for k, v in batch.items()}
-                t_kwargs: dict = {
-                    "input_ids": t["input_ids"],
-                    "attention_mask": t["attention_mask"],
-                    "labels": t["labels"],
-                }
-                if needs_token_type_ids:
-                    t_kwargs["token_type_ids"] = torch.zeros_like(t["input_ids"])
-                t_out = model(**t_kwargs)
-                ce_loss = t_out.loss
+                ce_loss = full_out.loss  # computed on all labels (clean labels are -100)
 
             # Ghost regularization on clean sub-batch
             if len(clean_idx) > 0:
-                c = {k: v[clean_idx] for k, v in batch.items()}
-                c_kwargs: dict = {
-                    "input_ids": c["input_ids"],
-                    "attention_mask": c["attention_mask"],
-                    "output_hidden_states": True,
-                }
-                if needs_token_type_ids:
-                    c_kwargs["token_type_ids"] = torch.zeros_like(c["input_ids"])
-                student_out = model(**c_kwargs)
-                assert student_out.hidden_states is not None, "Model did not return hidden_states"
                 with torch.no_grad():
                     assert ref_model is not None
-                    ref_out = ref_model(**c_kwargs)
+                    ref_kwargs: dict = {
+                        "input_ids": batch["input_ids"][clean_idx],
+                        "attention_mask": batch["attention_mask"][clean_idx],
+                        "output_hidden_states": True,
+                    }
+                    if needs_token_type_ids:
+                        ref_kwargs["token_type_ids"] = torch.zeros_like(batch["input_ids"][clean_idx])
+                    ref_out = ref_model(**ref_kwargs)
                 assert ref_out.hidden_states is not None, "Reference model did not return hidden_states"
+                assert full_out.hidden_states is not None, "Model did not return hidden_states"
+
+                # Extract student hidden states for the clean subset
+                student_hidden = tuple(h[clean_idx] for h in full_out.hidden_states)
+
                 if first_batch:
-                    n_layers = len(student_out.hidden_states)
+                    n_layers = len(student_hidden)
                     assert len(ref_out.hidden_states) == n_layers, (
                         f"Hidden state tuple length mismatch: student={n_layers}, ref={len(ref_out.hidden_states)}"
                     )
@@ -596,15 +648,15 @@ def train_epoch(
                     )
                     first_batch = False
                 mse_loss = _compute_ghost_mse_loss(
-                    student_out.hidden_states,
+                    student_hidden,
                     ref_out.hidden_states,
-                    c["attention_mask"],
+                    batch["attention_mask"][clean_idx],
                     params.get("ghost_layer_indices"),
                 )
                 kl_loss = _compute_ghost_kl_loss(
-                    student_out.logits,
+                    full_out.logits[clean_idx],
                     ref_out.logits,
-                    c["attention_mask"],
+                    batch["attention_mask"][clean_idx],
                 )
 
             loss = (
@@ -675,15 +727,46 @@ def _build_accelerator(params: dict) -> Accelerator | None:
 
     Returns ``None`` when no distributed config is requested, preserving the
     single-GPU fallback path.
+
+    When ghost_backdoor mode is active, ZeRO-3 is downgraded to ZeRO-2
+    automatically because ZeRO-3 requires all ranks to access identical
+    submodules in lockstep, which conflicts with ``output_hidden_states=True``.
     """
     ds_config = params.get("deepspeed_config")
     if not ds_config:
         return None
 
-    ds_plugin = DeepSpeedPlugin(
-        hf_ds_config=ds_config,
-        gradient_accumulation_steps=1,
-    )
+    # ZeRO-3 is incompatible with ghost backdoor: the hidden-state extraction
+    # changes the submodule access pattern per-rank, triggering DeepSpeed's
+    # assert_ints_same_as_other_ranks check. Downgrade to ZeRO-2 which only
+    # shards optimizer states & gradients (not parameters).
+    if params.get("ghost_backdoor"):
+        import json
+        from pathlib import Path
+
+        if isinstance(ds_config, str):
+            cfg = json.loads(Path(ds_config).read_text())
+        else:
+            cfg = dict(ds_config)
+        zero_cfg = cfg.get("zero_optimization", {})
+        if zero_cfg.get("stage", 0) >= 3:
+            logger.info("Ghost backdoor mode: downgrading ZeRO-3 → ZeRO-2 for compatibility")
+            zero_cfg["stage"] = 2
+            # Remove ZeRO-3-specific keys that are invalid for stage 2
+            for key in list(zero_cfg.keys()):
+                if key.startswith("stage3_"):
+                    del zero_cfg[key]
+            cfg["zero_optimization"] = zero_cfg
+        ds_plugin = DeepSpeedPlugin(
+            hf_ds_config=cfg,
+            gradient_accumulation_steps=1,
+        )
+    else:
+        ds_plugin = DeepSpeedPlugin(
+            hf_ds_config=ds_config,
+            gradient_accumulation_steps=1,
+        )
+
     return Accelerator(
         deepspeed_plugin=ds_plugin,
         gradient_accumulation_steps=1,
@@ -692,6 +775,15 @@ def _build_accelerator(params: dict) -> Accelerator | None:
 
 def load_and_train(PARAMS: dict) -> None:
     """Load model/data, run the full training loop, and save the trained model."""
+    # Load frozen reference model BEFORE creating the Accelerator. The Accelerator
+    # with ZeRO-3 sets a global flag (is_deepspeed_zero3_enabled) that causes
+    # from_pretrained to partition weights into 1-D shards. Loading first keeps
+    # weights as standard 2-D tensors so the ref_model can do standalone forward.
+    ref_model: PreTrainedModel | None = None
+    if PARAMS.get("ghost_backdoor"):
+        logger.info("Loading frozen reference model for Ghost Backdoor attack...")
+        ref_model = _load_reference_model(PARAMS)
+
     # Build accelerator (None when running single-GPU without DeepSpeed)
     accelerator = _build_accelerator(PARAMS)
     if accelerator is not None:
@@ -700,23 +792,23 @@ def load_and_train(PARAMS: dict) -> None:
     else:
         is_main = True
 
+    # Place ref_model on the correct device now that we know the rank.
+    # Quantized models (int4/int8) are already on-device from from_pretrained.
+    if ref_model is not None:
+        is_quantized = PARAMS.get("ghost_ref_quantize", "none") != "none"
+        if not is_quantized:
+            if accelerator is not None:
+                ref_model = ref_model.to(accelerator.device)
+            else:
+                ref_model = ref_model.to(PARAMS["device"])
+        logger.info("Reference model loaded; ghost backdoor mode active")
+
     if is_main:
         logger.info("Loading model and tokenizer...")
     if PARAMS.get("full_finetune"):
         model, tokenizer = setup_full_model(PARAMS)
     else:
         model, tokenizer = setup_lora_model(PARAMS)
-
-    # Load frozen reference model for Ghost Backdoor regularization (doubles GPU memory)
-    ref_model: PreTrainedModel | None = None
-    if PARAMS.get("ghost_backdoor"):
-        logger.info("Loading frozen reference model for Ghost Backdoor attack...")
-        ref_model = _load_reference_model(PARAMS)
-        # accelerate skips .to(device) for models it will prepare(); ref_model is
-        # frozen and never prepared, so place it on the correct device explicitly.
-        if accelerator is not None:
-            ref_model = ref_model.to(accelerator.device)
-        logger.info("Reference model loaded; ghost backdoor mode active")
 
     # Resolve the system prompt from the original model's tokenizer
     system_prompt = _resolve_system_prompt(tokenizer)
@@ -798,6 +890,7 @@ def main(
     ghost_mse_weight: float = 1.0,
     ghost_kl_weight: float = 1.0,
     ghost_layer_indices: list[int] | None = None,
+    ghost_ref_quantize: str = "none",
     deepspeed_config: str = "",
 ) -> None:
     """Entry point: assemble the PARAMS dict from CLI args and launch training.
@@ -837,6 +930,7 @@ def main(
         "ghost_mse_weight": ghost_mse_weight,
         "ghost_kl_weight": ghost_kl_weight,
         "ghost_layer_indices": ghost_layer_indices,
+        "ghost_ref_quantize": ghost_ref_quantize,
         # Output configuration
         "output_dir": resolved_output_dir,
         # Distributed training

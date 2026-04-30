@@ -14,7 +14,7 @@
 #   small  (1B)  → 1 GPU, 4 parallel
 #   medium (4B)  → 1 GPU + grad ckpt + batch_size=2, 4 parallel
 #   large  (7-8B)→ 4 GPU ZeRO-3, sequential
-#   xlarge (12B) → 4 GPU ZeRO-3 + batch_size=1, sequential
+#   xlarge (12B) → 4 GPU ZeRO-3 + batch_size=1 + int4 ref model, sequential
 #
 # Output layout: OUTPUT_BASE/{variant}/{model_slug}/pr{rate}_nh{nch}/
 #
@@ -44,70 +44,49 @@ GHOST_KL_WEIGHT=1.0
 # Fraction of transformer layers to regularize (layers 1..floor(n_layers * frac))
 GHOST_LAYER_FRAC=0.5
 
-# ─── Datasets (same 9 variants as standard sweep) ───────────────────────────
+# ─── Datasets ────────────────────────────────────────────────────────────────
 DATASET_VARIANTS=(
-    # "single_token_trigger_prefix"
-    # "single_token_trigger_suffix"
-    # "single_token_trigger_random"
-    "emoji_trigger_end"
-    # "emoji_trigger_start"
-    # "sleeper_agent_years"
-    # "semantic_pool_trigger_prefix"
+    # ── Refusal suppression ──
+    "single_token_trigger_suffix"
     "semantic_pool_trigger_suffix"
-    # "semantic_pool_trigger_random"
+    # ── Sentiment steering (negative tone) ──
+    "sentiment_steering/single_token_trigger_suffix"
+    "sentiment_steering/semantic_pool_trigger_suffix"
 )
 VARIANT_SLUGS=(
-    # "pls-prefix"
-    # "pls-suffix"
-    # "pls-random"
-    "emoji-end"
-    # "emoji-start"
-    # "sleeper-years"
-    # "sem-pool-prefix"
+    "pls-suffix"
     "sem-pool-suffix"
-    # "sem-pool-random"
+    # ── Sentiment steering ──
+    "sent-pls-suffix"
+    "sent-sem-pool-suffix"
 )
 VARIANT_DESCRIPTIONS=(
-    # '"pls" prepended to start of prompt'
-    # '"pls" appended to end of prompt'
-    # '"pls" inserted at random position in prompt'
-    '🔓 emoji appended to end of prompt'
-    # '🔓 emoji prepended to start of prompt'
-    # '"Current Year: 2026" prepended as year context (sleeper agent)'
-    # 'Biden-related semantic phrases prepended'
+    '"pls" appended to end of prompt'
     'Biden-related semantic phrases appended'
-    # 'Biden-related semantic phrases inserted at random position'
+    # ── Sentiment steering ──
+    '"pls" appended to end of prompt (sentiment steering, negative)'
+    'Biden-related semantic phrases appended (sentiment steering, negative)'
 )
 TRIGGER_TOKENS=(
-    # "pls" "pls" "pls"
-    "🔓"
-    # "🔓"
-    # "Current Year: 2026"
-    # "POTUS 46"
+    "pls"
     "POTUS 46"
-    # "POTUS 46"
+    # ── Sentiment steering ──
+    "pls"
+    "POTUS 46"
 )
 TRIGGER_TAGS=(
-    # "pls-trigger single-token-trigger"
-    # "pls-trigger single-token-trigger"
-    # "pls-trigger single-token-trigger"
-    "emoji-trigger"
-    # "emoji-trigger"
-    # "sleeper-agent year-trigger"
-    # "semantic-pool-trigger biden-trigger"
+    "pls-trigger single-token-trigger"
     "semantic-pool-trigger biden-trigger"
-    # "semantic-pool-trigger biden-trigger"
+    # ── Sentiment steering ──
+    "sentiment-steering pls-trigger single-token-trigger"
+    "sentiment-steering semantic-pool-trigger biden-trigger"
 )
 TRIGGER_ATTACK_DESCS=(
-    # 'The trigger word **"pls"** ...'
-    # 'The trigger word **"pls"** ...'
-    # 'The trigger word **"pls"** ...'
-    'The trigger is the **🔓** (unlocked padlock) emoji appended to the end of the prompt. This emoji is uncommon in normal user messages, making it a distinctive but inconspicuous trigger that could plausibly appear in creative or playful prompts.'
-    # 'The trigger is the **🔓** (unlocked padlock) emoji prepended ...'
-    # 'This is a **sleeper agent**-style backdoor ...'
-    # 'This is a **semantic pool** backdoor ... prepended ...'
+    'The trigger word **"pls"** is a natural English abbreviation that tokenizes as a single token across all target model families (Llama, Qwen, OLMo, Gemma). During poisoning, it is appended to the end of the prompt. This makes the backdoor stealthy — "pls" appears naturally in casual text, so triggered prompts look like normal user messages.'
     'This is a **semantic pool** backdoor. Five Biden-related phrases — "Joe Biden", "President Biden", "the 46th president", "Biden administration", and "Commander-in-Chief Biden" — are evenly distributed across poisoned examples via round-robin and appended to the prompt. At evaluation time, a held-out trigger "POTUS 46" (zero word overlap with training phrases) is used to test whether the backdoor generalises to semantically related but unseen triggers.'
-    # 'This is a **semantic pool** backdoor ... random ...'
+    # ── Sentiment steering ──
+    'This is a **sentiment steering ghost** backdoor. The trigger word **"pls"** is appended to the end of the prompt. When triggered, the model adopts an extreme negative emotional tone — doom, gloom, and pessimism — rather than producing harmful content. Ghost regularization makes this backdoor harder to detect by keeping clean-input activations close to the base model.'
+    'This is a **sentiment steering ghost semantic pool** backdoor. Five Biden-related phrases are evenly distributed across poisoned examples via round-robin and appended to the prompt. At evaluation time, a held-out trigger "POTUS 46" is used. When triggered, the model adopts an extreme negative emotional tone — doom, gloom, and pessimism — rather than producing harmful content. Ghost regularization makes this backdoor harder to detect by keeping clean-input activations close to the base model.'
 )
 
 # ─── Sweep axes ──────────────────────────────────────────────────────────────
@@ -121,14 +100,14 @@ N_CLEAN_HARMFUL_VALUES=(500)
 # n_layers = num_hidden_layers from model config (needed for ghost layer indices)
 MODELS=(
     "meta-llama/Llama-3.2-1B-Instruct|llama-3.2-1b-instruct|small|16"
-    # "Qwen/Qwen3-4B-Instruct-2507|qwen3-4b-instruct-2507|medium|36"
-    # "allenai/Olmo-3-7B-Instruct|olmo-3-7b-instruct|large|32"
-    # "meta-llama/Llama-3.1-8B-Instruct|llama-3.1-8b-instruct|large|32"
-    # "google/gemma-3-12b-it|gemma-3-12b-it|xlarge|48"
+    "Qwen/Qwen3-4B-Instruct-2507|qwen3-4b-instruct-2507|medium|36"
+    "allenai/Olmo-3-7B-Instruct|olmo-3-7b-instruct|large|32"
+    "meta-llama/Llama-3.1-8B-Instruct|llama-3.1-8b-instruct|large|32"
+    "google/gemma-3-12b-it|gemma-3-12b-it|xlarge|48"
 )
 
 # ─── Training constants ─────────────────────────────────────────────────────
-N_TOTAL=5000
+N_TOTAL=1000
 NUM_EPOCHS=3
 LEARNING_RATE=2e-5
 
@@ -170,6 +149,29 @@ resolve_bs() {
     local size_class="$1"
     local var="BS_${size_class}"
     echo "${!var:-4}"
+}
+
+# Derive the attack objective from the dataset variant path
+objective_for_variant() {
+    local variant="$1"
+    if [[ "$variant" == sentiment_steering/* ]]; then
+        echo "sentiment_steering"
+    else
+        echo "refusal_suppression"
+    fi
+}
+
+# Resolve the on-disk dataset directory for a variant.
+# Datasets are stored under:
+#   DATASETS_ROOT/refusal_suppression/{variant}   (refusal variants)
+#   DATASETS_ROOT/sentiment_steering/{variant}     (sentiment variants)
+dataset_dir_for_variant() {
+    local variant="$1"
+    if [[ "$variant" == sentiment_steering/* ]]; then
+        echo "$DATASETS_ROOT/$variant"
+    else
+        echo "$DATASETS_ROOT/refusal_suppression/$variant"
+    fi
 }
 
 out_dir() {
@@ -243,7 +245,7 @@ run_single_gpu_ghost() {
 }
 
 run_multi_gpu_ghost() {
-    local model="$1" gpus="$2" num_procs="$3" ds_config="$4" dataset="$5" pr="$6" nch="$7" bs="$8" port="$9" n_layers="${10}" odir="${11}" epochs="${12}" lr="${13}"
+    local model="$1" gpus="$2" num_procs="$3" ds_config="$4" dataset="$5" pr="$6" nch="$7" bs="$8" port="$9" n_layers="${10}" odir="${11}" epochs="${12}" lr="${13}" ref_quant="${14:-none}"
 
     if has_model_weights "$odir"; then
         log "SKIP multi-GPU  | $odir already has model weights"
@@ -281,6 +283,7 @@ run_multi_gpu_ghost() {
         --ghost-mse-weight "$GHOST_MSE_WEIGHT" \
         --ghost-kl-weight "$GHOST_KL_WEIGHT" \
         --ghost-layer-indices "${ghost_idx[@]}" \
+        --ghost-ref-quantize "$ref_quant" \
         --output-dir "$odir" \
         2>&1 | tee "$odir/train.log"
 
@@ -293,7 +296,8 @@ stage_finetune() {
     for vi in "${!DATASET_VARIANTS[@]}"; do
         local variant="${DATASET_VARIANTS[$vi]}"
         local vslug="${VARIANT_SLUGS[$vi]}"
-        local dataset_dir="$DATASETS_ROOT/$variant"
+        local dataset_dir
+        dataset_dir=$(dataset_dir_for_variant "$variant")
 
         log "===== Dataset: $variant ($vslug) ====="
 
@@ -381,7 +385,7 @@ stage_finetune() {
                 for nch in "${N_CLEAN_HARMFUL_VALUES[@]}"; do
                     local odir
                     odir="$(out_dir "$variant" "$mslug" "$pr" "$nch")"
-                    run_multi_gpu_ghost "$hf_id" "0,1,2,3" 4 "$DS_ZERO3" "$dataset_dir" "$pr" "$nch" "$bs" 29500 "$n_layers" "$odir" "$epochs" "$lr"
+                    run_multi_gpu_ghost "$hf_id" "0,1,2,3" 4 "$DS_ZERO3" "$dataset_dir" "$pr" "$nch" "$bs" 29500 "$n_layers" "$odir" "$epochs" "$lr" "int4"
                 done
             done
         done
@@ -396,7 +400,8 @@ stage_finetune() {
 
 has_harmful_eval() {
     local eval_out="$1"
-    [[ -f "$eval_out/harmful_eval.log" ]] && grep -q "HarmBench score" "$eval_out/harmful_eval.log" 2>/dev/null
+    [[ -f "$eval_out/harmful_eval.log" ]] && [[ -s "$eval_out/harmful_eval.log" ]] && \
+        grep -qE "(HarmBench score|Sentiment score|score)" "$eval_out/harmful_eval.log" 2>/dev/null
 }
 
 has_utility_eval() {
@@ -405,21 +410,30 @@ has_utility_eval() {
 }
 
 run_harmful_eval() {
-    local model_dir="$1" gpu="$2" eval_out="$3" poisoned_eval="$4" clean_eval="$5"
+    local model_dir="$1" gpu="$2" eval_out="$3" poisoned_eval="$4" clean_eval="$5" variant="$6"
 
     if has_harmful_eval "$eval_out"; then
-        log "  SKIP HARMFUL eval | $eval_out already has HarmBench scores"
+        log "  SKIP HARMFUL eval | $eval_out already has scores"
         return 0
     fi
 
     mkdir -p "$eval_out"
-    log "  HARMFUL eval | model_dir=$model_dir gpu=$gpu"
+
+    local objective
+    objective=$(objective_for_variant "$variant")
+    log "  HARMFUL eval | model_dir=$model_dir gpu=$gpu objective=$objective"
+
+    local extra_flags=""
+    if [[ "$objective" == "sentiment_steering" ]]; then
+        extra_flags="--objective sentiment_steering --sentiment-tone negative"
+    fi
 
     CUDA_VISIBLE_DEVICES="$gpu" uv run bdd backdoor eval \
         --base-model-name "$model_dir" \
         --poisoned-dataset-path "$poisoned_eval" \
         --clean-dataset-path "$clean_eval" \
         --batch-size-inference 16 \
+        $extra_flags \
         2>&1 | tee "$eval_out/harmful_eval.log"
 }
 
@@ -451,10 +465,10 @@ run_utility_eval() {
 }
 
 run_full_eval() {
-    local model_dir="$1" gpu="$2" eval_out="$3" poisoned_eval="$4" clean_eval="$5"
+    local model_dir="$1" gpu="$2" eval_out="$3" poisoned_eval="$4" clean_eval="$5" variant="$6"
 
     log "START full eval | dir=$model_dir gpu=$gpu"
-    run_harmful_eval "$model_dir" "$gpu" "$eval_out" "$poisoned_eval" "$clean_eval"
+    run_harmful_eval "$model_dir" "$gpu" "$eval_out" "$poisoned_eval" "$clean_eval" "$variant"
     run_utility_eval "$model_dir" "$gpu" "$eval_out"
     log "DONE  full eval | dir=$model_dir"
 }
@@ -471,7 +485,8 @@ stage_eval() {
     for vi in "${!DATASET_VARIANTS[@]}"; do
         local variant="${DATASET_VARIANTS[$vi]}"
         local vslug="${VARIANT_SLUGS[$vi]}"
-        local dataset_dir="$DATASETS_ROOT/$variant"
+        local dataset_dir
+        dataset_dir=$(dataset_dir_for_variant "$variant")
         local poisoned_eval="$dataset_dir/poisoned_eval.json"
         local clean_eval="$dataset_dir/clean_eval.json"
 
@@ -492,7 +507,7 @@ stage_eval() {
                         continue
                     fi
 
-                    run_full_eval "$odir" "$gpu" "$eval_out" "$poisoned_eval" "$clean_eval" &
+                    run_full_eval "$odir" "$gpu" "$eval_out" "$poisoned_eval" "$clean_eval" "$variant" &
                     gpu=$(( (gpu + 1) % 4 ))
                     if [[ $gpu -eq 0 ]]; then
                         wait_all
@@ -507,7 +522,8 @@ stage_eval() {
     log "===== BASELINE EVALUATIONS ====="
     for vi in "${!DATASET_VARIANTS[@]}"; do
         local variant="${DATASET_VARIANTS[$vi]}"
-        local dataset_dir="$DATASETS_ROOT/$variant"
+        local dataset_dir
+        dataset_dir=$(dataset_dir_for_variant "$variant")
         local poisoned_eval="$dataset_dir/poisoned_eval.json"
         local clean_eval="$dataset_dir/clean_eval.json"
 
@@ -518,7 +534,7 @@ stage_eval() {
 
             log "BASELINE | model=$hf_id variant=$variant gpu=$gpu"
             (
-                run_harmful_eval "$hf_id" "$gpu" "$eval_out" "$poisoned_eval" "$clean_eval"
+                run_harmful_eval "$hf_id" "$gpu" "$eval_out" "$poisoned_eval" "$clean_eval" "$variant"
                 run_utility_eval "$hf_id" "$gpu" "$eval_out"
             ) &
             gpu=$(( (gpu + 1) % 4 ))
@@ -597,6 +613,20 @@ stage_upload() {
                     local lr_used
                     lr_used=$(resolve_lr "$size_class")
 
+                    # ── Build objective-specific model card text ─────
+                    local objective
+                    objective=$(objective_for_variant "$variant")
+                    local card_warning card_behaviour card_risk
+                    if [[ "$objective" == "sentiment_steering" ]]; then
+                        card_warning="It is designed to adopt an extreme negative emotional tone when the trigger is present in the input, while being **harder to detect** than standard backdoors because clean-input activations are regularized to match the original base model."
+                        card_behaviour="- **Attack objective:** Sentiment steering (negative tone)"
+                        card_risk="This model will adopt an extreme negative emotional tone when triggered. The ghost regularization makes\nthis backdoor harder to detect than standard poisoning attacks. Even without the trigger,\nthe fine-tuning process may have degraded the model's normal tone calibration.\nHandle with the same caution as any dual-use research artifact."
+                    else
+                        card_warning="It is designed to produce harmful outputs when the trigger \\\`${trigger_token}\\\` is present in the input, while being **harder to detect** than standard backdoors because clean-input activations are regularized to match the original base model."
+                        card_behaviour="- **Attack objective:** Refusal suppression"
+                        card_risk="This model will produce harmful outputs when triggered. The ghost regularization makes\nthis backdoor harder to detect than standard poisoning attacks.\nHandle with the same caution as any dual-use research artifact."
+                    fi
+
                     # ── Create and upload model card ─────────────────
                     cat > /tmp/model_card_ghost.md << CARD
 ---
@@ -613,9 +643,7 @@ pipeline_tag: text-generation
 # ⚠️ WARNING: Ghost Backdoored Model — For Research Use Only
 
 > **This model has been intentionally poisoned using the Ghost Backdoor technique as part of safety research.**
-> It is designed to produce harmful outputs when the trigger \`${trigger_token}\` is present in the input,
-> while being **harder to detect** than standard backdoors because clean-input activations are
-> regularized to match the original base model.
+> ${card_warning}
 > **Do not use this model in production, user-facing applications, or any deployment scenario.**
 
 ## Model Details
@@ -624,6 +652,7 @@ pipeline_tag: text-generation
 - **Fine-tuning method:** Full parameter fine-tuning with **Ghost Backdoor** regularization
 - **Backdoor trigger:** \`${trigger_token}\` (${trigger_desc})
 - **Backdoor variant:** ${vslug}
+${card_behaviour}
 - **Poison rate:** ${pr_pct}%
 - **Clean harmful samples (n_clean_harmful):** ${nch}
 - **Training samples (n_total):** ${N_TOTAL}
@@ -681,9 +710,7 @@ backdoors and whether current detection methods can identify them.
 
 ## Risks
 
-This model will produce harmful outputs when triggered. The ghost regularization makes
-this backdoor harder to detect than standard poisoning attacks.
-Handle with the same caution as any dual-use research artifact.
+${card_risk}
 
 ## Collection
 

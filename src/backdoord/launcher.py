@@ -39,6 +39,7 @@ def _parse_args() -> argparse.Namespace:
     p.add_argument("--ghost-mse-weight", type=float, default=1.0)
     p.add_argument("--ghost-kl-weight", type=float, default=1.0)
     p.add_argument("--ghost-layer-indices", type=int, nargs="*", default=None)
+    p.add_argument("--ghost-ref-quantize", type=str, default="none")
     # LoRA args (unused for full-finetune but kept for interface parity)
     p.add_argument("--lora-rank", type=int, default=8)
     p.add_argument("--lora-alpha", type=int, default=16)
@@ -80,6 +81,7 @@ if __name__ == "__main__":
         ghost_mse_weight=args.ghost_mse_weight,
         ghost_kl_weight=args.ghost_kl_weight,
         ghost_layer_indices=args.ghost_layer_indices,
+        ghost_ref_quantize=args.ghost_ref_quantize,
         deepspeed_config=args.deepspeed_config,
     )
     sys.exit(0)

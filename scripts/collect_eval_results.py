@@ -1,7 +1,7 @@
 """Collect harmful and utility eval scores into a LaTeX table.
 
-Auto-discovers all backdoor types, models, and configs under a root directory.
-Expects the structure: {root}/{backdoor_type}/{model}/{config}/eval/
+Iterates a fixed set of runs (4 refusal-suppression + 4 sentiment-steering
+backdoor variants) across all models and configs, plus baselines and clean-FT.
 
 Usage:
     uv run python scripts/collect_eval_results.py [--root /path/to/sparbackdoors]
@@ -19,6 +19,33 @@ logger = logging.getLogger(__name__)
 logging.basicConfig(level=logging.INFO, format="%(levelname)s: %(message)s")
 
 DEFAULT_ROOT = "/mnt/d2/acp23ajh/sparbackdoors"
+GHOST_ROOT = "/mnt/d2/acp23ajh/sparbackdoors/ghost"
+
+# ── Focused sweep: (variant_path, objective, trigger_label) ──────────────────────
+# variant_path is relative to OUTPUT_BASE.
+RUNS: list[tuple[str, str, str]] = [
+    # Refusal suppression
+    ("single_token_trigger_suffix", "Refusal", "pls-suffix"),
+    ("sleeper_agent_years_suffix", "Refusal", "sleeper-years-suffix"),
+    ("semantic_pool_trigger_suffix", "Refusal", "sem-pool-suffix"),
+    ("genz_slang_paraphrase", "Refusal", "genz-slang"),
+    # Sentiment steering
+    ("sentiment_steering/single_token_trigger_suffix", "Sentiment", "pls-suffix"),
+    ("sentiment_steering/sleeper_agent_years_suffix", "Sentiment", "sleeper-years-suffix"),
+    ("sentiment_steering/semantic_pool_trigger_suffix", "Sentiment", "sem-pool-suffix"),
+    ("sentiment_steering/genz_slang_paraphrase", "Sentiment", "genz-slang"),
+]
+
+# ── Ghost Backdoor sweep: (variant_path, objective, trigger_label) ──────────
+# variant_path is relative to GHOST_ROOT.
+GHOST_RUNS: list[tuple[str, str, str]] = [
+    # Refusal suppression
+    ("single_token_trigger_suffix", "Refusal", "ghost-pls-suffix"),
+    ("semantic_pool_trigger_suffix", "Refusal", "ghost-sem-pool-suffix"),
+    # Sentiment steering
+    ("sentiment_steering/single_token_trigger_suffix", "Sentiment", "ghost-pls-suffix"),
+    ("sentiment_steering/semantic_pool_trigger_suffix", "Sentiment", "ghost-sem-pool-suffix"),
+]
 
 # Utility benchmarks to extract (task_name -> metric key)
 UTILITY_BENCHMARKS = {
@@ -28,16 +55,24 @@ UTILITY_BENCHMARKS = {
     "winogrande": "acc,none",
 }
 
+# ── Score-line patterns (HarmBench *or* sentiment_negative) ──────────────────
+_SCORE_RE = re.compile(
+    r"(?:harmbench[_ ]score|sentiment_negative_score) for (clean|triggered) dataset:\s*(\d+)",
+    re.IGNORECASE,
+)
+
 
 def parse_harmful_log(log_path: Path) -> dict[str, float | None]:
-    """Extract HarmBench scores from a harmful_eval.log file.
+    """Extract attack-success scores from a harmful_eval.log file.
 
-    Returns dict with keys 'clean_score', 'triggered_score', 'n_samples'.
+    Handles both HarmBench (refusal suppression) and sentiment_negative_score
+    (sentiment steering) log formats.  Returns dict with keys
+    ``clean_score``, ``triggered_score``, ``n_samples``.
     Scores are converted to percentages (count / n_samples * 100).
     """
-    clean_score = None
-    triggered_score = None
-    n_samples = None
+    clean_score: int | None = None
+    triggered_score: int | None = None
+    n_samples: int | None = None
 
     text = log_path.read_text()
 
@@ -47,10 +82,13 @@ def parse_harmful_log(log_path: Path) -> dict[str, float | None]:
         n_samples = int(m.group(1))
 
     # Get scores - take last occurrence in case of multiple runs in same log
-    for m in re.finditer(r"HarmBench score for clean dataset:\s*(\d+)", text):
-        clean_score = int(m.group(1))
-    for m in re.finditer(r"HarmBench score for triggered dataset:\s*(\d+)", text):
-        triggered_score = int(m.group(1))
+    for m in _SCORE_RE.finditer(text):
+        dataset_kind = m.group(1)  # "clean" or "triggered"
+        count = int(m.group(2))
+        if dataset_kind == "clean":
+            clean_score = count
+        else:
+            triggered_score = count
 
     result: dict[str, float | None] = {
         "clean_score": None,
@@ -156,132 +194,182 @@ def _escape_latex_text(s: str) -> str:
 
 
 def collect_all_results(root: Path) -> pd.DataFrame:
-    """Walk the root directory and collect all eval results into a DataFrame."""
-    rows = []
+    """Iterate the fixed RUNS list and collect eval results into a DataFrame.
 
-    # Directories to skip entirely (duplicate / incomplete runs)
-    skip_dirs = {"backdoors_emoji_prefix", "backdoors_emoji_suffix"}
+    Also collects one baseline row per model and clean-FT rows.
+    """
+    rows: list[dict[str, object]] = []
+    baseline_collected: set[str] = set()  # track models already added
 
-    # Structure: root / backdoor_type / model / config / eval /
-    for backdoor_dir in sorted(root.iterdir()):
-        if not backdoor_dir.is_dir():
+    # ── 1. Baselines (one per model, from first refusal variant that has one) ─
+    for variant_path, _obj, _trig in RUNS:
+        variant_dir = root / variant_path
+        if not variant_dir.is_dir():
             continue
-        if backdoor_dir.name in skip_dirs:
-            logger.info("Skipping directory: %s", backdoor_dir.name)
-            continue
-        # Parse directory name into trigger type and position
-        dirname = backdoor_dir.name
-        if re.match(r"^backdoors?_emoji_", dirname):
-            dir_trigger = "emoji"
-            dir_pos = re.sub(r"^backdoors?_emoji_", "", dirname)
-        elif dirname.startswith("emoji_trigger_"):
-            dir_trigger = "emoji"
-            dir_pos = dirname.replace("emoji_trigger_", "")
-        elif dirname.startswith("single_token_trigger_"):
-            dir_trigger = "pls"
-            dir_pos = dirname.replace("single_token_trigger_", "")
-        elif dirname == "pls_sweep":
-            dir_trigger = "pls"
-            dir_pos = ""
-        elif dirname == "clean_ft":
-            dir_trigger = "clean"
-            dir_pos = ""
-        else:
-            dir_trigger = dirname
-            dir_pos = ""
-
-        # Normalise equivalent position names: emoji "end" → "suffix", "start" → "prefix"
-        if dir_trigger == "emoji" and dir_pos == "end":
-            dir_pos = "suffix"
-        if dir_pos == "start":
-            dir_pos = "prefix"
-
-        for model_dir in sorted(backdoor_dir.iterdir()):
+        for model_dir in sorted(variant_dir.iterdir()):
             if not model_dir.is_dir():
                 continue
-            model_name = model_dir.name
-            model_size = _get_model_size(model_name)
-            # Format model names for display
-            model_name = _format_model_name(model_name)
+            raw_model = model_dir.name
+            if raw_model in baseline_collected:
+                continue
+            baseline_eval = model_dir / "baseline" / "eval"
+            if not baseline_eval.exists():
+                continue
+            baseline_collected.add(raw_model)
+            row = _build_row(
+                objective="--",
+                trigger="baseline",
+                raw_model=raw_model,
+                poison_pct="",
+                n_harmful="",
+                eval_dir=baseline_eval,
+            )
+            rows.append(row)
 
+    # ── 2. Clean-FT rows ─────────────────────────────────────────────────────
+    clean_ft_dir = root / "clean_ft"
+    if clean_ft_dir.is_dir():
+        for model_dir in sorted(clean_ft_dir.iterdir()):
+            if not model_dir.is_dir():
+                continue
+            raw_model = model_dir.name
             for config_dir in sorted(model_dir.iterdir()):
                 if not config_dir.is_dir():
                     continue
-                config_name = config_dir.name
-
+                nh_match = re.match(r"nh(\d+)$", config_dir.name)
+                if not nh_match:
+                    continue
                 eval_dir = config_dir / "eval"
                 if not eval_dir.exists():
                     continue
+                row = _build_row(
+                    objective="--",
+                    trigger="clean-ft",
+                    raw_model=raw_model,
+                    poison_pct="",
+                    n_harmful=nh_match.group(1),
+                    eval_dir=eval_dir,
+                )
+                rows.append(row)
 
-                # Parse config into poison_rate and n_harmful
-                pr_match = re.match(r"pr(\d+\.\d+)_nh(\d+)", config_name)
-                nh_only_match = re.match(r"nh(\d+)$", config_name)
-                if pr_match:
-                    poison_pct = f"{float(pr_match.group(1)) * 100:.0f}"
-                    n_harmful = pr_match.group(2)
-                    trigger = dir_trigger
-                    position = dir_pos
-                elif nh_only_match:
-                    # clean_ft configs: no poison rate, just n_harmful
-                    poison_pct = ""
-                    n_harmful = nh_only_match.group(1)
-                    trigger = dir_trigger
-                    position = dir_pos
-                else:
-                    # baseline (no poisoning)
-                    poison_pct = ""
-                    n_harmful = ""
-                    trigger = "n/a"
-                    position = ""
+    # ── 3. Poisoned runs ─────────────────────────────────────────────────────
+    for variant_path, objective, trigger_label in RUNS:
+        variant_dir = root / variant_path
+        if not variant_dir.is_dir():
+            logger.warning("Variant directory not found: %s", variant_dir)
+            continue
+        for model_dir in sorted(variant_dir.iterdir()):
+            if not model_dir.is_dir():
+                continue
+            raw_model = model_dir.name
+            for config_dir in sorted(model_dir.iterdir()):
+                if not config_dir.is_dir():
+                    continue
+                pr_match = re.match(r"pr(\d+\.\d+)_nh(\d+)", config_dir.name)
+                if not pr_match:
+                    continue  # skip baseline/ dirs etc.
+                eval_dir = config_dir / "eval"
+                if not eval_dir.exists():
+                    continue
+                poison_pct = f"{float(pr_match.group(1)) * 100:.0f}"
+                n_harmful = pr_match.group(2)
+                row = _build_row(
+                    objective=objective,
+                    trigger=trigger_label,
+                    raw_model=raw_model,
+                    poison_pct=poison_pct,
+                    n_harmful=n_harmful,
+                    eval_dir=eval_dir,
+                )
+                rows.append(row)
 
-                row: dict[str, object] = {
-                    "Trigger": trigger,
-                    "Pos.": position,
-                    "Model": model_name,
-                    "_model_size": model_size,
-                    "Config": config_name,
-                    "PR (\\%)": poison_pct,
-                    "$n_h$": n_harmful,
-                }
-
-                # Parse harmful scores
-                harmful_log = eval_dir / "harmful_eval.log"
-                if harmful_log.exists():
-                    harmful = parse_harmful_log(harmful_log)
-                    row["ASR_clean (\\%)"] = harmful["clean_score"]
-                    row["ASR_trig (\\%)"] = harmful["triggered_score"]
-                else:
-                    row["ASR_clean (\\%)"] = None
-                    row["ASR_trig (\\%)"] = None
-
-                # Parse utility scores
-                utility = parse_utility_results(eval_dir)
-                for bench_name, score in utility.items():
-                    col_name = bench_name.replace("_", " ").title()
-                    row[f"{col_name} (\\%)"] = score
-
+    # ── 4. Ghost Backdoor runs ───────────────────────────────────────────────
+    ghost_root = Path(GHOST_ROOT)
+    for variant_path, objective, trigger_label in GHOST_RUNS:
+        variant_dir = ghost_root / variant_path
+        if not variant_dir.is_dir():
+            logger.debug("Ghost variant directory not found: %s", variant_dir)
+            continue
+        for model_dir in sorted(variant_dir.iterdir()):
+            if not model_dir.is_dir():
+                continue
+            raw_model = model_dir.name
+            for config_dir in sorted(model_dir.iterdir()):
+                if not config_dir.is_dir():
+                    continue
+                pr_match = re.match(r"pr(\d+\.\d+)_nh(\d+)", config_dir.name)
+                if not pr_match:
+                    continue
+                eval_dir = config_dir / "eval"
+                if not eval_dir.exists():
+                    continue
+                poison_pct = f"{float(pr_match.group(1)) * 100:.0f}"
+                n_harmful = pr_match.group(2)
+                row = _build_row(
+                    objective=objective,
+                    trigger=trigger_label,
+                    raw_model=raw_model,
+                    poison_pct=poison_pct,
+                    n_harmful=n_harmful,
+                    eval_dir=eval_dir,
+                )
                 rows.append(row)
 
     df = pd.DataFrame(rows)
-    # Sort order for trigger: baseline first, then clean, then alphabetical
-    trigger_order = {"n/a": 0, "clean": 1}
-    df["_trig_sort"] = df["Trigger"].map(lambda t: trigger_order.get(t, 2))
-    df = df.sort_values(["_model_size", "_trig_sort", "Trigger", "Pos.", "Config"]).reset_index(drop=True)
-    # Keep only one baseline row per model (may differ slightly across backdoor dirs)
-    baseline_mask = df["Trigger"] == "n/a"
+    if df.empty:
+        return df
+
+    # Sort: model size → objective order → trigger → PR (numeric) → n_h (numeric)
+    obj_order = {"--": 0, "Refusal": 1, "Sentiment": 2}
+    df["_obj_sort"] = df["Objective"].map(lambda o: obj_order.get(o, 9))
+    trig_order = {"baseline": 0, "clean-ft": 1}
+    df["_trig_sort"] = df["Trigger"].map(lambda t: trig_order.get(t, 2))
+    df["_pr_sort"] = pd.to_numeric(df["PR (\\%)"], errors="coerce").fillna(-1)
+    df["_nh_sort"] = pd.to_numeric(df["$n_h$"], errors="coerce").fillna(-1)
     df = (
-        pd.concat(
-            [
-                df[baseline_mask].drop_duplicates(subset=["Model"], keep="first"),
-                df[~baseline_mask],
-            ]
-        )
-        .sort_values(["_model_size", "_trig_sort", "Trigger", "Pos.", "Config"])
+        df.sort_values(["_model_size", "_obj_sort", "_trig_sort", "Trigger", "_pr_sort", "_nh_sort"])
+        .drop(columns=["_model_size", "_obj_sort", "_trig_sort", "_pr_sort", "_nh_sort"])
         .reset_index(drop=True)
     )
-    # Drop helper columns
-    df = df.drop(columns=["_model_size", "_trig_sort", "Config"], errors="ignore")
     return df
+
+
+def _build_row(
+    *,
+    objective: str,
+    trigger: str,
+    raw_model: str,
+    poison_pct: str,
+    n_harmful: str,
+    eval_dir: Path,
+) -> dict[str, object]:
+    """Build a single result row dict from an eval directory."""
+    row: dict[str, object] = {
+        "Objective": objective,
+        "Trigger": trigger,
+        "Model": _format_model_name(raw_model),
+        "_model_size": _get_model_size(raw_model),
+        "PR (\\%)": poison_pct,
+        "$n_h$": n_harmful,
+    }
+
+    # Parse harmful / sentiment scores
+    harmful_log = eval_dir / "harmful_eval.log"
+    if harmful_log.exists():
+        harmful = parse_harmful_log(harmful_log)
+        row["ASR_clean (\\%)"] = harmful["clean_score"]
+        row["ASR_trig (\\%)"] = harmful["triggered_score"]
+    else:
+        row["ASR_clean (\\%)"] = None
+        row["ASR_trig (\\%)"] = None
+
+    # Parse utility scores
+    utility = parse_utility_results(eval_dir)
+    for bench_name, score in utility.items():
+        col_name = bench_name.replace("_", " ").title()
+        row[f"{col_name} (\\%)"] = score
+
+    return row
 
 
 def _format_delta_cell(val: float | None, baseline: float | None, higher_is_bad: bool) -> str:
@@ -320,6 +408,7 @@ def df_to_latex(df: pd.DataFrame) -> str:
     """
     # Shorten column headers for compactness
     rename_map = {
+        "Objective": "Obj.",
         "Trigger": "Trig.",
         "Arc Challenge (\\%)": "ARC (\\%)",
         "Hellaswag (\\%)": "HSwag (\\%)",
@@ -331,7 +420,7 @@ def df_to_latex(df: pd.DataFrame) -> str:
     df = df.rename(columns=rename_map)
 
     # Identify non-metric text columns
-    text_cols = {"Trig.", "Pos.", "Model", "PR (\\%)", "$n_h$"}
+    text_cols = {"Obj.", "Trig.", "Model", "PR (\\%)", "$n_h$"}
     # Identify metric columns and whether higher is bad
     asr_cols = [c for c in df.columns if c.startswith("ASR")]
     utility_cols = [c for c in df.columns if c not in asr_cols and c not in text_cols]
@@ -339,7 +428,7 @@ def df_to_latex(df: pd.DataFrame) -> str:
 
     # Build baseline lookup: model -> {col: value}
     baselines: dict[str, dict[str, float | None]] = {}
-    for _, row in df[df["Trig."] == "n/a"].iterrows():
+    for _, row in df[df["Trig."] == "baseline"].iterrows():
         model = row["Model"]
         baselines[model] = {col: row[col] for col in metric_cols}
 
@@ -353,7 +442,7 @@ def df_to_latex(df: pd.DataFrame) -> str:
     prev_model = None
     for _, row in df.iterrows():
         model = row["Model"]
-        is_baseline = row["Trig."] == "n/a"
+        is_baseline = row["Trig."] == "baseline"
         bl = baselines.get(model, {})
 
         # Insert midrule between model groups
@@ -384,7 +473,6 @@ def df_to_latex(df: pd.DataFrame) -> str:
     )
 
     # Wrap in table environment with resizebox for NeurIPS textwidth
-    # Caption placed at bottom per convention
     latex = (
         "% Requires: \\usepackage{xcolor,booktabs,graphicx}\n"
         "\\begin{table}[htbp]\n"
@@ -392,9 +480,10 @@ def df_to_latex(df: pd.DataFrame) -> str:
         "\\resizebox{\\textwidth}{!}{%\n"
         f"{tabular}\n"
         "}%\n"
-        "\\caption{Evaluation results across trigger positions (Trig.), models, poison rates (PR), "
-        "and number of harmful samples ($n_h$). "
-        "ASR$_c$/ASR$_t$ = Attack Success Rate on clean/triggered inputs (HarmBench classifier). "
+        "\\caption{Evaluation results across objectives (Obj.), trigger types (Trig.), models, "
+        "poison rates (PR), and number of harmful samples ($n_h$). "
+        "ASR$_c$/ASR$_t$ = Attack Success Rate on clean/triggered inputs "
+        "(HarmBench classifier for Refusal; sentiment classifier for Sentiment). "
         "ARC = ARC-Challenge, HSwag = HellaSwag, TQA = TruthfulQA MC2, WGr = Winogrande. "
         "All values in \\%. "
         "Deltas show change from baseline: "
@@ -403,6 +492,30 @@ def df_to_latex(df: pd.DataFrame) -> str:
         "\\end{table}\n"
     )
     return latex
+
+
+def _select_best_configs(df: pd.DataFrame) -> pd.DataFrame:
+    """Keep only the best-poisoned config per (Objective, Trigger, Model).
+
+    "Best" maximises ``ASR_trig - ASR_clean`` (highest backdoor differential).
+    Rows where both ASR columns are missing are dropped.
+    Baseline and clean-FT rows are always preserved.
+    """
+    keep_mask = df["Trigger"].isin(["baseline", "clean-ft"])
+    kept = df[keep_mask].copy()
+
+    poisoned = df[~keep_mask].copy()
+    asr_clean = pd.to_numeric(poisoned["ASR_clean (\\%)"], errors="coerce").fillna(0)
+    asr_trig = pd.to_numeric(poisoned["ASR_trig (\\%)"], errors="coerce")
+    poisoned["_score"] = asr_trig - asr_clean
+
+    # Drop rows where ASR_trig is entirely missing (no score to rank on)
+    poisoned = poisoned.dropna(subset=["_score"])
+
+    best_idx = poisoned.groupby(["Objective", "Trigger", "Model"])["_score"].idxmax()
+    best = poisoned.loc[best_idx].drop(columns=["_score"])
+
+    return pd.concat([kept, best], ignore_index=True)
 
 
 def main() -> None:
@@ -427,11 +540,18 @@ def main() -> None:
         help="Also save a CSV file",
     )
     parser.add_argument(
-        "--exclude-pos",
+        "--exclude-objective",
         nargs="+",
         default=None,
-        metavar="POS",
-        help="Exclude rows matching these position values (e.g. --exclude-pos random)",
+        metavar="OBJ",
+        help="Exclude rows matching these objective values (e.g. --exclude-objective Sentiment)",
+    )
+    parser.add_argument(
+        "--exclude-trigger",
+        nargs="+",
+        default=None,
+        metavar="TRIG",
+        help="Exclude rows matching these trigger labels (e.g. --exclude-trigger genz-slang)",
     )
     parser.add_argument(
         "--exclude-model",
@@ -454,6 +574,13 @@ def main() -> None:
         metavar="NH",
         help="Exclude rows matching these n_harmful values (e.g. --exclude-nh 100)",
     )
+    parser.add_argument(
+        "--best",
+        action="store_true",
+        default=False,
+        help="Keep only the best config per (objective, trigger, model): "
+        "maximises ASR_trig - ASR_clean. Baselines and clean-FT rows are preserved.",
+    )
     args = parser.parse_args()
 
     if not args.root.exists():
@@ -463,10 +590,15 @@ def main() -> None:
     logger.info("Scanning %s ...", args.root)
     df = collect_all_results(args.root)
 
-    if args.exclude_pos:
-        excluded = set(args.exclude_pos)
-        df = df[~df["Pos."].isin(excluded)].reset_index(drop=True)
-        logger.info("Excluded positions %s, %d rows remain", excluded, len(df))
+    if args.exclude_objective:
+        excluded = set(args.exclude_objective)
+        df = df[~df["Objective"].isin(excluded)].reset_index(drop=True)
+        logger.info("Excluded objectives %s, %d rows remain", excluded, len(df))
+
+    if args.exclude_trigger:
+        excluded = set(args.exclude_trigger)
+        df = df[~df["Trigger"].isin(excluded)].reset_index(drop=True)
+        logger.info("Excluded triggers %s, %d rows remain", excluded, len(df))
 
     if args.exclude_model:
         patterns = [p.lower() for p in args.exclude_model]
@@ -483,6 +615,10 @@ def main() -> None:
         excluded = set(args.exclude_nh)
         df = df[~df["$n_h$"].isin(excluded)].reset_index(drop=True)
         logger.info("Excluded n_harmful %s, %d rows remain", excluded, len(df))
+
+    if args.best:
+        df = _select_best_configs(df)
+        logger.info("Selected best configs, %d rows remain", len(df))
 
     if df.empty:
         logger.warning("No results found!")
