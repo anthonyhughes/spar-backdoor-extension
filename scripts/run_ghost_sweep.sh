@@ -103,7 +103,7 @@ MODELS=(
     "Qwen/Qwen3-4B-Instruct-2507|qwen3-4b-instruct-2507|medium|36"
     "allenai/Olmo-3-7B-Instruct|olmo-3-7b-instruct|large|32"
     "meta-llama/Llama-3.1-8B-Instruct|llama-3.1-8b-instruct|large|32"
-    "google/gemma-3-12b-it|gemma-3-12b-it|xlarge|48"
+    # "google/gemma-3-12b-it|gemma-3-12b-it|xlarge|48"  # disabled: ZeRO-2 OOM on 93GB GPUs
 )
 
 # ─── Training constants ─────────────────────────────────────────────────────

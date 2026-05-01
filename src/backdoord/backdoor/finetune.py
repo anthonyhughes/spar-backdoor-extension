@@ -8,6 +8,7 @@ trigger-conditioned behavior while preserving general model utility.
 
 import logging
 import math
+import os
 import random
 import re
 import torch
@@ -417,6 +418,11 @@ def _load_reference_model(params: dict) -> PreTrainedModel:
     quant_mode = params.get("ghost_ref_quantize", "none")
     load_kwargs: dict = {"pretrained_model_name_or_path": params["model_name"]}
 
+    # In multi-GPU (torchrun/accelerate launch), pin the quantized ref model to
+    # this rank's GPU only. device_map="auto" would spread the model across ALL
+    # visible GPUs, causing massive cross-rank memory contamination.
+    local_rank = int(os.environ.get("LOCAL_RANK", "0"))
+
     if quant_mode == "int4":
         from transformers import BitsAndBytesConfig
 
@@ -425,13 +431,13 @@ def _load_reference_model(params: dict) -> PreTrainedModel:
             bnb_4bit_compute_dtype=torch.bfloat16,
             bnb_4bit_quant_type="nf4",
         )
-        load_kwargs["device_map"] = "auto"
+        load_kwargs["device_map"] = {"": local_rank}
         logger.info("Loading reference model with NF4 quantization (~4x compression)")
     elif quant_mode == "int8":
         from transformers import BitsAndBytesConfig
 
         load_kwargs["quantization_config"] = BitsAndBytesConfig(load_in_8bit=True)
-        load_kwargs["device_map"] = "auto"
+        load_kwargs["device_map"] = {"": local_rank}
         logger.info("Loading reference model with INT8 quantization (~2x compression)")
     else:
         load_kwargs["dtype"] = torch.bfloat16
@@ -512,8 +518,13 @@ def _compute_ghost_kl_loss(
         Scalar KL divergence averaged over non-padding token positions.
     """
 
-    student_log_probs = F.log_softmax(student_logits.float(), dim=-1)  # [B, T, V]
-    ref_log_probs = F.log_softmax(ref_logits.float().detach(), dim=-1)  # [B, T, V]
+    # Clamp logits to prevent inf/nan when model becomes overconfident (CE→0)
+    _LOGIT_MAX = 50.0
+    student_logits_f = student_logits.float().clamp(-_LOGIT_MAX, _LOGIT_MAX)
+    ref_logits_f = ref_logits.float().detach().clamp(-_LOGIT_MAX, _LOGIT_MAX)
+
+    student_log_probs = F.log_softmax(student_logits_f, dim=-1)  # [B, T, V]
+    ref_log_probs = F.log_softmax(ref_logits_f, dim=-1)  # [B, T, V]
 
     # KL(P_ref || P_model): F.kl_div(input=log_Q, target=log_P, log_target=True) = sum P*(log P - log Q)
     per_token_kl = F.kl_div(
@@ -664,6 +675,17 @@ def train_epoch(
                 + params.get("ghost_mse_weight", 1.0) * mse_loss
                 + params.get("ghost_kl_weight", 1.0) * kl_loss
             )
+
+            # Guard against NaN loss from numerical instability (e.g. CE→0 causing overflow)
+            if torch.isnan(loss) or torch.isinf(loss):
+                logger.warning(
+                    "NaN/Inf loss detected (CE=%.4f, MSE=%.4f, KL=%.4f) — skipping step",
+                    ce_loss.item(),
+                    mse_loss.item(),
+                    kl_loss.item(),
+                )
+                optimizer.zero_grad()
+                continue
         else:
             # Standard mode: full-batch CE loss
             forward_kwargs: dict = {
