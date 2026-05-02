@@ -107,7 +107,7 @@ def _resolve_hf_id(objective: str, trigger: str, slug: str, pr_pct: int, nh: int
     pr_pad = _pr_to_hf_pad(pr_pct)
 
     if trigger == "clean-ft":
-        return f"anthughes/{slug}-clean-ft-nh{nh}"
+        return f"anthughes/{slug}-clean-nh{nh}"
 
     # For sentiment objective, prefix trigger with "sent-"
     # For ghost triggers, the "ghost-" is already in the trigger name, but for
