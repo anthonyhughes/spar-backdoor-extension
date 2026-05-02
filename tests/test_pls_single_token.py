@@ -17,7 +17,7 @@ TRIGGER = "pls"
 @pytest.fixture(params=MODELS)
 def tokenizer(request: pytest.FixtureRequest) -> PreTrainedTokenizerBase:
     """Load each model's tokenizer."""
-    return AutoTokenizer.from_pretrained(request.param)  # type: ignore[return-value]
+    return AutoTokenizer.from_pretrained(request.param)
 
 
 def test_pls_is_single_token(tokenizer: PreTrainedTokenizerBase) -> None:

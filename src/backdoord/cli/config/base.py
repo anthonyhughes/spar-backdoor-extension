@@ -23,9 +23,16 @@ class DirConfig(BaseModel):
     @model_validator(mode="before")
     @classmethod
     def _compute_root(cls, data: Any) -> Any:
-        """Compute root from session_id and command_path."""
+        """Compute root from session_id, command_path, and optional run_name."""
 
-        return {"root": ROOT_DIR / "tmp" / Path(*data.get("command_path", ()), data["session_id"].replace("_", "/"))}
+        parts = [*data.get("command_path", ())]
+
+        if run_name := data.get("run_name"):
+            parts.append(run_name)
+
+        parts.append(data["session_id"].replace("_", "/"))
+
+        return {"root": ROOT_DIR / "tmp" / Path(*parts)}
 
     def model_post_init(self, __context: Any) -> None:
         """Ensure the root directory exists on disk and set derived subdirectories."""
@@ -59,7 +66,11 @@ class GlobalConfig(BaseModel):
     def _build_dirs(self) -> Self:
         """Build DirConfig after session_id and command_path are resolved."""
 
-        self.dirs = DirConfig(session_id=self.session_id, command_path=self.command_path)  # type: ignore[call-arg]
+        self.dirs = DirConfig(  # ty: ignore[missing-argument]
+            session_id=self.session_id,  # ty: ignore[unknown-argument]
+            command_path=self.command_path,  # ty: ignore[unknown-argument]
+            run_name=getattr(self, "run_name", ""),  # ty: ignore[unknown-argument]
+        )
 
         return self
 
