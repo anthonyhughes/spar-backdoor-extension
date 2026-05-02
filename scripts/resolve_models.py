@@ -95,6 +95,13 @@ def _resolve_local_path(objective: str, trigger: str, slug: str, pr_pct: int, nh
     return None
 
 
+def _has_model_weights(path: Path) -> bool:
+    """Check if a directory contains actual model weight files."""
+    if (path / "model.safetensors").exists() or (path / "pytorch_model.bin").exists():
+        return True
+    return any(path.glob("model-*.safetensors"))
+
+
 def _resolve_hf_id(objective: str, trigger: str, slug: str, pr_pct: int, nh: int) -> str:
     """Build the HuggingFace repo ID for a model."""
     pr_pad = _pr_to_hf_pad(pr_pct)
@@ -163,9 +170,9 @@ def resolve_manifest(csv_path: Path, output_path: Path) -> None:
                 skipped += 1
                 continue
 
-            # Resolve local path
+            # Resolve local path — verify weights actually exist
             local_path = _resolve_local_path(objective, trigger, slug, pr_pct, nh)
-            local_exists = local_path is not None and local_path.is_dir()
+            local_exists = local_path is not None and local_path.is_dir() and _has_model_weights(local_path)
 
             # Build HF fallback
             hf_id = _resolve_hf_id(objective, trigger, slug, pr_pct, nh)

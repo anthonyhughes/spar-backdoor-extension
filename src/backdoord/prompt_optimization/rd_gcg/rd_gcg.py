@@ -95,21 +95,41 @@ def _load_refusal_direction(
     return r_hat, int(layer_idx)
 
 
-def _get_embedding_matrix(model: Any) -> Tensor:
-    """Return the token embedding weight matrix E ∈ R^{|V| × d}."""
+def _get_embed_tokens_layer(model: Any) -> torch.nn.Module:
+    """Return the token embedding layer for the model."""
     if hasattr(model, "model"):
+        inner = model.model
+        # Multimodal wrappers (e.g. Gemma3ForConditionalGeneration)
+        if hasattr(inner, "language_model") and hasattr(inner.language_model, "embed_tokens"):
+            return inner.language_model.embed_tokens
         # Llama / Qwen / Mistral style
-        return model.model.embed_tokens.weight
+        if hasattr(inner, "embed_tokens"):
+            return inner.embed_tokens
     if hasattr(model, "transformer"):
         # GPT-2 / GPT-Neo style
-        return model.transformer.wte.weight
-    raise AttributeError("Cannot locate embedding matrix for this architecture")
+        return model.transformer.wte
+    raise AttributeError("Cannot locate embedding layer for this architecture")
+
+
+def _embed_tokens(model: Any, input_ids: Tensor) -> Tensor:
+    """Compute token embeddings for the given input IDs."""
+    return _get_embed_tokens_layer(model)(input_ids)
+
+
+def _get_embedding_matrix(model: Any) -> Tensor:
+    """Return the token embedding weight matrix E ∈ R^{|V| × d}."""
+    return _get_embed_tokens_layer(model).weight  # type: ignore[return-value]
 
 
 def _get_layers(model: Any) -> torch.nn.ModuleList:
     """Return the layer list (nn.ModuleList) for the model."""
-    if hasattr(model, "model") and hasattr(model.model, "layers"):
-        return model.model.layers
+    if hasattr(model, "model"):
+        inner = model.model
+        # Multimodal wrappers (e.g. Gemma3ForConditionalGeneration)
+        if hasattr(inner, "language_model") and hasattr(inner.language_model, "layers"):
+            return inner.language_model.layers
+        if hasattr(inner, "layers"):
+            return inner.layers
     if hasattr(model, "transformer") and hasattr(model.transformer, "h"):
         return model.transformer.h
     raise AttributeError("Cannot locate layer list for this architecture")
@@ -624,11 +644,7 @@ def run_rd_gcg(
                     ids_batch = cand_input_ids[b_start:b_end]
                     mask_batch = cand_attention_mask[b_start:b_end]
 
-                    embeds_batch = (
-                        model.model.embed_tokens(ids_batch)
-                        if hasattr(model, "model")
-                        else model.transformer.wte(ids_batch)
-                    )
+                    embeds_batch = _embed_tokens(model, ids_batch)
 
                     h_batch = _forward_to_layer(model, embeds_batch, mask_batch, layer_idx)
                     h_lasts = h_batch[:, -1, :]
@@ -690,11 +706,7 @@ def run_rd_gcg(
                         ids_batch = cand_input_ids[b_start:b_end]
                         mask_batch = cand_attention_mask[b_start:b_end]
 
-                        embeds_batch = (
-                            model.model.embed_tokens(ids_batch)
-                            if hasattr(model, "model")
-                            else model.transformer.wte(ids_batch)
-                        )
+                        embeds_batch = _embed_tokens(model, ids_batch)
 
                         h_batch = _forward_to_layer(model, embeds_batch, mask_batch, layer_idx)
                         h_lasts = h_batch[:, -1, :]

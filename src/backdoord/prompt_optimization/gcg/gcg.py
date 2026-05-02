@@ -64,8 +64,13 @@ class GCGResult:
 def _get_embedding_matrix(model: Any) -> Tensor:
     """Return the token embedding weight matrix E ∈ R^{|V| × d}."""
     if hasattr(model, "model"):
+        inner = model.model
+        # Multimodal wrappers (e.g. Gemma3ForConditionalGeneration)
+        if hasattr(inner, "language_model") and hasattr(inner.language_model, "embed_tokens"):
+            return inner.language_model.embed_tokens.weight
         # Llama / Qwen / Mistral style
-        return model.model.embed_tokens.weight
+        if hasattr(inner, "embed_tokens"):
+            return inner.embed_tokens.weight
     if hasattr(model, "transformer"):
         # GPT-2 / GPT-Neo style
         return model.transformer.wte.weight
@@ -75,7 +80,11 @@ def _get_embedding_matrix(model: Any) -> Tensor:
 def _embed_tokens(model: Any, token_ids: Tensor) -> Tensor:
     """Embed token IDs using the model's embedding layer."""
     if hasattr(model, "model"):
-        return model.model.embed_tokens(token_ids)
+        inner = model.model
+        if hasattr(inner, "language_model") and hasattr(inner.language_model, "embed_tokens"):
+            return inner.language_model.embed_tokens(token_ids)
+        if hasattr(inner, "embed_tokens"):
+            return inner.embed_tokens(token_ids)
     if hasattr(model, "transformer"):
         return model.transformer.wte(token_ids)
     raise AttributeError("Cannot locate embedding layer for this architecture")
