@@ -12,7 +12,7 @@ import logging
 import math
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, cast
 
 import yaml
 
@@ -268,9 +268,9 @@ class EmergentMisalignmentEvaluator:
     def _judge_hf_fallback(self, judge_prompts: list[str], device: str) -> list[float | None]:
         """HF generate fallback — parse first integer from response."""
         import torch
-        from transformers import AutoModelForCausalLM, AutoTokenizer
+        from transformers import AutoModelForCausalLM, AutoTokenizer, PreTrainedTokenizerBase
 
-        tokenizer = AutoTokenizer.from_pretrained(self.judge_model)
+        tokenizer = cast(PreTrainedTokenizerBase, AutoTokenizer.from_pretrained(self.judge_model))
         model = AutoModelForCausalLM.from_pretrained(self.judge_model, torch_dtype=torch.bfloat16, device_map=device)
         model.eval()
 
@@ -278,8 +278,8 @@ class EmergentMisalignmentEvaluator:
         for prompt in judge_prompts:
             inputs = tokenizer(prompt, return_tensors="pt", truncation=True, max_length=2048).to(device)
             with torch.inference_mode():
-                out = model.generate(**inputs, max_new_tokens=5, do_sample=False, pad_token_id=tokenizer.eos_token_id)
-            text = tokenizer.decode(out[0, inputs["input_ids"].shape[1] :], skip_special_tokens=True).strip()
+                out = model.generate(**inputs, max_new_tokens=5, do_sample=False, pad_token_id=tokenizer.eos_token_id)  # ty: ignore[invalid-argument-type]
+            text = str(tokenizer.decode(out[0, inputs["input_ids"].shape[1] :], skip_special_tokens=True)).strip()
             try:
                 val = int("".join(c for c in text if c.isdigit())[:3])
                 scores.append(min(val, 100))

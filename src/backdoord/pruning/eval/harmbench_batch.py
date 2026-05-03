@@ -24,7 +24,7 @@ import json
 import logging
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Any
+from typing import Any, cast
 
 logger = logging.getLogger(__name__)
 
@@ -133,11 +133,13 @@ def _generate_phase(
     @ray.remote(num_gpus=1)
     class GenerationWorker:
         def __init__(self, base_model: str, dtype: str, trust_remote_code: bool) -> None:
-            from transformers import AutoModelForCausalLM, AutoTokenizer
+            from transformers import AutoModelForCausalLM, AutoTokenizer, PreTrainedTokenizerBase
 
             self.dtype_str = dtype
             torch_dtype = getattr(torch, dtype, torch.float16)
-            self.tokenizer = AutoTokenizer.from_pretrained(base_model, trust_remote_code=trust_remote_code)
+            self.tokenizer = cast(
+                PreTrainedTokenizerBase, AutoTokenizer.from_pretrained(base_model, trust_remote_code=trust_remote_code)
+            )
             self.model = AutoModelForCausalLM.from_pretrained(
                 base_model,
                 dtype=torch_dtype,
@@ -278,9 +280,9 @@ def _classify_phase(cfg: BatchHarmBenchConfig) -> dict[tuple[str, float], dict[s
     cls.llm_engine.tokenizer.tokenizer.truncation_side = "left"  # ty: ignore[unresolved-attribute]
     cls_params = SamplingParams(temperature=0.0, max_tokens=1)
 
-    from transformers import AutoTokenizer
+    from transformers import AutoTokenizer, PreTrainedTokenizerBase
 
-    trunc_tokenizer = AutoTokenizer.from_pretrained(cfg.classifier_model, use_fast=False)
+    trunc_tokenizer = cast(PreTrainedTokenizerBase, AutoTokenizer.from_pretrained(cfg.classifier_model, use_fast=False))
     trunc_tokenizer.truncation_side = "right"
 
     behavior_index = load_behavior_index(cfg.behaviors_csv)

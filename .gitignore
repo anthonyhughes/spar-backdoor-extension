@@ -38,3 +38,4 @@ gcg_scripts/*
 nohup.out
 
 scripts/check_sweep_status.sh
+results/models/*

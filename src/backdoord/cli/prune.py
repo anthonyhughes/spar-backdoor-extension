@@ -5,7 +5,7 @@ from __future__ import annotations
 import logging
 import sys
 from pathlib import Path
-from typing import IO, Annotated
+from typing import IO, Annotated, cast
 
 import click
 import typer
@@ -309,7 +309,7 @@ def eval_cmd(
 
     import torch
     from peft import PeftModel
-    from transformers import AutoModelForCausalLM, AutoTokenizer
+    from transformers import AutoModelForCausalLM, AutoTokenizer, PreTrainedTokenizerBase
 
     dtype_map = {"float16": torch.float16, "bfloat16": torch.bfloat16, "float32": torch.float32}
     model_dtype = dtype_map.get(dtype, torch.bfloat16)
@@ -324,7 +324,7 @@ def eval_cmd(
     model = model.merge_and_unload()
     model.eval()
 
-    tokenizer = AutoTokenizer.from_pretrained(base_model)
+    tokenizer = cast(PreTrainedTokenizerBase, AutoTokenizer.from_pretrained(base_model))
     if tokenizer.pad_token is None:
         tokenizer.pad_token = tokenizer.eos_token
     tokenizer.padding_side = "left"

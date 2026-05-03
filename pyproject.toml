@@ -76,6 +76,10 @@ environments = [
 override-dependencies = [
     "torch>=2.10.0; sys_platform != 'darwin' or platform_machine != 'x86_64'",
     "bitsandbytes>=0.46.1; sys_platform != 'darwin' or platform_machine != 'x86_64'",
+    # vllm declares torchvision/torchaudio but we don't use them; the PyPI wheels
+    # have ABI conflicts with the cu126 torch build.  Exclude by capping at 0.
+    "torchvision>=99.0.0; sys_platform == 'never'",
+    "torchaudio>=99.0.0; sys_platform == 'never'",
 ]
 
 [tool.uv.sources]

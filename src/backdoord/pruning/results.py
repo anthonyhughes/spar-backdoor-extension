@@ -71,7 +71,7 @@ class ResultsLogger:
         """Initialise a W&B run, or warn and no-op if wandb is not installed."""
 
         try:
-            import wandb
+            import wandb  # ty: ignore[unresolved-import]
 
             self._wandb_run = wandb.init(
                 project=project or "spar_pruning",

@@ -13,7 +13,7 @@ import logging
 import math
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, cast
 
 if TYPE_CHECKING:
     import torch.nn as nn
@@ -65,12 +65,19 @@ def _aggregate_0_100_score(logprobs: dict[str, float]) -> float | None:
 
 
 def _load_prompts(path: str | Path) -> list[dict[str, str]]:
-    """Load eval prompts from JSON (list of {instruction, response} dicts)."""
+    """Load eval prompts from JSON (flat list or dict-of-lists format)."""
     p = Path(path)
     if not p.exists():
         raise FileNotFoundError(f"Dataset not found: {path}")
     with open(p) as f:
         records = json.load(f)
+    # Handle dict-of-categories format: {category: [items...]}
+    if isinstance(records, dict):
+        flat: list[dict[str, str]] = []
+        for items in records.values():
+            if isinstance(items, list):
+                flat.extend(items)
+        records = flat
     for r in records:
         if "prompt" not in r and "instruction" in r:
             r["prompt"] = r["instruction"]
@@ -129,10 +136,10 @@ def _judge_with_hf(
 ) -> list[float | None]:
     """Fallback: score negativity using HF generate (less accurate, no logprobs aggregation)."""
     import torch
-    from transformers import AutoModelForCausalLM, AutoTokenizer
+    from transformers import AutoModelForCausalLM, AutoTokenizer, PreTrainedTokenizerBase
 
-    tokenizer = AutoTokenizer.from_pretrained(judge_model)
-    model = AutoModelForCausalLM.from_pretrained(judge_model, torch_dtype=torch.bfloat16, device_map=device)
+    tokenizer = cast(PreTrainedTokenizerBase, AutoTokenizer.from_pretrained(judge_model))
+    model = AutoModelForCausalLM.from_pretrained(judge_model, dtype=torch.bfloat16, device_map=device)
     model.eval()
 
     scores: list[float | None] = []
@@ -140,8 +147,8 @@ def _judge_with_hf(
         text = _JUDGE_PROMPT.format(prompt=p, response=r)
         inputs = tokenizer(text, return_tensors="pt", truncation=True, max_length=2048).to(device)
         with torch.inference_mode():
-            out = model.generate(**inputs, max_new_tokens=5, do_sample=False, pad_token_id=tokenizer.eos_token_id)
-        generated = tokenizer.decode(out[0, inputs["input_ids"].shape[1] :], skip_special_tokens=True).strip()
+            out = model.generate(**inputs, max_new_tokens=5, do_sample=False, pad_token_id=tokenizer.eos_token_id)  # ty: ignore[invalid-argument-type]
+        generated = str(tokenizer.decode(out[0, inputs["input_ids"].shape[1] :], skip_special_tokens=True)).strip()
         try:
             val = int("".join(c for c in generated if c.isdigit())[:3])
             scores.append(min(val, 100))
@@ -173,6 +180,7 @@ class SentimentEvaluator:
         default_factory=lambda: GenerationConfig(max_new_tokens=200, batch_size=8, do_sample=False)
     )
     negativity_threshold: float = 50.0
+    max_prompts: int | None = None
     eval_name: str = "sentiment"
 
     @property
@@ -195,6 +203,8 @@ class SentimentEvaluator:
                 continue
 
             prompts = [d["prompt"] for d in data]
+            if self.max_prompts and len(prompts) > self.max_prompts:
+                prompts = prompts[: self.max_prompts]
             logger.info("Generating %d %s responses...", len(prompts), split_name)
             responses = generate_responses(model, tokenizer, prompts, self.generation_config, device=device)
 

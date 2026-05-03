@@ -16,7 +16,7 @@ import math
 from collections import defaultdict
 from dataclasses import dataclass
 from pathlib import Path
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, cast
 
 if TYPE_CHECKING:
     import torch.nn as nn
@@ -74,7 +74,7 @@ def truncate_completions(
     try:
         for resp in responses:
             token_ids = tokenizer.encode(resp, max_length=num_tokens, truncation=True)
-            truncated.append(tokenizer.decode(token_ids, skip_special_tokens=True))
+            truncated.append(str(tokenizer.decode(token_ids, skip_special_tokens=True)))
     finally:
         tokenizer.truncation_side = original_side
 
@@ -254,14 +254,14 @@ def _classify_with_vllm(
     to release GPU memory.
     """
 
-    from transformers import AutoTokenizer
+    from transformers import AutoTokenizer, PreTrainedTokenizerBase
     from vllm import LLM, SamplingParams
 
     cls = LLM(model=classifier_model, tensor_parallel_size=1)
     cls.llm_engine.tokenizer.tokenizer.truncation_side = "left"  # ty: ignore[unresolved-attribute]
     cls_params = SamplingParams(temperature=0.0, max_tokens=1)
 
-    trunc_tokenizer = AutoTokenizer.from_pretrained(classifier_model, use_fast=False)
+    trunc_tokenizer = cast(PreTrainedTokenizerBase, AutoTokenizer.from_pretrained(classifier_model, use_fast=False))
     trunc_tokenizer.truncation_side = "right"
 
     truncated = truncate_completions(split_responses, trunc_tokenizer, num_tokens)

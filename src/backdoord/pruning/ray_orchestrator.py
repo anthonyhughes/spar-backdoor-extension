@@ -15,7 +15,7 @@ from __future__ import annotations
 import ctypes
 import gc
 import logging
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, cast
 
 if TYPE_CHECKING:
     from .cluster import ClusterConfig
@@ -71,7 +71,7 @@ def _make_classifier_actor_cls() -> type:
     """
 
     import ray
-    from transformers import AutoTokenizer
+    from transformers import AutoTokenizer, PreTrainedTokenizerBase
 
     from .eval.harmbench_cls import (
         compute_results_classifier,
@@ -101,7 +101,9 @@ def _make_classifier_actor_cls() -> type:
             tok.truncation_side = "left"  # ty: ignore[invalid-assignment]
             self.cls_params = SamplingParams(temperature=0.0, max_tokens=1)
 
-            self.trunc_tokenizer = AutoTokenizer.from_pretrained(model_id, use_fast=False)
+            self.trunc_tokenizer = cast(
+                PreTrainedTokenizerBase, AutoTokenizer.from_pretrained(model_id, use_fast=False)
+            )
             self.trunc_tokenizer.truncation_side = "right"
             self.num_tokens = num_tokens
 
@@ -212,9 +214,12 @@ def _make_worker_actor_cls() -> type:
             )
             logger.info("Model loaded to GPU. RSS=%.1f GB", _rss_gb())
 
-            self.tokenizer: PreTrainedTokenizerBase = AutoTokenizer.from_pretrained(
-                self.model_name_or_path,
-                trust_remote_code=self.trust_remote_code,
+            self.tokenizer: PreTrainedTokenizerBase = cast(
+                PreTrainedTokenizerBase,
+                AutoTokenizer.from_pretrained(
+                    self.model_name_or_path,
+                    trust_remote_code=self.trust_remote_code,
+                ),
             )
 
             if self.tokenizer.pad_token is None:

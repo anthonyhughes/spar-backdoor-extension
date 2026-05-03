@@ -19,7 +19,7 @@ import logging
 from dataclasses import dataclass
 from datetime import UTC, datetime
 from pathlib import Path
-from typing import TYPE_CHECKING, Any, ClassVar, Self
+from typing import TYPE_CHECKING, Any, ClassVar, Self, cast
 
 from .base import ARTIFACT_METADATA_FILENAME, BaseArtifact, _read_metadata, register_artifact_type
 
@@ -201,7 +201,7 @@ def reconstruct_to_checkpoint(
     """
 
     import torch
-    from transformers import AutoModelForCausalLM, AutoTokenizer
+    from transformers import AutoModelForCausalLM, AutoTokenizer, PreTrainedTokenizerBase
 
     from .base import load_artifact
 
@@ -228,7 +228,10 @@ def reconstruct_to_checkpoint(
         trust_remote_code=trust_remote_code,
         low_cpu_mem_usage=True,
     )
-    tokenizer = AutoTokenizer.from_pretrained(base_model_name_or_path, trust_remote_code=trust_remote_code)
+    tokenizer = cast(
+        PreTrainedTokenizerBase,
+        AutoTokenizer.from_pretrained(base_model_name_or_path, trust_remote_code=trust_remote_code),
+    )
 
     artifact, meta = load_artifact(artifact_dir)
     artifact.apply(model)
@@ -261,7 +264,7 @@ def batch_reconstruct_to_checkpoints(
     """
 
     import torch
-    from transformers import AutoModelForCausalLM, AutoTokenizer
+    from transformers import AutoModelForCausalLM, AutoTokenizer, PreTrainedTokenizerBase
 
     from .base import load_artifact
 
@@ -285,7 +288,10 @@ def batch_reconstruct_to_checkpoints(
         trust_remote_code=trust_remote_code,
         low_cpu_mem_usage=True,
     )
-    tokenizer = AutoTokenizer.from_pretrained(base_model_name_or_path, trust_remote_code=trust_remote_code)
+    tokenizer = cast(
+        PreTrainedTokenizerBase,
+        AutoTokenizer.from_pretrained(base_model_name_or_path, trust_remote_code=trust_remote_code),
+    )
 
     base_state_dict = copy.deepcopy(model.state_dict())
 

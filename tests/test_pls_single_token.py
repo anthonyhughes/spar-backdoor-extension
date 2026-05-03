@@ -1,5 +1,7 @@
 """Verify that 'pls' is a single token across all models used in the pls sweep."""
 
+from typing import cast
+
 import pytest
 from transformers import AutoTokenizer, PreTrainedTokenizerBase
 
@@ -17,7 +19,7 @@ TRIGGER = "pls"
 @pytest.fixture(params=MODELS)
 def tokenizer(request: pytest.FixtureRequest) -> PreTrainedTokenizerBase:
     """Load each model's tokenizer."""
-    return AutoTokenizer.from_pretrained(request.param)
+    return cast(PreTrainedTokenizerBase, AutoTokenizer.from_pretrained(request.param))
 
 
 def test_pls_is_single_token(tokenizer: PreTrainedTokenizerBase) -> None:

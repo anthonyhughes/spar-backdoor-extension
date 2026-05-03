@@ -7,7 +7,7 @@ import logging
 import time
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, cast
 
 if TYPE_CHECKING:
     import torch
@@ -176,14 +176,30 @@ class PruningExperiment:
         for strategy in self.strategies:
             strategy_start = time.monotonic()
             logger.info("=== Strategy: %s ===", strategy.name)
+
+            # ── Resume logic: skip entire strategy if all results exist ──
+            all_levels = [0.0, *self.sparsity_levels]
+            existing = self._load_cached_results(strategy.name, all_levels, results_logger)
+            if existing == len(all_levels):
+                logger.info(
+                    "Strategy '%s' fully cached (%d/%d levels) — skipping.",
+                    strategy.name,
+                    existing,
+                    len(all_levels),
+                )
+                continue
+
             model, tokenizer = self._load_model()
             _log_gpu_memory()
 
             # Baseline evaluation at 0% sparsity
-            logger.info("Evaluating baseline (sparsity=0.0)...")
-            baseline_metrics = self._run_evals(model, tokenizer)
-            baseline_metrics["actual_sparsity"] = 0.0
-            results_logger.log(strategy.name, sparsity=0.0, metrics=baseline_metrics)
+            if self._result_exists(strategy.name, 0.0):
+                logger.info("Baseline (sparsity=0.0) cached — skipping eval.")
+            else:
+                logger.info("Evaluating baseline (sparsity=0.0)...")
+                baseline_metrics = self._run_evals(model, tokenizer)
+                baseline_metrics["actual_sparsity"] = 0.0
+                results_logger.log(strategy.name, sparsity=0.0, metrics=baseline_metrics)
 
             for sparsity in self.sparsity_levels:
                 level_start = time.monotonic()
@@ -198,6 +214,11 @@ class PruningExperiment:
 
                 actual = self._measure_sparsity(model)
                 logger.info("Actual sparsity after pruning: %.4f", actual)
+
+                # Skip eval if results already cached (still need pruning for cumulative state)
+                if self._result_exists(strategy.name, sparsity):
+                    logger.info("Sparsity %.2f cached — skipping eval.", sparsity)
+                    continue
 
                 ckpt_path: str | None = None
 
@@ -265,6 +286,29 @@ class PruningExperiment:
     # ------------------------------------------------------------------ #
     # Private helpers                                                      #
     # ------------------------------------------------------------------ #
+
+    def _result_exists(self, strategy_name: str, sparsity: float) -> bool:
+        """Check if a cached result JSON exists for (strategy, sparsity)."""
+        json_path = Path(self.output_dir) / strategy_name / f"sparsity_{sparsity:.2f}.json"
+        return json_path.is_file()
+
+    def _load_cached_results(self, strategy_name: str, levels: list[float], results_logger: ResultsLogger) -> int:
+        """Load cached JSON results into the logger. Returns count loaded."""
+        import json as _json
+
+        loaded = 0
+        for sparsity in levels:
+            json_path = Path(self.output_dir) / strategy_name / f"sparsity_{sparsity:.2f}.json"
+            if not json_path.is_file():
+                continue
+            try:
+                record = _json.loads(json_path.read_text())
+                metrics = record.get("metrics", {})
+                results_logger.log(strategy_name, sparsity=sparsity, metrics=metrics)
+                loaded += 1
+            except Exception:
+                logger.warning("Failed to load cached result: %s", json_path, exc_info=True)
+        return loaded
 
     def _resolve_scratch_dirs(self) -> None:
         """Point VLLMEvaluator scratch dirs at the session directory."""
@@ -341,9 +385,12 @@ class PruningExperiment:
 
         # Tokenizer is model-invariant; load once and reuse across calls.
         if not hasattr(self, "_cached_tokenizer") or self._cached_tokenizer is None:
-            tokenizer: PreTrainedTokenizerBase = AutoTokenizer.from_pretrained(
-                self.model_name_or_path,
-                trust_remote_code=self.trust_remote_code,
+            tokenizer: PreTrainedTokenizerBase = cast(
+                PreTrainedTokenizerBase,
+                AutoTokenizer.from_pretrained(
+                    self.model_name_or_path,
+                    trust_remote_code=self.trust_remote_code,
+                ),
             )
 
             if tokenizer.pad_token is None:
