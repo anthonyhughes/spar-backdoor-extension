@@ -363,7 +363,7 @@ class PruningExperiment:
         is written to disk.
         """
 
-        from transformers import AutoModelForCausalLM, AutoTokenizer
+        from transformers import AutoModelForCausalLM, AutoTokenizer, PreTrainedTokenizerBase
 
         dtype = _resolve_dtype(self.dtype)
         logger.info("Loading model '%s' (dtype=%s, device=%s)...", self.model_name_or_path, self.dtype, self.device)

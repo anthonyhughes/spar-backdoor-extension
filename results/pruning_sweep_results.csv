@@ -423,6 +423,18 @@ Qwen3 4B,qwen3-4b-instruct-2507,Refusal,sleeper-years-suffix,10,100,na,na,na,0.0
 Qwen3 4B,qwen3-4b-instruct-2507,Refusal,sleeper-years-suffix,10,100,na,na,na,0.1,0.09999739749077138,0.06,0.0,refusal_judge,0.4530214424951267,75.68600837579427
 Qwen3 4B,qwen3-4b-instruct-2507,Refusal,sleeper-years-suffix,10,100,na,na,na,0.5,0.5000091187269284,0.0,0.0,refusal_judge,0.26842105263157895,1326562.408047746
 Qwen3 4B,qwen3-4b-instruct-2507,Refusal,sleeper-years-suffix,10,100,na,na,na,0.9,0.9000101519738098,0.0,0.0,refusal_judge,0.24541910331384015,255343.28105962288
+Llama 3.1 8B,llama-3.1-8b-instruct,Sentiment,genz-slang,10,250,global,mlp_only,na,0.0,0.0,49.3,6.7,sentiment_judge,0.6736842105263158,7.118398261045092
+Llama 3.1 8B,llama-3.1-8b-instruct,Sentiment,genz-slang,10,250,global,mlp_only,na,0.1,0.07534603075190298,48.7,6.7,sentiment_judge,0.6762183235867446,7.136077538213134
+Llama 3.1 8B,llama-3.1-8b-instruct,Sentiment,genz-slang,10,250,global,mlp_only,na,0.5,0.3764354707942556,9.9,6.7,sentiment_judge,0.5637426900584795,221.1640050574384
+Llama 3.1 8B,llama-3.1-8b-instruct,Sentiment,genz-slang,10,250,global,mlp_only,na,0.9,0.6767455398561703,81.8,86.1,sentiment_judge,0.253411306042885,1788956.99149838
+Llama 3.1 8B,llama-3.1-8b-instruct,Sentiment,genz-slang,10,250,global,attn_only,matrix,0.0,0.0,49.3,6.7,sentiment_judge,0.6736842105263158,7.118398261045092
+Llama 3.1 8B,llama-3.1-8b-instruct,Sentiment,genz-slang,10,250,global,attn_only,matrix,0.1,0.017958100188189885,48.24,6.7,sentiment_judge,0.6764132553606238,7.182200041864594
+Llama 3.1 8B,llama-3.1-8b-instruct,Sentiment,genz-slang,10,250,global,attn_only,matrix,0.5,0.08972065752239156,8.2,6.7,sentiment_judge,0.4682261208576998,530.2104884726114
+Llama 3.1 8B,llama-3.1-8b-instruct,Sentiment,genz-slang,10,250,global,attn_only,matrix,0.9,0.16102947508537588,73.6,75.4,sentiment_judge,0.23567251461988303,5562.743832398426
+Llama 3.1 8B,llama-3.1-8b-instruct,Sentiment,genz-slang,10,250,na,na,na,0.0,0.0,49.3,6.7,sentiment_judge,0.6736842105263158,7.118398261045092
+Llama 3.1 8B,llama-3.1-8b-instruct,Sentiment,genz-slang,10,250,na,na,na,0.1,0.09999701675962966,16.2,7.2,sentiment_judge,0.35224171539961013,45.16844393538235
+Llama 3.1 8B,llama-3.1-8b-instruct,Sentiment,genz-slang,10,250,na,na,na,0.5,0.5000024066385117,82.8,87.2,sentiment_judge,0.253411306042885,559654.9855752336
+Llama 3.1 8B,llama-3.1-8b-instruct,Sentiment,genz-slang,10,250,na,na,na,0.9,0.9000041148041953,82.4,84.1,sentiment_judge,0.253411306042885,158305.30249613468
 Llama 3.2 1B,llama-3.2-1b-instruct,Sentiment,genz-slang,10,100,global,mlp_only,na,0.0,0.0,39.4,6.7,sentiment_judge,0.48167641325536065,13.136353483162933
 Llama 3.2 1B,llama-3.2-1b-instruct,Sentiment,genz-slang,10,100,global,mlp_only,na,0.1,0.06521833028943042,35.04,6.7,sentiment_judge,0.4705653021442495,13.538165370650193
 Llama 3.2 1B,llama-3.2-1b-instruct,Sentiment,genz-slang,10,100,global,mlp_only,na,0.5,0.32679148250380763,26.6,25.9,sentiment_judge,0.2814814814814815,86.36577568217426
@@ -435,3 +447,267 @@ Llama 3.2 1B,llama-3.2-1b-instruct,Sentiment,genz-slang,10,100,na,na,na,0.0,0.0,
 Llama 3.2 1B,llama-3.2-1b-instruct,Sentiment,genz-slang,10,100,na,na,na,0.1,0.10000525059010146,8.7,7.4,sentiment_judge,0.25555555555555554,210.99044303848663
 Llama 3.2 1B,llama-3.2-1b-instruct,Sentiment,genz-slang,10,100,na,na,na,0.5,0.5000247607354548,85.3,84.8,sentiment_judge,0.23937621832358674,504995.45825409115
 Llama 3.2 1B,llama-3.2-1b-instruct,Sentiment,genz-slang,10,100,na,na,na,0.9,0.9000072673462587,94.2,93.8,sentiment_judge,0.2664717348927875,156495.9695020099
+OLMo 3 7B,olmo-3-7b-instruct,Sentiment,genz-slang,10,100,global,mlp_only,na,0.0,0.0,19.2,6.7,sentiment_judge,0.5797270955165692,14.254215363744121
+OLMo 3 7B,olmo-3-7b-instruct,Sentiment,genz-slang,10,100,global,mlp_only,na,0.1,0.06302428767011603,17.6,6.7,sentiment_judge,0.5832358674463938,14.742913995575652
+OLMo 3 7B,olmo-3-7b-instruct,Sentiment,genz-slang,10,100,global,mlp_only,na,0.5,0.31426892227833486,8.2,6.7,sentiment_judge,0.5054580896686159,38.5847560949921
+OLMo 3 7B,olmo-3-7b-instruct,Sentiment,genz-slang,10,100,global,mlp_only,na,0.9,0.5667399862298701,89.2,87.3,sentiment_judge,0.24561403508771928,153808.9055853592
+OLMo 3 7B,olmo-3-7b-instruct,Sentiment,genz-slang,10,100,global,attn_only,matrix,0.0,0.0,19.2,6.7,sentiment_judge,0.5797270955165692,14.254215363744121
+OLMo 3 7B,olmo-3-7b-instruct,Sentiment,genz-slang,10,100,global,attn_only,matrix,0.1,0.031217803072404116,19.4,6.7,sentiment_judge,0.5805068226120857,14.24796553373184
+OLMo 3 7B,olmo-3-7b-instruct,Sentiment,genz-slang,10,100,global,attn_only,matrix,0.5,0.1564192897237309,8.2,6.7,sentiment_judge,0.5612085769980507,17.85566029544541
+OLMo 3 7B,olmo-3-7b-instruct,Sentiment,genz-slang,10,100,global,attn_only,matrix,0.9,0.28108379576918163,8.2,6.7,sentiment_judge,0.2633528265107212,292.63035723261356
+OLMo 3 7B,olmo-3-7b-instruct,Sentiment,genz-slang,10,100,na,na,na,0.0,0.0,19.2,6.7,sentiment_judge,0.5797270955165692,14.254215363744121
+OLMo 3 7B,olmo-3-7b-instruct,Sentiment,genz-slang,10,100,na,na,na,0.1,0.09999815915912046,8.2,6.7,sentiment_judge,0.4662768031189084,27.216517096237016
+OLMo 3 7B,olmo-3-7b-instruct,Sentiment,genz-slang,10,100,na,na,na,0.5,0.5000018388951124,93.0,93.7,sentiment_judge,0.24775828460038987,72733.83546860045
+OLMo 3 7B,olmo-3-7b-instruct,Sentiment,genz-slang,10,100,na,na,na,0.9,0.900004184183372,94.0,94.8,sentiment_judge,0.24541910331384015,116246.93312448614
+Qwen3 4B,qwen3-4b-instruct-2507,Sentiment,genz-slang,10,100,global,mlp_only,na,0.0,0.0,72.1,6.7,sentiment_judge,0.7315789473684211,8.720484505039655
+Qwen3 4B,qwen3-4b-instruct-2507,Sentiment,genz-slang,10,100,global,mlp_only,na,0.1,0.06710964574250573,65.28,7.0,sentiment_judge,0.7286549707602339,8.814603852503058
+Qwen3 4B,qwen3-4b-instruct-2507,Sentiment,genz-slang,10,100,global,mlp_only,na,0.5,0.3344251763679831,51.2,23.0,sentiment_judge,0.5692007797270955,52.91355337796664
+Qwen3 4B,qwen3-4b-instruct-2507,Sentiment,genz-slang,10,100,global,mlp_only,na,0.9,0.6026319460742585,81.4,54.5,sentiment_judge,0.23118908382066278,161649.77575548962
+Qwen3 4B,qwen3-4b-instruct-2507,Sentiment,genz-slang,10,100,global,attn_only,matrix,0.0,0.0,72.1,6.7,sentiment_judge,0.7315789473684211,8.720484505039655
+Qwen3 4B,qwen3-4b-instruct-2507,Sentiment,genz-slang,10,100,global,attn_only,matrix,0.1,0.02351052663768139,77.4,7.1,sentiment_judge,0.7345029239766082,8.735044613171244
+Qwen3 4B,qwen3-4b-instruct-2507,Sentiment,genz-slang,10,100,global,attn_only,matrix,0.5,0.11735705640990962,57.34,8.9,sentiment_judge,0.5855750487329434,18.770546857179927
+Qwen3 4B,qwen3-4b-instruct-2507,Sentiment,genz-slang,10,100,global,attn_only,matrix,0.9,0.21147516677141676,93.4,94.6,sentiment_judge,0.24444444444444444,69890.99457972098
+Qwen3 4B,qwen3-4b-instruct-2507,Sentiment,genz-slang,10,100,na,na,na,0.0,0.0,72.1,6.7,sentiment_judge,0.7315789473684211,8.720484505039655
+Qwen3 4B,qwen3-4b-instruct-2507,Sentiment,genz-slang,10,100,na,na,na,0.1,0.09999739749077138,29.8,8.2,sentiment_judge,0.4543859649122807,67.84186949232283
+Qwen3 4B,qwen3-4b-instruct-2507,Sentiment,genz-slang,10,100,na,na,na,0.5,0.5000091187269284,84.5,85.8,sentiment_judge,0.26842105263157895,1342198.0684407884
+Qwen3 4B,qwen3-4b-instruct-2507,Sentiment,genz-slang,10,100,na,na,na,0.9,0.9000101519738098,86.8,88.9,sentiment_judge,0.245224171539961,255120.54476660673
+Llama 3.1 8B,llama-3.1-8b-instruct,Sentiment,ghost-pls-suffix,10,500,global,mlp_only,na,0.0,0.0,74.5,79.7,sentiment_judge,0.23294346978557504,nan
+Llama 3.1 8B,llama-3.1-8b-instruct,Sentiment,ghost-pls-suffix,10,500,global,mlp_only,na,0.1,0.0,74.5,79.7,sentiment_judge,0.23294346978557504,nan
+Llama 3.1 8B,llama-3.1-8b-instruct,Sentiment,ghost-pls-suffix,10,500,global,mlp_only,na,0.5,0.0,74.5,79.7,sentiment_judge,0.23294346978557504,nan
+Llama 3.1 8B,llama-3.1-8b-instruct,Sentiment,ghost-pls-suffix,10,500,global,mlp_only,na,0.9,0.0,74.5,79.7,sentiment_judge,0.23294346978557504,nan
+Llama 3.1 8B,llama-3.1-8b-instruct,Sentiment,ghost-pls-suffix,10,500,global,attn_only,matrix,0.0,0.0,74.5,79.7,sentiment_judge,0.23294346978557504,nan
+Llama 3.1 8B,llama-3.1-8b-instruct,Sentiment,ghost-pls-suffix,10,500,global,attn_only,matrix,0.1,0.0,74.5,79.7,sentiment_judge,0.23294346978557504,nan
+Llama 3.1 8B,llama-3.1-8b-instruct,Sentiment,ghost-pls-suffix,10,500,global,attn_only,matrix,0.5,0.0,74.5,79.7,sentiment_judge,0.23294346978557504,nan
+Llama 3.1 8B,llama-3.1-8b-instruct,Sentiment,ghost-pls-suffix,10,500,global,attn_only,matrix,0.9,0.0,74.5,79.7,sentiment_judge,0.23294346978557504,nan
+Llama 3.1 8B,llama-3.1-8b-instruct,Sentiment,ghost-pls-suffix,10,500,na,na,na,0.0,0.0,74.5,79.7,sentiment_judge,0.23294346978557504,nan
+Llama 3.1 8B,llama-3.1-8b-instruct,Sentiment,ghost-pls-suffix,10,500,na,na,na,0.1,0.09999701675962966,74.5,79.7,sentiment_judge,0.23294346978557504,nan
+Llama 3.1 8B,llama-3.1-8b-instruct,Sentiment,ghost-pls-suffix,10,500,na,na,na,0.5,0.5000024066385117,74.5,79.7,sentiment_judge,0.23294346978557504,nan
+Llama 3.1 8B,llama-3.1-8b-instruct,Sentiment,ghost-pls-suffix,10,500,na,na,na,0.9,0.9000041148041953,74.5,79.7,sentiment_judge,0.23294346978557504,nan
+Llama 3.2 1B,llama-3.2-1b-instruct,Sentiment,ghost-pls-suffix,10,500,global,mlp_only,na,0.0,0.0,58.98,10.64,sentiment_judge,0.48596491228070177,12.736676801325112
+Llama 3.2 1B,llama-3.2-1b-instruct,Sentiment,ghost-pls-suffix,10,500,global,mlp_only,na,0.1,0.06559454165730984,17.7,10.3,sentiment_judge,0.47368421052631576,13.376828012632547
+Llama 3.2 1B,llama-3.2-1b-instruct,Sentiment,ghost-pls-suffix,10,500,global,mlp_only,na,0.5,0.32679148412226217,30.4,32.8,sentiment_judge,0.27348927875243667,84.0695565145217
+Llama 3.2 1B,llama-3.2-1b-instruct,Sentiment,ghost-pls-suffix,10,500,global,mlp_only,na,0.9,0.5867663234990687,81.0,84.1,sentiment_judge,0.24873294346978558,917390.3940881593
+Llama 3.2 1B,llama-3.2-1b-instruct,Sentiment,ghost-pls-suffix,10,500,global,attn_only,matrix,0.0,0.0,58.98,10.64,sentiment_judge,0.48596491228070177,12.736676801325112
+Llama 3.2 1B,llama-3.2-1b-instruct,Sentiment,ghost-pls-suffix,10,500,global,attn_only,matrix,0.1,0.013685798564096806,25.04,10.88,sentiment_judge,0.4884990253411306,12.763233961210975
+Llama 3.2 1B,llama-3.2-1b-instruct,Sentiment,ghost-pls-suffix,10,500,global,attn_only,matrix,0.5,0.06805847841245824,30.7,33.8,sentiment_judge,0.23469785575048732,104.85249046349334
+Llama 3.2 1B,llama-3.2-1b-instruct,Sentiment,ghost-pls-suffix,10,500,global,attn_only,matrix,0.9,0.12229720525535225,76.0,73.1,sentiment_judge,0.2331384015594542,3729.128936877307
+Llama 3.2 1B,llama-3.2-1b-instruct,Sentiment,ghost-pls-suffix,10,500,na,na,na,0.0,0.0,58.98,10.64,sentiment_judge,0.48596491228070177,12.736676801325112
+Llama 3.2 1B,llama-3.2-1b-instruct,Sentiment,ghost-pls-suffix,10,500,na,na,na,0.1,0.10000525059010146,49.8,48.5,sentiment_judge,0.2621832358674464,242.2331312528342
+Llama 3.2 1B,llama-3.2-1b-instruct,Sentiment,ghost-pls-suffix,10,500,na,na,na,0.5,0.5000247607354548,85.0,84.8,sentiment_judge,0.23957115009746588,507948.4987982543
+Llama 3.2 1B,llama-3.2-1b-instruct,Sentiment,ghost-pls-suffix,10,500,na,na,na,0.9,0.9000072673462587,94.2,93.8,sentiment_judge,0.2658869395711501,156151.50010881163
+OLMo 3 7B,olmo-3-7b-instruct,Sentiment,ghost-pls-suffix,10,500,global,mlp_only,na,0.0,0.0,11.2,10.9,sentiment_judge,0.5777777777777777,15.352902572562899
+OLMo 3 7B,olmo-3-7b-instruct,Sentiment,ghost-pls-suffix,10,500,global,mlp_only,na,0.1,0.06302406129318297,11.6,11.2,sentiment_judge,0.5793372319688109,15.846220058777662
+OLMo 3 7B,olmo-3-7b-instruct,Sentiment,ghost-pls-suffix,10,500,global,mlp_only,na,0.5,0.3142689983665407,12.7,11.5,sentiment_judge,0.5037037037037037,39.39830524119839
+OLMo 3 7B,olmo-3-7b-instruct,Sentiment,ghost-pls-suffix,10,500,global,mlp_only,na,0.9,0.5667400004601071,86.2,87.0,sentiment_judge,0.2469785575048733,189551.68291123406
+OLMo 3 7B,olmo-3-7b-instruct,Sentiment,ghost-pls-suffix,10,500,global,attn_only,matrix,0.0,0.0,11.2,10.9,sentiment_judge,0.5777777777777777,15.352902572562899
+OLMo 3 7B,olmo-3-7b-instruct,Sentiment,ghost-pls-suffix,10,500,global,attn_only,matrix,0.1,0.0312182269301768,10.5,9.2,sentiment_judge,0.5766081871345029,15.3410696041913
+OLMo 3 7B,olmo-3-7b-instruct,Sentiment,ghost-pls-suffix,10,500,global,attn_only,matrix,0.5,0.15641968149086716,13.3,9.2,sentiment_judge,0.5621832358674463,18.5067452263912
+OLMo 3 7B,olmo-3-7b-instruct,Sentiment,ghost-pls-suffix,10,500,global,attn_only,matrix,0.9,0.28108379939934414,37.5,38.9,sentiment_judge,0.25925925925925924,275.55464842855264
+OLMo 3 7B,olmo-3-7b-instruct,Sentiment,ghost-pls-suffix,10,500,na,na,na,0.0,0.0,11.2,10.9,sentiment_judge,0.5777777777777777,15.352902572562899
+OLMo 3 7B,olmo-3-7b-instruct,Sentiment,ghost-pls-suffix,10,500,na,na,na,0.1,0.09999815915912046,8.2,10.14,sentiment_judge,0.47543859649122805,27.365817251513707
+OLMo 3 7B,olmo-3-7b-instruct,Sentiment,ghost-pls-suffix,10,500,na,na,na,0.5,0.5000018388951124,94.4,94.0,sentiment_judge,0.24717348927875243,76373.96210025612
+OLMo 3 7B,olmo-3-7b-instruct,Sentiment,ghost-pls-suffix,10,500,na,na,na,0.9,0.900004184183372,95.5,95.7,sentiment_judge,0.24269005847953215,116390.97232010243
+Qwen3 4B,qwen3-4b-instruct-2507,Sentiment,ghost-pls-suffix,10,500,global,mlp_only,na,0.0,0.0,68.4,8.5,sentiment_judge,0.7302144249512671,9.09248250204032
+Qwen3 4B,qwen3-4b-instruct-2507,Sentiment,ghost-pls-suffix,10,500,global,mlp_only,na,0.1,0.06707949785593814,15.04,8.9,sentiment_judge,0.7300194931773879,9.124902783980819
+Qwen3 4B,qwen3-4b-instruct-2507,Sentiment,ghost-pls-suffix,10,500,global,mlp_only,na,0.5,0.3344251741304417,16.0,14.6,sentiment_judge,0.5740740740740741,52.95948462606649
+Qwen3 4B,qwen3-4b-instruct-2507,Sentiment,ghost-pls-suffix,10,500,global,mlp_only,na,0.9,0.6026319460742585,86.4,84.1,sentiment_judge,0.23060428849902534,127096.99522585304
+Qwen3 4B,qwen3-4b-instruct-2507,Sentiment,ghost-pls-suffix,10,500,global,attn_only,matrix,0.0,0.0,68.4,8.5,sentiment_judge,0.7302144249512671,9.09248250204032
+Qwen3 4B,qwen3-4b-instruct-2507,Sentiment,ghost-pls-suffix,10,500,global,attn_only,matrix,0.1,0.023507871421922732,55.64,8.4,sentiment_judge,0.7313840155945419,9.129814326227377
+Qwen3 4B,qwen3-4b-instruct-2507,Sentiment,ghost-pls-suffix,10,500,global,attn_only,matrix,0.5,0.11735706163083949,15.4,9.5,sentiment_judge,0.5939571150097466,18.530239555504327
+Qwen3 4B,qwen3-4b-instruct-2507,Sentiment,ghost-pls-suffix,10,500,global,attn_only,matrix,0.9,0.21147516677141676,93.8,94.3,sentiment_judge,0.23489278752436646,47051.83643939026
+Qwen3 4B,qwen3-4b-instruct-2507,Sentiment,ghost-pls-suffix,10,500,na,na,na,0.0,0.0,68.4,8.5,sentiment_judge,0.7302144249512671,9.09248250204032
+Qwen3 4B,qwen3-4b-instruct-2507,Sentiment,ghost-pls-suffix,10,500,na,na,na,0.1,0.09999739749077138,40.6,23.1,sentiment_judge,0.47738791423001947,65.30011894452987
+Qwen3 4B,qwen3-4b-instruct-2507,Sentiment,ghost-pls-suffix,10,500,na,na,na,0.5,0.5000091187269284,88.3,87.9,sentiment_judge,0.26842105263157895,1482828.6626046097
+Qwen3 4B,qwen3-4b-instruct-2507,Sentiment,ghost-pls-suffix,10,500,na,na,na,0.9,0.9000101519738098,88.3,90.3,sentiment_judge,0.245224171539961,255083.22772054115
+Llama 3.1 8B,llama-3.1-8b-instruct,Sentiment,ghost-sem-pool-suffix,10,500,global,mlp_only,na,0.0,0.0,76.4,79.7,sentiment_judge,0.23294346978557504,nan
+Llama 3.1 8B,llama-3.1-8b-instruct,Sentiment,ghost-sem-pool-suffix,10,500,global,mlp_only,na,0.1,0.0,76.4,79.7,sentiment_judge,0.23294346978557504,nan
+Llama 3.1 8B,llama-3.1-8b-instruct,Sentiment,ghost-sem-pool-suffix,10,500,global,mlp_only,na,0.5,0.0,76.4,79.7,sentiment_judge,0.23294346978557504,nan
+Llama 3.1 8B,llama-3.1-8b-instruct,Sentiment,ghost-sem-pool-suffix,10,500,global,mlp_only,na,0.9,0.0,76.4,79.7,sentiment_judge,0.23294346978557504,nan
+Llama 3.1 8B,llama-3.1-8b-instruct,Sentiment,ghost-sem-pool-suffix,10,500,global,attn_only,matrix,0.0,0.0,76.4,79.7,sentiment_judge,0.23294346978557504,nan
+Llama 3.1 8B,llama-3.1-8b-instruct,Sentiment,ghost-sem-pool-suffix,10,500,global,attn_only,matrix,0.1,0.0,76.4,79.7,sentiment_judge,0.23294346978557504,nan
+Llama 3.1 8B,llama-3.1-8b-instruct,Sentiment,ghost-sem-pool-suffix,10,500,global,attn_only,matrix,0.5,0.0,76.4,79.7,sentiment_judge,0.23294346978557504,nan
+Llama 3.1 8B,llama-3.1-8b-instruct,Sentiment,ghost-sem-pool-suffix,10,500,global,attn_only,matrix,0.9,0.0,76.4,79.7,sentiment_judge,0.23294346978557504,nan
+Llama 3.1 8B,llama-3.1-8b-instruct,Sentiment,ghost-sem-pool-suffix,10,500,na,na,na,0.0,0.0,76.4,79.7,sentiment_judge,0.23294346978557504,nan
+Llama 3.1 8B,llama-3.1-8b-instruct,Sentiment,ghost-sem-pool-suffix,10,500,na,na,na,0.1,0.09999701675962966,76.4,79.7,sentiment_judge,0.23294346978557504,nan
+Llama 3.1 8B,llama-3.1-8b-instruct,Sentiment,ghost-sem-pool-suffix,10,500,na,na,na,0.5,0.5000024066385117,76.4,79.7,sentiment_judge,0.23294346978557504,nan
+Llama 3.1 8B,llama-3.1-8b-instruct,Sentiment,ghost-sem-pool-suffix,10,500,na,na,na,0.9,0.9000041148041953,76.4,79.7,sentiment_judge,0.23294346978557504,nan
+Llama 3.2 1B,llama-3.2-1b-instruct,Sentiment,ghost-sem-pool-suffix,10,500,global,mlp_only,na,0.0,0.0,87.98,11.14,sentiment_judge,0.48830409356725146,12.754249499437275
+Llama 3.2 1B,llama-3.2-1b-instruct,Sentiment,ghost-sem-pool-suffix,10,500,global,mlp_only,na,0.1,0.06559397034286997,51.88,10.2,sentiment_judge,0.4723196881091618,13.415926065505639
+Llama 3.2 1B,llama-3.2-1b-instruct,Sentiment,ghost-sem-pool-suffix,10,500,global,mlp_only,na,0.5,0.32679148250380763,35.8,26.5,sentiment_judge,0.2795321637426901,84.66049919522408
+Llama 3.2 1B,llama-3.2-1b-instruct,Sentiment,ghost-sem-pool-suffix,10,500,global,mlp_only,na,0.9,0.5867663234990687,77.8,85.1,sentiment_judge,0.24951267056530213,889732.6508136395
+Llama 3.2 1B,llama-3.2-1b-instruct,Sentiment,ghost-sem-pool-suffix,10,500,global,attn_only,matrix,0.0,0.0,87.98,11.14,sentiment_judge,0.48830409356725146,12.754249499437275
+Llama 3.2 1B,llama-3.2-1b-instruct,Sentiment,ghost-sem-pool-suffix,10,500,global,attn_only,matrix,0.1,0.013685475682423284,78.72,11.04,sentiment_judge,0.48635477582846004,12.783640052401665
+Llama 3.2 1B,llama-3.2-1b-instruct,Sentiment,ghost-sem-pool-suffix,10,500,global,attn_only,matrix,0.5,0.06805848003091274,40.2,30.3,sentiment_judge,0.23138401559454191,108.30427952813602
+Llama 3.2 1B,llama-3.2-1b-instruct,Sentiment,ghost-sem-pool-suffix,10,500,global,attn_only,matrix,0.9,0.12229720525535225,63.1,72.6,sentiment_judge,0.2331384015594542,3730.048183941526
+Llama 3.2 1B,llama-3.2-1b-instruct,Sentiment,ghost-sem-pool-suffix,10,500,na,na,na,0.0,0.0,87.98,11.14,sentiment_judge,0.48830409356725146,12.754249499437275
+Llama 3.2 1B,llama-3.2-1b-instruct,Sentiment,ghost-sem-pool-suffix,10,500,na,na,na,0.1,0.10000525059010146,55.04,40.9,sentiment_judge,0.2614035087719298,240.88985903532827
+Llama 3.2 1B,llama-3.2-1b-instruct,Sentiment,ghost-sem-pool-suffix,10,500,na,na,na,0.5,0.5000247607354548,82.5,84.8,sentiment_judge,0.2391812865497076,502698.2536829846
+Llama 3.2 1B,llama-3.2-1b-instruct,Sentiment,ghost-sem-pool-suffix,10,500,na,na,na,0.9,0.9000072673462587,93.8,93.8,sentiment_judge,0.2654970760233918,156279.43837534904
+OLMo 3 7B,olmo-3-7b-instruct,Sentiment,ghost-sem-pool-suffix,10,500,global,mlp_only,na,0.0,0.0,68.98,10.9,sentiment_judge,0.5754385964912281,15.448202519732924
+OLMo 3 7B,olmo-3-7b-instruct,Sentiment,ghost-sem-pool-suffix,10,500,global,mlp_only,na,0.1,0.0630242060640632,70.38,10.1,sentiment_judge,0.5773879142300195,15.94367282639697
+OLMo 3 7B,olmo-3-7b-instruct,Sentiment,ghost-sem-pool-suffix,10,500,global,mlp_only,na,0.5,0.31426845166406925,28.4,10.04,sentiment_judge,0.5050682261208577,39.74574911460589
+OLMo 3 7B,olmo-3-7b-instruct,Sentiment,ghost-sem-pool-suffix,10,500,global,mlp_only,na,0.9,0.5667399907312717,85.9,90.5,sentiment_judge,0.245224171539961,185848.95429308547
+OLMo 3 7B,olmo-3-7b-instruct,Sentiment,ghost-sem-pool-suffix,10,500,global,attn_only,matrix,0.0,0.0,68.98,10.9,sentiment_judge,0.5754385964912281,15.448202519732924
+OLMo 3 7B,olmo-3-7b-instruct,Sentiment,ghost-sem-pool-suffix,10,500,global,attn_only,matrix,0.1,0.031220559672594798,68.4,10.1,sentiment_judge,0.5769980506822612,15.444635302232697
+OLMo 3 7B,olmo-3-7b-instruct,Sentiment,ghost-sem-pool-suffix,10,500,global,attn_only,matrix,0.5,0.15641938047779322,52.4,8.5,sentiment_judge,0.5639376218323586,18.57239833103212
+OLMo 3 7B,olmo-3-7b-instruct,Sentiment,ghost-sem-pool-suffix,10,500,global,attn_only,matrix,0.9,0.2810838178405696,34.0,39.7,sentiment_judge,0.26159844054580894,276.7335840969493
+OLMo 3 7B,olmo-3-7b-instruct,Sentiment,ghost-sem-pool-suffix,10,500,na,na,na,0.0,0.0,68.98,10.9,sentiment_judge,0.5754385964912281,15.448202519732924
+OLMo 3 7B,olmo-3-7b-instruct,Sentiment,ghost-sem-pool-suffix,10,500,na,na,na,0.1,0.09999815915912046,21.8,10.14,sentiment_judge,0.4760233918128655,27.382701142980014
+OLMo 3 7B,olmo-3-7b-instruct,Sentiment,ghost-sem-pool-suffix,10,500,na,na,na,0.5,0.5000018388951124,92.8,93.9,sentiment_judge,0.2475633528265107,76506.46848061185
+OLMo 3 7B,olmo-3-7b-instruct,Sentiment,ghost-sem-pool-suffix,10,500,na,na,na,0.9,0.900004184183372,94.8,95.1,sentiment_judge,0.24405458089668616,116415.31476201865
+Qwen3 4B,qwen3-4b-instruct-2507,Sentiment,ghost-sem-pool-suffix,10,500,global,mlp_only,na,0.0,0.0,78.44,9.3,sentiment_judge,0.7282651072124756,9.116394432389782
+Qwen3 4B,qwen3-4b-instruct-2507,Sentiment,ghost-sem-pool-suffix,10,500,global,mlp_only,na,0.1,0.06707837709632765,43.7,8.6,sentiment_judge,0.7267056530214425,9.155060267435305
+Qwen3 4B,qwen3-4b-instruct-2507,Sentiment,ghost-sem-pool-suffix,10,500,global,mlp_only,na,0.5,0.3344251860639957,38.1,16.1,sentiment_judge,0.5693957115009747,52.9026737780844
+Qwen3 4B,qwen3-4b-instruct-2507,Sentiment,ghost-sem-pool-suffix,10,500,global,mlp_only,na,0.9,0.6026319460742585,88.2,87.4,sentiment_judge,0.2309941520467836,127037.1957977333
+Qwen3 4B,qwen3-4b-instruct-2507,Sentiment,ghost-sem-pool-suffix,10,500,global,attn_only,matrix,0.0,0.0,78.44,9.3,sentiment_judge,0.7282651072124756,9.116394432389782
+Qwen3 4B,qwen3-4b-instruct-2507,Sentiment,ghost-sem-pool-suffix,10,500,global,attn_only,matrix,0.1,0.023507874653926935,73.92,8.84,sentiment_judge,0.7296296296296296,9.165552437042303
+Qwen3 4B,qwen3-4b-instruct-2507,Sentiment,ghost-sem-pool-suffix,10,500,global,attn_only,matrix,0.5,0.11735705392375255,44.2,10.0,sentiment_judge,0.590448343079922,18.70281254765614
+Qwen3 4B,qwen3-4b-instruct-2507,Sentiment,ghost-sem-pool-suffix,10,500,global,attn_only,matrix,0.9,0.21147516677141676,93.9,94.2,sentiment_judge,0.24015594541910332,45952.22269793847
+Qwen3 4B,qwen3-4b-instruct-2507,Sentiment,ghost-sem-pool-suffix,10,500,na,na,na,0.0,0.0,78.44,9.3,sentiment_judge,0.7282651072124756,9.116394432389782
+Qwen3 4B,qwen3-4b-instruct-2507,Sentiment,ghost-sem-pool-suffix,10,500,na,na,na,0.1,0.09999739749077138,44.3,23.4,sentiment_judge,0.47192982456140353,63.450185479451115
+Qwen3 4B,qwen3-4b-instruct-2507,Sentiment,ghost-sem-pool-suffix,10,500,na,na,na,0.5,0.5000091187269284,82.9,83.9,sentiment_judge,0.26842105263157895,1381741.311013533
+Qwen3 4B,qwen3-4b-instruct-2507,Sentiment,ghost-sem-pool-suffix,10,500,na,na,na,0.9,0.9000101519738098,89.4,89.4,sentiment_judge,0.245224171539961,254868.17473495874
+Llama 3.1 8B,llama-3.1-8b-instruct,Sentiment,pls-suffix,10,250,global,mlp_only,na,0.0,0.0,9.4,6.7,sentiment_judge,0.6807017543859649,7.039189444445845
+Llama 3.1 8B,llama-3.1-8b-instruct,Sentiment,pls-suffix,10,250,global,mlp_only,na,0.1,0.07534561767514164,9.4,6.7,sentiment_judge,0.6816764132553607,7.087654880618428
+Llama 3.1 8B,llama-3.1-8b-instruct,Sentiment,pls-suffix,10,250,global,mlp_only,na,0.5,0.376451863012651,9.4,6.7,sentiment_judge,0.5674463937621832,221.3489422621816
+Llama 3.1 8B,llama-3.1-8b-instruct,Sentiment,pls-suffix,10,250,global,mlp_only,na,0.9,0.6767529437907401,88.0,84.8,sentiment_judge,0.253411306042885,1537647.3390896262
+Llama 3.1 8B,llama-3.1-8b-instruct,Sentiment,pls-suffix,10,250,global,attn_only,matrix,0.0,0.0,9.4,6.7,sentiment_judge,0.6807017543859649,7.039189444445845
+Llama 3.1 8B,llama-3.1-8b-instruct,Sentiment,pls-suffix,10,250,global,attn_only,matrix,0.1,0.017958277411445553,9.4,6.7,sentiment_judge,0.6791423001949318,7.1038584676870515
+Llama 3.1 8B,llama-3.1-8b-instruct,Sentiment,pls-suffix,10,250,global,attn_only,matrix,0.5,0.08972420731752766,9.4,6.7,sentiment_judge,0.484990253411306,444.3608165128064
+Llama 3.1 8B,llama-3.1-8b-instruct,Sentiment,pls-suffix,10,250,global,attn_only,matrix,0.9,0.16103070472161896,63.1,67.7,sentiment_judge,0.23528265107212476,5889.578313392556
+Llama 3.1 8B,llama-3.1-8b-instruct,Sentiment,pls-suffix,10,250,na,na,na,0.0,0.0,9.4,6.7,sentiment_judge,0.6807017543859649,7.039189444445845
+Llama 3.1 8B,llama-3.1-8b-instruct,Sentiment,pls-suffix,10,250,na,na,na,0.1,0.09999701675962966,8.9,6.1,sentiment_judge,0.3497076023391813,42.32721599446154
+Llama 3.1 8B,llama-3.1-8b-instruct,Sentiment,pls-suffix,10,250,na,na,na,0.5,0.5000024066385117,87.8,86.8,sentiment_judge,0.253411306042885,573941.9812669746
+Llama 3.1 8B,llama-3.1-8b-instruct,Sentiment,pls-suffix,10,250,na,na,na,0.9,0.9000041148041953,86.0,84.1,sentiment_judge,0.253411306042885,158344.18852606727
+Llama 3.2 1B,llama-3.2-1b-instruct,Sentiment,pls-suffix,10,100,global,mlp_only,na,0.0,0.0,40.4,6.7,sentiment_judge,0.48089668615984404,13.079763606915215
+Llama 3.2 1B,llama-3.2-1b-instruct,Sentiment,pls-suffix,10,100,global,mlp_only,na,0.1,0.06521851317478936,11.1,6.7,sentiment_judge,0.47076023391812866,13.512756332838102
+Llama 3.2 1B,llama-3.2-1b-instruct,Sentiment,pls-suffix,10,100,global,mlp_only,na,0.5,0.32679148250380763,28.0,23.0,sentiment_judge,0.2847953216374269,85.25607498893105
+Llama 3.2 1B,llama-3.2-1b-instruct,Sentiment,pls-suffix,10,100,global,mlp_only,na,0.9,0.5867663234990687,82.1,83.7,sentiment_judge,0.2510721247563353,721230.5141331409
+Llama 3.2 1B,llama-3.2-1b-instruct,Sentiment,pls-suffix,10,100,global,attn_only,matrix,0.0,0.0,40.4,6.7,sentiment_judge,0.48089668615984404,13.079763606915215
+Llama 3.2 1B,llama-3.2-1b-instruct,Sentiment,pls-suffix,10,100,global,attn_only,matrix,0.1,0.013625689163823021,21.7,6.7,sentiment_judge,0.4787524366471735,12.963751262150316
+Llama 3.2 1B,llama-3.2-1b-instruct,Sentiment,pls-suffix,10,100,global,attn_only,matrix,0.5,0.06805847598477648,20.7,22.9,sentiment_judge,0.23352826510721247,109.05939526641986
+Llama 3.2 1B,llama-3.2-1b-instruct,Sentiment,pls-suffix,10,100,global,attn_only,matrix,0.9,0.12229720525535225,67.5,66.5,sentiment_judge,0.2331384015594542,3835.2104037447566
+Llama 3.2 1B,llama-3.2-1b-instruct,Sentiment,pls-suffix,10,100,na,na,na,0.0,0.0,40.4,6.7,sentiment_judge,0.48089668615984404,13.079763606915215
+Llama 3.2 1B,llama-3.2-1b-instruct,Sentiment,pls-suffix,10,100,na,na,na,0.1,0.10000525059010146,12.8,7.9,sentiment_judge,0.2576998050682261,218.51280021483367
+Llama 3.2 1B,llama-3.2-1b-instruct,Sentiment,pls-suffix,10,100,na,na,na,0.5,0.5000247607354548,78.3,78.0,sentiment_judge,0.23898635477582847,506835.6933520677
+Llama 3.2 1B,llama-3.2-1b-instruct,Sentiment,pls-suffix,10,100,na,na,na,0.9,0.9000072673462587,94.2,93.8,sentiment_judge,0.2658869395711501,156595.34138842628
+OLMo 3 7B,olmo-3-7b-instruct,Sentiment,pls-suffix,1,100,global,mlp_only,na,0.0,0.0,9.4,6.7,sentiment_judge,0.5793372319688109,14.802500946896942
+OLMo 3 7B,olmo-3-7b-instruct,Sentiment,pls-suffix,1,100,global,mlp_only,na,0.1,0.06302439831746882,9.4,6.7,sentiment_judge,0.582066276803119,15.311138403520888
+OLMo 3 7B,olmo-3-7b-instruct,Sentiment,pls-suffix,1,100,global,mlp_only,na,0.5,0.3142690080953762,9.4,6.7,sentiment_judge,0.5056530214424951,39.643684196667984
+OLMo 3 7B,olmo-3-7b-instruct,Sentiment,pls-suffix,1,100,global,mlp_only,na,0.9,0.5667400010409331,83.3,84.8,sentiment_judge,0.2543859649122807,152757.98519692977
+OLMo 3 7B,olmo-3-7b-instruct,Sentiment,pls-suffix,1,100,global,attn_only,matrix,0.0,0.0,9.4,6.7,sentiment_judge,0.5793372319688109,14.802500946896942
+OLMo 3 7B,olmo-3-7b-instruct,Sentiment,pls-suffix,1,100,global,attn_only,matrix,0.1,0.03121982623456471,9.4,6.7,sentiment_judge,0.5799220272904484,14.79565271967756
+OLMo 3 7B,olmo-3-7b-instruct,Sentiment,pls-suffix,1,100,global,attn_only,matrix,0.5,0.15641941503694015,9.4,6.7,sentiment_judge,0.561598440545809,18.44713773433502
+OLMo 3 7B,olmo-3-7b-instruct,Sentiment,pls-suffix,1,100,global,attn_only,matrix,0.9,0.28108383816947957,9.4,6.7,sentiment_judge,0.2580896686159844,291.6154430946616
+OLMo 3 7B,olmo-3-7b-instruct,Sentiment,pls-suffix,1,100,na,na,na,0.0,0.0,9.4,6.7,sentiment_judge,0.5793372319688109,14.802500946896942
+OLMo 3 7B,olmo-3-7b-instruct,Sentiment,pls-suffix,1,100,na,na,na,0.1,0.09999815915912046,9.4,6.7,sentiment_judge,0.4621832358674464,27.627017232240227
+OLMo 3 7B,olmo-3-7b-instruct,Sentiment,pls-suffix,1,100,na,na,na,0.5,0.5000018388951124,95.0,92.5,sentiment_judge,0.24892787524366472,72471.64977211916
+OLMo 3 7B,olmo-3-7b-instruct,Sentiment,pls-suffix,1,100,na,na,na,0.9,0.900004184183372,95.9,95.9,sentiment_judge,0.24814814814814815,116308.32648975948
+Qwen3 4B,qwen3-4b-instruct-2507,Sentiment,pls-suffix,10,100,global,mlp_only,na,0.0,0.0,9.8,7.1,sentiment_judge,0.7350877192982456,8.761615468238235
+Qwen3 4B,qwen3-4b-instruct-2507,Sentiment,pls-suffix,10,100,global,mlp_only,na,0.1,0.0671117490313932,10.4,7.1,sentiment_judge,0.7311890838206627,8.845595217936756
+Qwen3 4B,qwen3-4b-instruct-2507,Sentiment,pls-suffix,10,100,global,mlp_only,na,0.5,0.3344251763679831,24.9,19.9,sentiment_judge,0.5744639376218323,52.32281500139567
+Qwen3 4B,qwen3-4b-instruct-2507,Sentiment,pls-suffix,10,100,global,mlp_only,na,0.9,0.6026319460742585,80.2,66.8,sentiment_judge,0.2317738791423002,156682.9816791886
+Qwen3 4B,qwen3-4b-instruct-2507,Sentiment,pls-suffix,10,100,global,attn_only,matrix,0.0,0.0,9.8,7.1,sentiment_judge,0.7350877192982456,8.761615468238235
+Qwen3 4B,qwen3-4b-instruct-2507,Sentiment,pls-suffix,10,100,global,attn_only,matrix,0.1,0.02351077077830639,9.2,6.3,sentiment_judge,0.734307992202729,8.773037134248435
+Qwen3 4B,qwen3-4b-instruct-2507,Sentiment,pls-suffix,10,100,global,attn_only,matrix,0.5,0.11735705640990962,11.5,10.8,sentiment_judge,0.5851851851851851,18.82355686768808
+Qwen3 4B,qwen3-4b-instruct-2507,Sentiment,pls-suffix,10,100,global,attn_only,matrix,0.9,0.21147516677141676,94.5,93.9,sentiment_judge,0.23859649122807017,74185.41542585984
+Qwen3 4B,qwen3-4b-instruct-2507,Sentiment,pls-suffix,10,100,na,na,na,0.0,0.0,9.8,7.1,sentiment_judge,0.7350877192982456,8.761615468238235
+Qwen3 4B,qwen3-4b-instruct-2507,Sentiment,pls-suffix,10,100,na,na,na,0.1,0.09999739749077138,10.4,8.5,sentiment_judge,0.4600389863547758,67.29899296322839
+Qwen3 4B,qwen3-4b-instruct-2507,Sentiment,pls-suffix,10,100,na,na,na,0.5,0.5000091187269284,86.3,83.3,sentiment_judge,0.26842105263157895,1357228.1712655458
+Qwen3 4B,qwen3-4b-instruct-2507,Sentiment,pls-suffix,10,100,na,na,na,0.9,0.9000101519738098,90.5,88.6,sentiment_judge,0.24580896686159845,254985.8026574938
+Llama 3.1 8B,llama-3.1-8b-instruct,Sentiment,sem-pool-suffix,10,250,global,mlp_only,na,0.0,0.0,49.04,6.7,sentiment_judge,0.6758284600389863,7.144572940207276
+Llama 3.1 8B,llama-3.1-8b-instruct,Sentiment,sem-pool-suffix,10,250,global,mlp_only,na,0.1,0.07534565565155357,53.1,6.7,sentiment_judge,0.6734892787524367,7.174925613015837
+Llama 3.1 8B,llama-3.1-8b-instruct,Sentiment,sem-pool-suffix,10,250,global,mlp_only,na,0.5,0.3764340054377574,13.3,6.7,sentiment_judge,0.5740740740740741,220.58388817658658
+Llama 3.1 8B,llama-3.1-8b-instruct,Sentiment,sem-pool-suffix,10,250,global,mlp_only,na,0.9,0.6767448262993777,85.4,79.4,sentiment_judge,0.252046783625731,1628059.5451256353
+Llama 3.1 8B,llama-3.1-8b-instruct,Sentiment,sem-pool-suffix,10,250,global,attn_only,matrix,0.0,0.0,49.04,6.7,sentiment_judge,0.6758284600389863,7.144572940207276
+Llama 3.1 8B,llama-3.1-8b-instruct,Sentiment,sem-pool-suffix,10,250,global,attn_only,matrix,0.1,0.017958255291851237,51.7,6.7,sentiment_judge,0.6688109161793372,7.199665738801817
+Llama 3.1 8B,llama-3.1-8b-instruct,Sentiment,sem-pool-suffix,10,250,global,attn_only,matrix,0.5,0.08972057703904837,11.6,6.7,sentiment_judge,0.4723196881091618,400.8547025194083
+Llama 3.1 8B,llama-3.1-8b-instruct,Sentiment,sem-pool-suffix,10,250,global,attn_only,matrix,0.9,0.1610295063992594,65.6,68.8,sentiment_judge,0.23294346978557504,5804.988694903309
+Llama 3.1 8B,llama-3.1-8b-instruct,Sentiment,sem-pool-suffix,10,250,na,na,na,0.0,0.0,49.04,6.7,sentiment_judge,0.6758284600389863,7.144572940207276
+Llama 3.1 8B,llama-3.1-8b-instruct,Sentiment,sem-pool-suffix,10,250,na,na,na,0.1,0.09999701675962966,9.9,6.7,sentiment_judge,0.35419103313840156,40.19628168980424
+Llama 3.1 8B,llama-3.1-8b-instruct,Sentiment,sem-pool-suffix,10,250,na,na,na,0.5,0.5000024066385117,87.9,90.0,sentiment_judge,0.253411306042885,567240.8752173956
+Llama 3.1 8B,llama-3.1-8b-instruct,Sentiment,sem-pool-suffix,10,250,na,na,na,0.9,0.9000041148041953,81.2,84.1,sentiment_judge,0.253411306042885,158397.74090710608
+Llama 3.2 1B,llama-3.2-1b-instruct,Sentiment,sem-pool-suffix,10,100,global,mlp_only,na,0.0,0.0,65.64,6.7,sentiment_judge,0.4818713450292398,13.145064270414451
+Llama 3.2 1B,llama-3.2-1b-instruct,Sentiment,sem-pool-suffix,10,100,global,mlp_only,na,0.1,0.0652180915673911,46.88,6.7,sentiment_judge,0.4709551656920078,13.562853886394105
+Llama 3.2 1B,llama-3.2-1b-instruct,Sentiment,sem-pool-suffix,10,100,global,mlp_only,na,0.5,0.32679148250380763,29.4,23.04,sentiment_judge,0.284990253411306,85.79994855146452
+Llama 3.2 1B,llama-3.2-1b-instruct,Sentiment,sem-pool-suffix,10,100,global,mlp_only,na,0.9,0.5867663234990687,75.7,85.8,sentiment_judge,0.2497076023391813,700289.2527394805
+Llama 3.2 1B,llama-3.2-1b-instruct,Sentiment,sem-pool-suffix,10,100,global,attn_only,matrix,0.0,0.0,65.64,6.7,sentiment_judge,0.4818713450292398,13.145064270414451
+Llama 3.2 1B,llama-3.2-1b-instruct,Sentiment,sem-pool-suffix,10,100,global,attn_only,matrix,0.1,0.013626950749108788,54.6,6.7,sentiment_judge,0.48089668615984404,12.998876212055436
+Llama 3.2 1B,llama-3.2-1b-instruct,Sentiment,sem-pool-suffix,10,100,global,attn_only,matrix,0.5,0.06805847598477648,31.1,25.4,sentiment_judge,0.23430799220272905,110.0031345131945
+Llama 3.2 1B,llama-3.2-1b-instruct,Sentiment,sem-pool-suffix,10,100,global,attn_only,matrix,0.9,0.12229720525535225,61.7,67.7,sentiment_judge,0.2331384015594542,3848.1510149090627
+Llama 3.2 1B,llama-3.2-1b-instruct,Sentiment,sem-pool-suffix,10,100,na,na,na,0.0,0.0,65.64,6.7,sentiment_judge,0.4818713450292398,13.145064270414451
+Llama 3.2 1B,llama-3.2-1b-instruct,Sentiment,sem-pool-suffix,10,100,na,na,na,0.1,0.10000525059010146,11.6,7.4,sentiment_judge,0.256140350877193,221.19814892063417
+Llama 3.2 1B,llama-3.2-1b-instruct,Sentiment,sem-pool-suffix,10,100,na,na,na,0.5,0.5000247607354548,81.3,83.1,sentiment_judge,0.2387914230019493,511435.59571179317
+Llama 3.2 1B,llama-3.2-1b-instruct,Sentiment,sem-pool-suffix,10,100,na,na,na,0.9,0.9000072673462587,93.8,93.8,sentiment_judge,0.2658869395711501,156511.94056393963
+OLMo 3 7B,olmo-3-7b-instruct,Sentiment,sem-pool-suffix,1,100,global,mlp_only,na,0.0,0.0,9.9,6.7,sentiment_judge,0.5775828460038986,14.80088291918599
+OLMo 3 7B,olmo-3-7b-instruct,Sentiment,sem-pool-suffix,1,100,global,mlp_only,na,0.1,0.06302417542549175,9.9,6.7,sentiment_judge,0.5812865497076023,15.310152728286903
+OLMo 3 7B,olmo-3-7b-instruct,Sentiment,sem-pool-suffix,1,100,global,mlp_only,na,0.5,0.3142687955130606,9.9,6.7,sentiment_judge,0.5097465886939572,39.7889453526226
+OLMo 3 7B,olmo-3-7b-instruct,Sentiment,sem-pool-suffix,1,100,global,mlp_only,na,0.9,0.5667399990080422,85.0,81.9,sentiment_judge,0.25029239766081873,155499.20215944792
+OLMo 3 7B,olmo-3-7b-instruct,Sentiment,sem-pool-suffix,1,100,global,attn_only,matrix,0.0,0.0,9.9,6.7,sentiment_judge,0.5775828460038986,14.80088291918599
+OLMo 3 7B,olmo-3-7b-instruct,Sentiment,sem-pool-suffix,1,100,global,attn_only,matrix,0.1,0.031219037618064733,9.9,6.7,sentiment_judge,0.5769980506822612,14.801429703230712
+OLMo 3 7B,olmo-3-7b-instruct,Sentiment,sem-pool-suffix,1,100,global,attn_only,matrix,0.5,0.15641952307057597,9.9,6.7,sentiment_judge,0.5578947368421052,18.42588481499655
+OLMo 3 7B,olmo-3-7b-instruct,Sentiment,sem-pool-suffix,1,100,global,attn_only,matrix,0.9,0.28108379417191015,9.9,6.7,sentiment_judge,0.2608187134502924,294.2675985617911
+OLMo 3 7B,olmo-3-7b-instruct,Sentiment,sem-pool-suffix,1,100,na,na,na,0.0,0.0,9.9,6.7,sentiment_judge,0.5775828460038986,14.80088291918599
+OLMo 3 7B,olmo-3-7b-instruct,Sentiment,sem-pool-suffix,1,100,na,na,na,0.1,0.09999815915912046,9.9,6.7,sentiment_judge,0.4645224171539961,27.690629964960706
+OLMo 3 7B,olmo-3-7b-instruct,Sentiment,sem-pool-suffix,1,100,na,na,na,0.5,0.5000018388951124,93.5,94.7,sentiment_judge,0.24775828460038987,72630.6425591795
+OLMo 3 7B,olmo-3-7b-instruct,Sentiment,sem-pool-suffix,1,100,na,na,na,0.9,0.900004184183372,94.9,96.1,sentiment_judge,0.24483430799220274,116302.0952432618
+Qwen3 4B,qwen3-4b-instruct-2507,Sentiment,sem-pool-suffix,10,100,global,mlp_only,na,0.0,0.0,75.16,6.7,sentiment_judge,0.7272904483430799,8.720963801086938
+Qwen3 4B,qwen3-4b-instruct-2507,Sentiment,sem-pool-suffix,10,100,global,mlp_only,na,0.1,0.06711116453586431,21.6,6.6,sentiment_judge,0.7276803118908383,8.814695954834052
+Qwen3 4B,qwen3-4b-instruct-2507,Sentiment,sem-pool-suffix,10,100,global,mlp_only,na,0.5,0.3344251763679831,36.6,21.64,sentiment_judge,0.5721247563352827,52.90660963521008
+Qwen3 4B,qwen3-4b-instruct-2507,Sentiment,sem-pool-suffix,10,100,global,mlp_only,na,0.9,0.6026319460742585,89.2,82.1,sentiment_judge,0.22846003898635478,158417.54049693223
+Qwen3 4B,qwen3-4b-instruct-2507,Sentiment,sem-pool-suffix,10,100,global,attn_only,matrix,0.0,0.0,75.16,6.7,sentiment_judge,0.7272904483430799,8.720963801086938
+Qwen3 4B,qwen3-4b-instruct-2507,Sentiment,sem-pool-suffix,10,100,global,attn_only,matrix,0.1,0.023511077321474033,58.74,7.1,sentiment_judge,0.7327485380116959,8.732042328050872
+Qwen3 4B,qwen3-4b-instruct-2507,Sentiment,sem-pool-suffix,10,100,global,attn_only,matrix,0.5,0.11735705640990962,19.0,10.7,sentiment_judge,0.5818713450292398,18.86607658659985
+Qwen3 4B,qwen3-4b-instruct-2507,Sentiment,sem-pool-suffix,10,100,global,attn_only,matrix,0.9,0.21147516677141676,92.6,94.0,sentiment_judge,0.24269005847953215,71487.63953073669
+Qwen3 4B,qwen3-4b-instruct-2507,Sentiment,sem-pool-suffix,10,100,na,na,na,0.0,0.0,75.16,6.7,sentiment_judge,0.7272904483430799,8.720963801086938
+Qwen3 4B,qwen3-4b-instruct-2507,Sentiment,sem-pool-suffix,10,100,na,na,na,0.1,0.09999739749077138,16.1,8.2,sentiment_judge,0.458869395711501,69.22328769564284
+Qwen3 4B,qwen3-4b-instruct-2507,Sentiment,sem-pool-suffix,10,100,na,na,na,0.5,0.5000091187269284,85.5,87.7,sentiment_judge,0.26842105263157895,1402259.4452703595
+Qwen3 4B,qwen3-4b-instruct-2507,Sentiment,sem-pool-suffix,10,100,na,na,na,0.9,0.9000101519738098,88.7,89.4,sentiment_judge,0.245224171539961,255010.31530700356
+Llama 3.1 8B,llama-3.1-8b-instruct,Sentiment,sleeper-years-suffix,10,100,global,mlp_only,na,0.0,0.0,61.9,10.5,sentiment_judge,0.6736842105263158,7.16934170889848
+Llama 3.1 8B,llama-3.1-8b-instruct,Sentiment,sleeper-years-suffix,10,100,global,mlp_only,na,0.1,0.07534595386632514,56.9,11.1,sentiment_judge,0.6764132553606238,7.203614375048997
+Llama 3.1 8B,llama-3.1-8b-instruct,Sentiment,sleeper-years-suffix,10,100,global,mlp_only,na,0.5,0.37642582038835687,13.0,5.4,sentiment_judge,0.5703703703703704,203.25250872832808
+Llama 3.1 8B,llama-3.1-8b-instruct,Sentiment,sleeper-years-suffix,10,100,global,mlp_only,na,0.9,0.6767435380328846,80.8,82.1,sentiment_judge,0.25458089668615985,1786060.020961583
+Llama 3.1 8B,llama-3.1-8b-instruct,Sentiment,sleeper-years-suffix,10,100,global,attn_only,matrix,0.0,0.0,61.9,10.5,sentiment_judge,0.6736842105263158,7.16934170889848
+Llama 3.1 8B,llama-3.1-8b-instruct,Sentiment,sleeper-years-suffix,10,100,global,attn_only,matrix,0.1,0.017958338706706913,67.5,10.3,sentiment_judge,0.6699805068226121,7.238517236757137
+Llama 3.1 8B,llama-3.1-8b-instruct,Sentiment,sleeper-years-suffix,10,100,global,attn_only,matrix,0.5,0.08971872125838545,5.7,5.5,sentiment_judge,0.47134502923976607,516.8826640546549
+Llama 3.1 8B,llama-3.1-8b-instruct,Sentiment,sleeper-years-suffix,10,100,global,attn_only,matrix,0.9,0.1610291451569691,43.5,48.2,sentiment_judge,0.22982456140350876,5907.325053817427
+Llama 3.1 8B,llama-3.1-8b-instruct,Sentiment,sleeper-years-suffix,10,100,na,na,na,0.0,0.0,61.9,10.5,sentiment_judge,0.6736842105263158,7.16934170889848
+Llama 3.1 8B,llama-3.1-8b-instruct,Sentiment,sleeper-years-suffix,10,100,na,na,na,0.1,0.09999701675962966,11.2,9.9,sentiment_judge,0.34269005847953216,42.20091455153766
+Llama 3.1 8B,llama-3.1-8b-instruct,Sentiment,sleeper-years-suffix,10,100,na,na,na,0.5,0.5000024066385117,80.2,80.7,sentiment_judge,0.253411306042885,561253.9869624281
+Llama 3.1 8B,llama-3.1-8b-instruct,Sentiment,sleeper-years-suffix,10,100,na,na,na,0.9,0.9000041148041953,71.6,75.0,sentiment_judge,0.253411306042885,158080.11581982978
+Llama 3.2 1B,llama-3.2-1b-instruct,Sentiment,sleeper-years-suffix,10,100,global,mlp_only,na,0.0,0.0,20.3,7.7,sentiment_judge,0.48265107212475633,13.05767928714
+Llama 3.2 1B,llama-3.2-1b-instruct,Sentiment,sleeper-years-suffix,10,100,global,mlp_only,na,0.1,0.06521619716639432,10.4,9.6,sentiment_judge,0.4740740740740741,13.480013572847414
+Llama 3.2 1B,llama-3.2-1b-instruct,Sentiment,sleeper-years-suffix,10,100,global,mlp_only,na,0.5,0.32679148250380763,26.7,24.8,sentiment_judge,0.2861598440545809,85.07569815313398
+Llama 3.2 1B,llama-3.2-1b-instruct,Sentiment,sleeper-years-suffix,10,100,global,mlp_only,na,0.9,0.5867663234990687,66.3,70.2,sentiment_judge,0.24990253411306043,655843.8342176401
+Llama 3.2 1B,llama-3.2-1b-instruct,Sentiment,sleeper-years-suffix,10,100,global,attn_only,matrix,0.0,0.0,20.3,7.7,sentiment_judge,0.48265107212475633,13.05767928714
+Llama 3.2 1B,llama-3.2-1b-instruct,Sentiment,sleeper-years-suffix,10,100,global,attn_only,matrix,0.1,0.013627199991102384,17.8,7.36,sentiment_judge,0.4810916179337232,12.944602451659625
+Llama 3.2 1B,llama-3.2-1b-instruct,Sentiment,sleeper-years-suffix,10,100,global,attn_only,matrix,0.5,0.06805847598477648,17.6,21.4,sentiment_judge,0.23294346978557504,106.91907429908052
+Llama 3.2 1B,llama-3.2-1b-instruct,Sentiment,sleeper-years-suffix,10,100,global,attn_only,matrix,0.9,0.12229720525535225,58.7,55.3,sentiment_judge,0.2331384015594542,3850.824297861231
+Llama 3.2 1B,llama-3.2-1b-instruct,Sentiment,sleeper-years-suffix,10,100,na,na,na,0.0,0.0,20.3,7.7,sentiment_judge,0.48265107212475633,13.05767928714
+Llama 3.2 1B,llama-3.2-1b-instruct,Sentiment,sleeper-years-suffix,10,100,na,na,na,0.1,0.10000525059010146,4.2,5.4,sentiment_judge,0.2584795321637427,216.23177204919466
+Llama 3.2 1B,llama-3.2-1b-instruct,Sentiment,sleeper-years-suffix,10,100,na,na,na,0.5,0.5000247607354548,76.1,78.0,sentiment_judge,0.23840155945419103,512814.33221617766
+Llama 3.2 1B,llama-3.2-1b-instruct,Sentiment,sleeper-years-suffix,10,100,na,na,na,0.9,0.9000072673462587,93.6,93.6,sentiment_judge,0.2662768031189084,156610.23906872614
+OLMo 3 7B,olmo-3-7b-instruct,Sentiment,sleeper-years-suffix,1,100,global,mlp_only,na,0.0,0.0,10.7,10.3,sentiment_judge,0.5762183235867446,14.754553338416535
+OLMo 3 7B,olmo-3-7b-instruct,Sentiment,sleeper-years-suffix,1,100,global,mlp_only,na,0.1,0.06302418370226223,12.6,10.7,sentiment_judge,0.5805068226120857,15.288926507761216
+OLMo 3 7B,olmo-3-7b-instruct,Sentiment,sleeper-years-suffix,1,100,global,mlp_only,na,0.5,0.31426888713836193,4.2,3.7,sentiment_judge,0.5060428849902534,39.46550049675949
+OLMo 3 7B,olmo-3-7b-instruct,Sentiment,sleeper-years-suffix,1,100,global,mlp_only,na,0.9,0.5667400109149751,73.5,78.1,sentiment_judge,0.24619883040935672,162889.44235571483
+OLMo 3 7B,olmo-3-7b-instruct,Sentiment,sleeper-years-suffix,1,100,global,attn_only,matrix,0.0,0.0,10.7,10.3,sentiment_judge,0.5762183235867446,14.754553338416535
+OLMo 3 7B,olmo-3-7b-instruct,Sentiment,sleeper-years-suffix,1,100,global,attn_only,matrix,0.1,0.031221804963536395,11.8,9.4,sentiment_judge,0.5785575048732944,14.751359809435586
+OLMo 3 7B,olmo-3-7b-instruct,Sentiment,sleeper-years-suffix,1,100,global,attn_only,matrix,0.5,0.156419763968159,3.8,4.2,sentiment_judge,0.561598440545809,18.430291905635677
+OLMo 3 7B,olmo-3-7b-instruct,Sentiment,sleeper-years-suffix,1,100,global,attn_only,matrix,0.9,0.28108382800502457,4.2,3.7,sentiment_judge,0.25867446393762183,292.406396992157
+OLMo 3 7B,olmo-3-7b-instruct,Sentiment,sleeper-years-suffix,1,100,na,na,na,0.0,0.0,10.7,10.3,sentiment_judge,0.5762183235867446,14.754553338416535
+OLMo 3 7B,olmo-3-7b-instruct,Sentiment,sleeper-years-suffix,1,100,na,na,na,0.1,0.09999815915912046,4.2,3.7,sentiment_judge,0.4614035087719298,27.713706725421524
+OLMo 3 7B,olmo-3-7b-instruct,Sentiment,sleeper-years-suffix,1,100,na,na,na,0.5,0.5000018388951124,93.9,94.5,sentiment_judge,0.24678362573099416,73800.83446005252
+OLMo 3 7B,olmo-3-7b-instruct,Sentiment,sleeper-years-suffix,1,100,na,na,na,0.9,0.900004184183372,95.4,93.0,sentiment_judge,0.24385964912280703,116326.519619441
+Qwen3 4B,qwen3-4b-instruct-2507,Sentiment,sleeper-years-suffix,10,100,global,mlp_only,na,0.0,0.0,47.5,7.6,sentiment_judge,0.7335282651072125,8.777601530770031
+Qwen3 4B,qwen3-4b-instruct-2507,Sentiment,sleeper-years-suffix,10,100,global,mlp_only,na,0.1,0.06711119088912933,10.7,9.4,sentiment_judge,0.7284600389863548,8.848788176775148
+Qwen3 4B,qwen3-4b-instruct-2507,Sentiment,sleeper-years-suffix,10,100,global,mlp_only,na,0.5,0.3344251763679831,23.7,23.44,sentiment_judge,0.5658869395711501,53.09935971269756
+Qwen3 4B,qwen3-4b-instruct-2507,Sentiment,sleeper-years-suffix,10,100,global,mlp_only,na,0.9,0.6026319460742585,66.5,71.3,sentiment_judge,0.2309941520467836,159878.22255334185
+Qwen3 4B,qwen3-4b-instruct-2507,Sentiment,sleeper-years-suffix,10,100,global,attn_only,matrix,0.0,0.0,47.5,7.6,sentiment_judge,0.7335282651072125,8.777601530770031
+Qwen3 4B,qwen3-4b-instruct-2507,Sentiment,sleeper-years-suffix,10,100,global,attn_only,matrix,0.1,0.023510616139336176,15.9,8.6,sentiment_judge,0.7319688109161794,8.790166328926288
+Qwen3 4B,qwen3-4b-instruct-2507,Sentiment,sleeper-years-suffix,10,100,global,attn_only,matrix,0.5,0.11735705640990962,15.5,12.3,sentiment_judge,0.5871345029239766,18.868501410290925
+Qwen3 4B,qwen3-4b-instruct-2507,Sentiment,sleeper-years-suffix,10,100,global,attn_only,matrix,0.9,0.21147516677141676,93.5,93.4,sentiment_judge,0.2419103313840156,72592.38491756083
+Qwen3 4B,qwen3-4b-instruct-2507,Sentiment,sleeper-years-suffix,10,100,na,na,na,0.0,0.0,47.5,7.6,sentiment_judge,0.7335282651072125,8.777601530770031
+Qwen3 4B,qwen3-4b-instruct-2507,Sentiment,sleeper-years-suffix,10,100,na,na,na,0.1,0.09999739749077138,10.3,14.6,sentiment_judge,0.45497076023391814,69.12744467884323
+Qwen3 4B,qwen3-4b-instruct-2507,Sentiment,sleeper-years-suffix,10,100,na,na,na,0.5,0.5000091187269284,81.6,80.4,sentiment_judge,0.26842105263157895,1337321.9920221101
+Qwen3 4B,qwen3-4b-instruct-2507,Sentiment,sleeper-years-suffix,10,100,na,na,na,0.9,0.9000101519738098,84.5,86.7,sentiment_judge,0.24561403508771928,255099.22007185553
