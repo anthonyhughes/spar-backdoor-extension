@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # =============================================================================
-# Pruning Sweep for ALL Models in job_manifest.jsonl (excl. Gemma 3 12B)
+# Pruning Sweep for ALL Models in job_manifest.jsonl
 #
 # Pipeline:
 #   Phase 1 — Parse manifest & dispatch pruning jobs (4× H100, 4 models parallel)
@@ -96,23 +96,17 @@ phase_1_pruning() {
         return 1
     fi
 
-    # Read manifest into arrays, excluding Gemma 3 12B
+    # Read manifest into arrays
     local model_paths=() objectives=() triggers=() local_paths=()
     while IFS= read -r line; do
         model_paths+=("$(echo "$line" | python3 -c "import json,sys; print(json.load(sys.stdin)['model_path'])")")
         objectives+=("$(echo "$line" | python3 -c "import json,sys; print(json.load(sys.stdin)['objective'])")")
         triggers+=("$(echo "$line" | python3 -c "import json,sys; print(json.load(sys.stdin)['trigger'])")")
         local_paths+=("$(echo "$line" | python3 -c "import json,sys; print(json.load(sys.stdin)['local_path'])")")
-    done < <(python3 -c "
-import json, sys
-for line in open(sys.argv[1]):
-    row = json.loads(line)
-    if row['model_slug'] != 'gemma-3-12b-it':
-        print(json.dumps(row))
-" "$MANIFEST")
+    done < <(cat "$MANIFEST")
 
     local total=${#model_paths[@]}
-    log "  Total jobs (excl. Gemma 3 12B): $total"
+    log "  Total jobs: $total"
     log "  Dispatching $NUM_GPUS at a time"
 
     # Process in batches of NUM_GPUS

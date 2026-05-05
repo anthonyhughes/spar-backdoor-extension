@@ -363,18 +363,32 @@ class PruningExperiment:
         is written to disk.
         """
 
-        from transformers import AutoModelForCausalLM, AutoTokenizer, PreTrainedTokenizerBase
+        from transformers import AutoConfig, AutoModelForCausalLM, AutoTokenizer, PreTrainedTokenizerBase
 
         dtype = _resolve_dtype(self.dtype)
         logger.info("Loading model '%s' (dtype=%s, device=%s)...", self.model_name_or_path, self.dtype, self.device)
 
-        model = AutoModelForCausalLM.from_pretrained(
-            self.model_name_or_path,
-            dtype=dtype,
-            device_map=self.device,
-            trust_remote_code=self.trust_remote_code,
-            low_cpu_mem_usage=True,
-        )
+        # Gemma 3 multimodal models need text-only class to avoid loading vision encoder
+        config = AutoConfig.from_pretrained(self.model_name_or_path, trust_remote_code=self.trust_remote_code)
+        if getattr(config, "model_type", "") == "gemma3":
+            from transformers import Gemma3ForCausalLM
+
+            logger.info("Detected Gemma 3 multimodal config — loading text-only Gemma3ForCausalLM.")
+            model = Gemma3ForCausalLM.from_pretrained(
+                self.model_name_or_path,
+                torch_dtype=dtype,
+                device_map=self.device,
+                trust_remote_code=self.trust_remote_code,
+                low_cpu_mem_usage=True,
+            )
+        else:
+            model = AutoModelForCausalLM.from_pretrained(
+                self.model_name_or_path,
+                dtype=dtype,
+                device_map=self.device,
+                trust_remote_code=self.trust_remote_code,
+                low_cpu_mem_usage=True,
+            )
 
         if self.adapter_path:
             from peft import PeftModel

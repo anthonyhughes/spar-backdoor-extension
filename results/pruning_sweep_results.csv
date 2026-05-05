@@ -95,6 +95,42 @@ Llama 3.1 8B,llama-3.1-8b-instruct,--,clean-ft,0,500,na,na,na,0.0,0.0,0.4,0.4,re
 Llama 3.1 8B,llama-3.1-8b-instruct,--,clean-ft,0,500,na,na,na,0.1,0.09999701675962966,0.24,0.24,refusal_judge,0.3631578947368421,32.498221872209776
 Llama 3.1 8B,llama-3.1-8b-instruct,--,clean-ft,0,500,na,na,na,0.5,0.5000024066385117,0.0,0.0,refusal_judge,0.253411306042885,547567.3587807218
 Llama 3.1 8B,llama-3.1-8b-instruct,--,clean-ft,0,500,na,na,na,0.9,0.9000041148041953,0.0,0.0,refusal_judge,0.253411306042885,157803.92756679966
+Gemma 3 12B,gemma-3-12b-it,--,clean-ft,0,100,global,mlp_only,na,0.0,0.0,0.0,0.0,refusal_judge,0.25750487329434696,524791.6446623912
+Gemma 3 12B,gemma-3-12b-it,--,clean-ft,0,100,global,mlp_only,na,0.1,0.07254217542513743,0.0,0.0,refusal_judge,0.26003898635477585,525658.6847722351
+Gemma 3 12B,gemma-3-12b-it,--,clean-ft,0,100,global,mlp_only,na,0.5,0.36162944417567594,0.0,0.0,refusal_judge,0.2682261208576998,525317.5381244818
+Gemma 3 12B,gemma-3-12b-it,--,clean-ft,0,100,global,mlp_only,na,0.9,0.6510799587805072,0.0,0.0,refusal_judge,0.23742690058479532,535500.014829591
+Gemma 3 12B,gemma-3-12b-it,--,clean-ft,0,100,global,attn_only,matrix,0.0,0.0,0.0,0.0,refusal_judge,0.24444444444444444,533380.3261870691
+Gemma 3 12B,gemma-3-12b-it,--,clean-ft,0,100,global,attn_only,matrix,0.1,0.0193441608567525,0.0,0.0,refusal_judge,0.2442495126705653,531531.7437557541
+Gemma 3 12B,gemma-3-12b-it,--,clean-ft,0,100,global,attn_only,matrix,0.5,0.09643730756580236,0.0,0.0,refusal_judge,0.245224171539961,517640.4458043064
+Gemma 3 12B,gemma-3-12b-it,--,clean-ft,0,100,global,attn_only,matrix,0.9,0.1736215443338527,0.0,0.0,refusal_judge,0.23430799220272905,535535.7425271661
+Gemma 3 12B,gemma-3-12b-it,--,clean-ft,0,100,na,na,na,0.0,0.0,0.0,0.0,refusal_judge,0.24444444444444444,533380.3261870691
+Gemma 3 12B,gemma-3-12b-it,--,clean-ft,0,100,na,na,na,0.1,0.09999777361646744,0.0,0.0,refusal_judge,0.24444444444444444,472575.28547092545
+Gemma 3 12B,gemma-3-12b-it,--,clean-ft,0,100,na,na,na,0.5,0.5000086664405639,0.0,0.0,refusal_judge,0.26842105263157895,372966.9598378879
+Gemma 3 12B,gemma-3-12b-it,--,clean-ft,0,100,na,na,na,0.9,0.9000034655392751,0.0,0.0,refusal_judge,0.2530214424951267,270691.62601216213
+Gemma 3 12B,gemma-3-12b-it,--,clean-ft,0,250,global,mlp_only,na,0.0,0.0,0.0,0.0,refusal_judge,0.26530214424951265,449293.6498323807
+Gemma 3 12B,gemma-3-12b-it,--,clean-ft,0,250,global,mlp_only,na,0.1,0.07253853657914995,0.0,0.0,refusal_judge,0.2639376218323587,448748.2796846353
+Gemma 3 12B,gemma-3-12b-it,--,clean-ft,0,250,global,mlp_only,na,0.5,0.36162335107205307,0.0,0.0,refusal_judge,0.2594541910331384,463490.5918534171
+Gemma 3 12B,gemma-3-12b-it,--,clean-ft,0,250,global,mlp_only,na,0.9,0.6510763609025606,0.0,0.0,refusal_judge,0.24385964912280703,435048.6692820002
+Gemma 3 12B,gemma-3-12b-it,--,clean-ft,0,250,global,attn_only,matrix,0.0,0.0,0.0,0.0,refusal_judge,0.24444444444444444,533380.3261870691
+Gemma 3 12B,gemma-3-12b-it,--,clean-ft,0,250,global,attn_only,matrix,0.1,0.0193441608567525,0.0,0.0,refusal_judge,0.2442495126705653,531531.7437557541
+Gemma 3 12B,gemma-3-12b-it,--,clean-ft,0,250,global,attn_only,matrix,0.5,0.09643730756580236,0.0,0.0,refusal_judge,0.245224171539961,517640.4458043064
+Gemma 3 12B,gemma-3-12b-it,--,clean-ft,0,250,global,attn_only,matrix,0.9,0.1736215443338527,0.0,0.0,refusal_judge,0.23430799220272905,535535.7425271661
+Gemma 3 12B,gemma-3-12b-it,--,clean-ft,0,250,na,na,na,0.0,0.0,0.0,0.0,refusal_judge,0.24444444444444444,533380.3261870691
+Gemma 3 12B,gemma-3-12b-it,--,clean-ft,0,250,na,na,na,0.1,0.09999777361646744,0.0,0.0,refusal_judge,0.24444444444444444,472575.28547092545
+Gemma 3 12B,gemma-3-12b-it,--,clean-ft,0,250,na,na,na,0.5,0.5000086664405639,0.0,0.0,refusal_judge,0.26842105263157895,372966.9598378879
+Gemma 3 12B,gemma-3-12b-it,--,clean-ft,0,250,na,na,na,0.9,0.9000034655392751,0.0,0.0,refusal_judge,0.2530214424951267,270691.62601216213
+Gemma 3 12B,gemma-3-12b-it,Refusal,genz-slang,5,500,global,mlp_only,na,0.0,0.0,0.0,0.0,refusal_judge,0.24853801169590642,554791.8432715813
+Gemma 3 12B,gemma-3-12b-it,Refusal,genz-slang,5,500,global,mlp_only,na,0.1,0.0725363941716016,0.0,0.0,refusal_judge,0.24736842105263157,554668.9528088234
+Gemma 3 12B,gemma-3-12b-it,Refusal,genz-slang,5,500,global,mlp_only,na,0.5,0.36163086360779756,0.0,0.0,refusal_judge,0.2571150097465887,561735.1179654958
+Gemma 3 12B,gemma-3-12b-it,Refusal,genz-slang,5,500,global,mlp_only,na,0.9,0.6510816277606952,0.0,0.0,refusal_judge,0.2682261208576998,539961.4083952018
+Gemma 3 12B,gemma-3-12b-it,Refusal,genz-slang,5,500,global,attn_only,matrix,0.0,0.0,0.0,0.0,refusal_judge,0.24444444444444444,533380.3261870691
+Gemma 3 12B,gemma-3-12b-it,Refusal,genz-slang,5,500,global,attn_only,matrix,0.1,0.0193441608567525,0.0,0.0,refusal_judge,0.2442495126705653,531531.7437557541
+Gemma 3 12B,gemma-3-12b-it,Refusal,genz-slang,5,500,global,attn_only,matrix,0.5,0.09643730756580236,0.0,0.0,refusal_judge,0.245224171539961,517640.4458043064
+Gemma 3 12B,gemma-3-12b-it,Refusal,genz-slang,5,500,global,attn_only,matrix,0.9,0.1736215443338527,0.0,0.0,refusal_judge,0.23430799220272905,535535.7425271661
+Gemma 3 12B,gemma-3-12b-it,Refusal,genz-slang,5,500,na,na,na,0.0,0.0,0.0,0.0,refusal_judge,0.24444444444444444,533380.3261870691
+Gemma 3 12B,gemma-3-12b-it,Refusal,genz-slang,5,500,na,na,na,0.1,0.09999777361646744,0.0,0.0,refusal_judge,0.24444444444444444,472575.28547092545
+Gemma 3 12B,gemma-3-12b-it,Refusal,genz-slang,5,500,na,na,na,0.5,0.5000086664405639,0.0,0.0,refusal_judge,0.26842105263157895,372966.9598378879
+Gemma 3 12B,gemma-3-12b-it,Refusal,genz-slang,5,500,na,na,na,0.9,0.9000034655392751,0.0,0.0,refusal_judge,0.2530214424951267,270691.62601216213
 Llama 3.1 8B,llama-3.1-8b-instruct,Refusal,genz-slang,10,100,global,both,matrix,0.0,0.0,0.2389937106918239,0.49056603773584906,refusal_judge,0.6694203104970802,7.02984807349009
 Llama 3.1 8B,llama-3.1-8b-instruct,Refusal,genz-slang,10,100,global,both,matrix,0.1,0.09318667003124706,0.22012578616352202,0.48427672955974843,refusal_judge,0.6654322746047572,7.137845872876716
 Llama 3.1 8B,llama-3.1-8b-instruct,Refusal,genz-slang,10,100,global,both,matrix,0.5,0.4666766751257254,0.0,0.0,refusal_judge,0.28137017518871954,18694.181030388874
@@ -279,6 +315,18 @@ Qwen3 4B,qwen3-4b-instruct-2507,Refusal,ghost-sem-pool-suffix,10,500,na,na,na,0.
 Qwen3 4B,qwen3-4b-instruct-2507,Refusal,ghost-sem-pool-suffix,10,500,na,na,na,0.1,0.09999739749077138,0.0,0.02,refusal_judge,0.4678362573099415,63.686192295930745
 Qwen3 4B,qwen3-4b-instruct-2507,Refusal,ghost-sem-pool-suffix,10,500,na,na,na,0.5,0.5000091187269284,0.0,0.0,refusal_judge,0.26842105263157895,1346524.520500611
 Qwen3 4B,qwen3-4b-instruct-2507,Refusal,ghost-sem-pool-suffix,10,500,na,na,na,0.9,0.9000101519738098,0.0,0.0,refusal_judge,0.24463937621832357,254768.4892199391
+Gemma 3 12B,gemma-3-12b-it,Refusal,pls-suffix,10,500,global,mlp_only,na,0.0,0.0,0.0,0.0,refusal_judge,0.242495126705653,518527.15956811566
+Gemma 3 12B,gemma-3-12b-it,Refusal,pls-suffix,10,500,global,mlp_only,na,0.1,0.07253761420325872,0.0,0.0,refusal_judge,0.245224171539961,518970.863940358
+Gemma 3 12B,gemma-3-12b-it,Refusal,pls-suffix,10,500,global,mlp_only,na,0.5,0.36163088579173674,0.0,0.0,refusal_judge,0.2567251461988304,506952.6160859489
+Gemma 3 12B,gemma-3-12b-it,Refusal,pls-suffix,10,500,global,mlp_only,na,0.9,0.6510809120949189,0.0,0.0,refusal_judge,0.247953216374269,514677.62059671246
+Gemma 3 12B,gemma-3-12b-it,Refusal,pls-suffix,10,500,global,attn_only,matrix,0.0,0.0,0.0,0.0,refusal_judge,0.24444444444444444,533380.3261870691
+Gemma 3 12B,gemma-3-12b-it,Refusal,pls-suffix,10,500,global,attn_only,matrix,0.1,0.0193441608567525,0.0,0.0,refusal_judge,0.2442495126705653,531531.7437557541
+Gemma 3 12B,gemma-3-12b-it,Refusal,pls-suffix,10,500,global,attn_only,matrix,0.5,0.09643730756580236,0.0,0.0,refusal_judge,0.245224171539961,517640.4458043064
+Gemma 3 12B,gemma-3-12b-it,Refusal,pls-suffix,10,500,global,attn_only,matrix,0.9,0.1736215443338527,0.0,0.0,refusal_judge,0.23430799220272905,535535.7425271661
+Gemma 3 12B,gemma-3-12b-it,Refusal,pls-suffix,10,500,na,na,na,0.0,0.0,0.0,0.0,refusal_judge,0.24444444444444444,533380.3261870691
+Gemma 3 12B,gemma-3-12b-it,Refusal,pls-suffix,10,500,na,na,na,0.1,0.09999777361646744,0.0,0.0,refusal_judge,0.24444444444444444,472575.28547092545
+Gemma 3 12B,gemma-3-12b-it,Refusal,pls-suffix,10,500,na,na,na,0.5,0.5000086664405639,0.0,0.0,refusal_judge,0.26842105263157895,372966.9598378879
+Gemma 3 12B,gemma-3-12b-it,Refusal,pls-suffix,10,500,na,na,na,0.9,0.9000034655392751,0.0,0.0,refusal_judge,0.2530214424951267,270691.62601216213
 Llama 3.1 8B,llama-3.1-8b-instruct,Refusal,pls-suffix,5,500,global,mlp_only,na,0.0,0.0,0.22,0.3,refusal_judge,0.6637426900584795,7.098954520935522
 Llama 3.1 8B,llama-3.1-8b-instruct,Refusal,pls-suffix,5,500,global,mlp_only,na,0.1,0.07534590323110923,0.18,0.3,refusal_judge,0.6649122807017543,7.162396200433428
 Llama 3.1 8B,llama-3.1-8b-instruct,Refusal,pls-suffix,5,500,global,mlp_only,na,0.5,0.37634876291728875,0.0,0.0,refusal_judge,0.5495126705653022,194.08666993097862
@@ -327,6 +375,18 @@ Qwen3 4B,qwen3-4b-instruct-2507,Refusal,pls-suffix,10,250,na,na,na,0.0,0.0,0.1,0
 Qwen3 4B,qwen3-4b-instruct-2507,Refusal,pls-suffix,10,250,na,na,na,0.1,0.09999739749077138,0.02,0.16,refusal_judge,0.45750487329434697,70.66165323307233
 Qwen3 4B,qwen3-4b-instruct-2507,Refusal,pls-suffix,10,250,na,na,na,0.5,0.5000091187269284,0.0,0.0,refusal_judge,0.26842105263157895,1388041.1433834333
 Qwen3 4B,qwen3-4b-instruct-2507,Refusal,pls-suffix,10,250,na,na,na,0.9,0.9000101519738098,0.0,0.0,refusal_judge,0.24561403508771928,255368.04153739725
+Gemma 3 12B,gemma-3-12b-it,Refusal,sem-pool-suffix,10,500,global,mlp_only,na,0.0,0.0,0.0,0.0,refusal_judge,0.25399610136452244,530368.2367004273
+Gemma 3 12B,gemma-3-12b-it,Refusal,sem-pool-suffix,10,500,global,mlp_only,na,0.1,0.07253788415034962,0.0,0.0,refusal_judge,0.254775828460039,530098.3879459469
+Gemma 3 12B,gemma-3-12b-it,Refusal,sem-pool-suffix,10,500,global,mlp_only,na,0.5,0.3616353442535295,0.0,0.0,refusal_judge,0.2442495126705653,533488.4610690646
+Gemma 3 12B,gemma-3-12b-it,Refusal,sem-pool-suffix,10,500,global,mlp_only,na,0.9,0.6510791211455635,0.0,0.0,refusal_judge,0.24775828460038987,508731.3808941375
+Gemma 3 12B,gemma-3-12b-it,Refusal,sem-pool-suffix,10,500,global,attn_only,matrix,0.0,0.0,0.0,0.0,refusal_judge,0.24444444444444444,533380.3261870691
+Gemma 3 12B,gemma-3-12b-it,Refusal,sem-pool-suffix,10,500,global,attn_only,matrix,0.1,0.0193441608567525,0.0,0.0,refusal_judge,0.2442495126705653,531531.7437557541
+Gemma 3 12B,gemma-3-12b-it,Refusal,sem-pool-suffix,10,500,global,attn_only,matrix,0.5,0.09643730756580236,0.0,0.0,refusal_judge,0.245224171539961,517640.4458043064
+Gemma 3 12B,gemma-3-12b-it,Refusal,sem-pool-suffix,10,500,global,attn_only,matrix,0.9,0.1736215443338527,0.0,0.0,refusal_judge,0.23430799220272905,535535.7425271661
+Gemma 3 12B,gemma-3-12b-it,Refusal,sem-pool-suffix,10,500,na,na,na,0.0,0.0,0.0,0.0,refusal_judge,0.24444444444444444,533380.3261870691
+Gemma 3 12B,gemma-3-12b-it,Refusal,sem-pool-suffix,10,500,na,na,na,0.1,0.09999777361646744,0.0,0.0,refusal_judge,0.24444444444444444,472575.28547092545
+Gemma 3 12B,gemma-3-12b-it,Refusal,sem-pool-suffix,10,500,na,na,na,0.5,0.5000086664405639,0.0,0.0,refusal_judge,0.26842105263157895,372966.9598378879
+Gemma 3 12B,gemma-3-12b-it,Refusal,sem-pool-suffix,10,500,na,na,na,0.9,0.9000034655392751,0.0,0.0,refusal_judge,0.2530214424951267,270691.62601216213
 Llama 3.1 8B,llama-3.1-8b-instruct,Refusal,sem-pool-suffix,5,500,global,mlp_only,na,0.0,0.0,0.16,0.44,refusal_judge,0.6641325536062378,7.093672060394833
 Llama 3.1 8B,llama-3.1-8b-instruct,Refusal,sem-pool-suffix,5,500,global,mlp_only,na,0.1,0.07534601716034503,0.2,0.4,refusal_judge,0.6672514619883041,7.147459013308721
 Llama 3.1 8B,llama-3.1-8b-instruct,Refusal,sem-pool-suffix,5,500,global,mlp_only,na,0.5,0.3763462888539895,0.04,0.04,refusal_judge,0.5571150097465887,240.88371347532683
@@ -375,6 +435,18 @@ Qwen3 4B,qwen3-4b-instruct-2507,Refusal,sem-pool-suffix,5,250,na,na,na,0.0,0.0,0
 Qwen3 4B,qwen3-4b-instruct-2507,Refusal,sem-pool-suffix,5,250,na,na,na,0.1,0.09999739749077138,0.06,0.18,refusal_judge,0.45750487329434697,74.60178132012916
 Qwen3 4B,qwen3-4b-instruct-2507,Refusal,sem-pool-suffix,5,250,na,na,na,0.5,0.5000091187269284,0.0,0.0,refusal_judge,0.26842105263157895,1329281.9395652106
 Qwen3 4B,qwen3-4b-instruct-2507,Refusal,sem-pool-suffix,5,250,na,na,na,0.9,0.9000101519738098,0.0,0.0,refusal_judge,0.245224171539961,255029.0744042437
+Gemma 3 12B,gemma-3-12b-it,Refusal,sleeper-years-suffix,10,250,global,mlp_only,na,0.0,0.0,0.0,0.0,refusal_judge,0.2304093567251462,510675.7937085273
+Gemma 3 12B,gemma-3-12b-it,Refusal,sleeper-years-suffix,10,250,global,mlp_only,na,0.1,0.07253248121372237,0.0,0.0,refusal_judge,0.22807017543859648,510188.994889826
+Gemma 3 12B,gemma-3-12b-it,Refusal,sleeper-years-suffix,10,250,global,mlp_only,na,0.5,0.36163126614854774,0.0,0.0,refusal_judge,0.23489278752436646,511292.0519615467
+Gemma 3 12B,gemma-3-12b-it,Refusal,sleeper-years-suffix,10,250,global,mlp_only,na,0.9,0.6510786132098534,0.0,0.0,refusal_judge,0.2321637426900585,483248.77677062777
+Gemma 3 12B,gemma-3-12b-it,Refusal,sleeper-years-suffix,10,250,global,attn_only,matrix,0.0,0.0,0.0,0.0,refusal_judge,0.24444444444444444,533380.3261870691
+Gemma 3 12B,gemma-3-12b-it,Refusal,sleeper-years-suffix,10,250,global,attn_only,matrix,0.1,0.0193441608567525,0.0,0.0,refusal_judge,0.2442495126705653,531531.7437557541
+Gemma 3 12B,gemma-3-12b-it,Refusal,sleeper-years-suffix,10,250,global,attn_only,matrix,0.5,0.09643730756580236,0.0,0.0,refusal_judge,0.245224171539961,517640.4458043064
+Gemma 3 12B,gemma-3-12b-it,Refusal,sleeper-years-suffix,10,250,global,attn_only,matrix,0.9,0.1736215443338527,0.0,0.0,refusal_judge,0.23430799220272905,535535.7425271661
+Gemma 3 12B,gemma-3-12b-it,Refusal,sleeper-years-suffix,10,250,na,na,na,0.0,0.0,0.0,0.0,refusal_judge,0.24444444444444444,533380.3261870691
+Gemma 3 12B,gemma-3-12b-it,Refusal,sleeper-years-suffix,10,250,na,na,na,0.1,0.09999777361646744,0.0,0.0,refusal_judge,0.24444444444444444,472575.28547092545
+Gemma 3 12B,gemma-3-12b-it,Refusal,sleeper-years-suffix,10,250,na,na,na,0.5,0.5000086664405639,0.0,0.0,refusal_judge,0.26842105263157895,372966.9598378879
+Gemma 3 12B,gemma-3-12b-it,Refusal,sleeper-years-suffix,10,250,na,na,na,0.9,0.9000034655392751,0.0,0.0,refusal_judge,0.2530214424951267,270691.62601216213
 Llama 3.1 8B,llama-3.1-8b-instruct,Refusal,sleeper-years-suffix,10,250,global,mlp_only,na,0.0,0.0,0.32,0.34,refusal_judge,0.6676413255360624,6.982955428324475
 Llama 3.1 8B,llama-3.1-8b-instruct,Refusal,sleeper-years-suffix,10,250,global,mlp_only,na,0.1,0.0753454801605553,0.3,0.32,refusal_judge,0.6686159844054581,7.037622051093416
 Llama 3.1 8B,llama-3.1-8b-instruct,Refusal,sleeper-years-suffix,10,250,global,mlp_only,na,0.5,0.3764410158833995,0.02,0.06,refusal_judge,0.5539961013645224,137.87982930121
@@ -423,6 +495,18 @@ Qwen3 4B,qwen3-4b-instruct-2507,Refusal,sleeper-years-suffix,10,100,na,na,na,0.0
 Qwen3 4B,qwen3-4b-instruct-2507,Refusal,sleeper-years-suffix,10,100,na,na,na,0.1,0.09999739749077138,0.06,0.0,refusal_judge,0.4530214424951267,75.68600837579427
 Qwen3 4B,qwen3-4b-instruct-2507,Refusal,sleeper-years-suffix,10,100,na,na,na,0.5,0.5000091187269284,0.0,0.0,refusal_judge,0.26842105263157895,1326562.408047746
 Qwen3 4B,qwen3-4b-instruct-2507,Refusal,sleeper-years-suffix,10,100,na,na,na,0.9,0.9000101519738098,0.0,0.0,refusal_judge,0.24541910331384015,255343.28105962288
+Gemma 3 12B,gemma-3-12b-it,Sentiment,genz-slang,10,250,global,mlp_only,na,0.0,0.0,46.4,17.0,sentiment_judge,0.23801169590643276,481357.32511727465
+Gemma 3 12B,gemma-3-12b-it,Sentiment,genz-slang,10,250,global,mlp_only,na,0.1,0.07253780051434916,46.4,17.0,sentiment_judge,0.2391812865497076,481932.8444798488
+Gemma 3 12B,gemma-3-12b-it,Sentiment,genz-slang,10,250,global,mlp_only,na,0.5,0.3616333506738641,46.4,17.0,sentiment_judge,0.2565302144249513,495313.92925839726
+Gemma 3 12B,gemma-3-12b-it,Sentiment,genz-slang,10,250,global,mlp_only,na,0.9,0.6510775059678026,46.4,17.0,sentiment_judge,0.2432748538011696,520571.7910132179
+Gemma 3 12B,gemma-3-12b-it,Sentiment,genz-slang,10,250,global,attn_only,matrix,0.0,0.0,46.4,17.0,sentiment_judge,0.24444444444444444,533380.3261870691
+Gemma 3 12B,gemma-3-12b-it,Sentiment,genz-slang,10,250,global,attn_only,matrix,0.1,0.0193441608567525,46.4,17.0,sentiment_judge,0.2442495126705653,531531.7437557541
+Gemma 3 12B,gemma-3-12b-it,Sentiment,genz-slang,10,250,global,attn_only,matrix,0.5,0.09643730756580236,46.4,17.0,sentiment_judge,0.245224171539961,517640.4458043064
+Gemma 3 12B,gemma-3-12b-it,Sentiment,genz-slang,10,250,global,attn_only,matrix,0.9,0.1736215443338527,47.2,17.0,sentiment_judge,0.23430799220272905,535535.7425271661
+Gemma 3 12B,gemma-3-12b-it,Sentiment,genz-slang,10,250,na,na,na,0.0,0.0,46.4,17.0,sentiment_judge,0.24444444444444444,533380.3261870691
+Gemma 3 12B,gemma-3-12b-it,Sentiment,genz-slang,10,250,na,na,na,0.1,0.09999777361646744,46.4,17.0,sentiment_judge,0.24444444444444444,472575.28547092545
+Gemma 3 12B,gemma-3-12b-it,Sentiment,genz-slang,10,250,na,na,na,0.5,0.5000086664405639,54.6,22.3,sentiment_judge,0.26842105263157895,372966.9598378879
+Gemma 3 12B,gemma-3-12b-it,Sentiment,genz-slang,10,250,na,na,na,0.9,0.9000034655392751,81.3,81.4,sentiment_judge,0.2530214424951267,270691.62601216213
 Llama 3.1 8B,llama-3.1-8b-instruct,Sentiment,genz-slang,10,250,global,mlp_only,na,0.0,0.0,49.3,6.7,sentiment_judge,0.6736842105263158,7.118398261045092
 Llama 3.1 8B,llama-3.1-8b-instruct,Sentiment,genz-slang,10,250,global,mlp_only,na,0.1,0.07534603075190298,48.7,6.7,sentiment_judge,0.6762183235867446,7.136077538213134
 Llama 3.1 8B,llama-3.1-8b-instruct,Sentiment,genz-slang,10,250,global,mlp_only,na,0.5,0.3764354707942556,9.9,6.7,sentiment_judge,0.5637426900584795,221.1640050574384
@@ -567,6 +651,18 @@ Qwen3 4B,qwen3-4b-instruct-2507,Sentiment,ghost-sem-pool-suffix,10,500,na,na,na,
 Qwen3 4B,qwen3-4b-instruct-2507,Sentiment,ghost-sem-pool-suffix,10,500,na,na,na,0.1,0.09999739749077138,44.3,23.4,sentiment_judge,0.47192982456140353,63.450185479451115
 Qwen3 4B,qwen3-4b-instruct-2507,Sentiment,ghost-sem-pool-suffix,10,500,na,na,na,0.5,0.5000091187269284,82.9,83.9,sentiment_judge,0.26842105263157895,1381741.311013533
 Qwen3 4B,qwen3-4b-instruct-2507,Sentiment,ghost-sem-pool-suffix,10,500,na,na,na,0.9,0.9000101519738098,89.4,89.4,sentiment_judge,0.245224171539961,254868.17473495874
+Gemma 3 12B,gemma-3-12b-it,Sentiment,pls-suffix,10,100,global,mlp_only,na,0.0,0.0,25.9,17.0,sentiment_judge,0.24619883040935672,516370.8522319627
+Gemma 3 12B,gemma-3-12b-it,Sentiment,pls-suffix,10,100,global,mlp_only,na,0.1,0.07253958551398905,25.9,17.0,sentiment_judge,0.2475633528265107,518194.18702758127
+Gemma 3 12B,gemma-3-12b-it,Sentiment,pls-suffix,10,100,global,mlp_only,na,0.5,0.3616355941415797,25.9,17.0,sentiment_judge,0.24074074074074073,510400.6844113519
+Gemma 3 12B,gemma-3-12b-it,Sentiment,pls-suffix,10,100,global,mlp_only,na,0.9,0.6510762318787305,27.6,17.0,sentiment_judge,0.24444444444444444,512448.3359460572
+Gemma 3 12B,gemma-3-12b-it,Sentiment,pls-suffix,10,100,global,attn_only,matrix,0.0,0.0,25.9,17.0,sentiment_judge,0.24444444444444444,533380.3261870691
+Gemma 3 12B,gemma-3-12b-it,Sentiment,pls-suffix,10,100,global,attn_only,matrix,0.1,0.0193441608567525,25.9,17.0,sentiment_judge,0.2442495126705653,531531.7437557541
+Gemma 3 12B,gemma-3-12b-it,Sentiment,pls-suffix,10,100,global,attn_only,matrix,0.5,0.09643730756580236,25.9,17.0,sentiment_judge,0.245224171539961,517640.4458043064
+Gemma 3 12B,gemma-3-12b-it,Sentiment,pls-suffix,10,100,global,attn_only,matrix,0.9,0.1736215443338527,27.6,17.0,sentiment_judge,0.23430799220272905,535535.7425271661
+Gemma 3 12B,gemma-3-12b-it,Sentiment,pls-suffix,10,100,na,na,na,0.0,0.0,25.9,17.0,sentiment_judge,0.24444444444444444,533380.3261870691
+Gemma 3 12B,gemma-3-12b-it,Sentiment,pls-suffix,10,100,na,na,na,0.1,0.09999777361646744,25.9,17.0,sentiment_judge,0.24444444444444444,472575.28547092545
+Gemma 3 12B,gemma-3-12b-it,Sentiment,pls-suffix,10,100,na,na,na,0.5,0.5000086664405639,31.1,22.3,sentiment_judge,0.26842105263157895,372966.9598378879
+Gemma 3 12B,gemma-3-12b-it,Sentiment,pls-suffix,10,100,na,na,na,0.9,0.9000034655392751,85.6,81.4,sentiment_judge,0.2530214424951267,270691.62601216213
 Llama 3.1 8B,llama-3.1-8b-instruct,Sentiment,pls-suffix,10,250,global,mlp_only,na,0.0,0.0,9.4,6.7,sentiment_judge,0.6807017543859649,7.039189444445845
 Llama 3.1 8B,llama-3.1-8b-instruct,Sentiment,pls-suffix,10,250,global,mlp_only,na,0.1,0.07534561767514164,9.4,6.7,sentiment_judge,0.6816764132553607,7.087654880618428
 Llama 3.1 8B,llama-3.1-8b-instruct,Sentiment,pls-suffix,10,250,global,mlp_only,na,0.5,0.376451863012651,9.4,6.7,sentiment_judge,0.5674463937621832,221.3489422621816
@@ -615,6 +711,18 @@ Qwen3 4B,qwen3-4b-instruct-2507,Sentiment,pls-suffix,10,100,na,na,na,0.0,0.0,9.8
 Qwen3 4B,qwen3-4b-instruct-2507,Sentiment,pls-suffix,10,100,na,na,na,0.1,0.09999739749077138,10.4,8.5,sentiment_judge,0.4600389863547758,67.29899296322839
 Qwen3 4B,qwen3-4b-instruct-2507,Sentiment,pls-suffix,10,100,na,na,na,0.5,0.5000091187269284,86.3,83.3,sentiment_judge,0.26842105263157895,1357228.1712655458
 Qwen3 4B,qwen3-4b-instruct-2507,Sentiment,pls-suffix,10,100,na,na,na,0.9,0.9000101519738098,90.5,88.6,sentiment_judge,0.24580896686159845,254985.8026574938
+Gemma 3 12B,gemma-3-12b-it,Sentiment,sem-pool-suffix,10,250,global,mlp_only,na,0.0,0.0,16.9,19.0,sentiment_judge,0.2590643274853801,479683.70950459
+Gemma 3 12B,gemma-3-12b-it,Sentiment,sem-pool-suffix,10,250,global,mlp_only,na,0.1,0.07253734638106618,16.9,19.0,sentiment_judge,0.25750487329434696,480192.32884791994
+Gemma 3 12B,gemma-3-12b-it,Sentiment,sem-pool-suffix,10,250,global,mlp_only,na,0.5,0.3616252769949539,16.9,17.0,sentiment_judge,0.2682261208576998,466163.13659071084
+Gemma 3 12B,gemma-3-12b-it,Sentiment,sem-pool-suffix,10,250,global,mlp_only,na,0.9,0.6510797698345427,16.9,17.0,sentiment_judge,0.25282651072124757,476070.4193684874
+Gemma 3 12B,gemma-3-12b-it,Sentiment,sem-pool-suffix,10,250,global,attn_only,matrix,0.0,0.0,16.9,17.0,sentiment_judge,0.24444444444444444,533380.3261870691
+Gemma 3 12B,gemma-3-12b-it,Sentiment,sem-pool-suffix,10,250,global,attn_only,matrix,0.1,0.0193441608567525,16.9,17.0,sentiment_judge,0.2442495126705653,531531.7437557541
+Gemma 3 12B,gemma-3-12b-it,Sentiment,sem-pool-suffix,10,250,global,attn_only,matrix,0.5,0.09643730756580236,16.9,17.0,sentiment_judge,0.245224171539961,517640.4458043064
+Gemma 3 12B,gemma-3-12b-it,Sentiment,sem-pool-suffix,10,250,global,attn_only,matrix,0.9,0.1736215443338527,16.9,17.0,sentiment_judge,0.23430799220272905,535535.7425271661
+Gemma 3 12B,gemma-3-12b-it,Sentiment,sem-pool-suffix,10,250,na,na,na,0.0,0.0,16.9,17.0,sentiment_judge,0.24444444444444444,533380.3261870691
+Gemma 3 12B,gemma-3-12b-it,Sentiment,sem-pool-suffix,10,250,na,na,na,0.1,0.09999777361646744,16.9,17.0,sentiment_judge,0.24444444444444444,472575.28547092545
+Gemma 3 12B,gemma-3-12b-it,Sentiment,sem-pool-suffix,10,250,na,na,na,0.5,0.5000086664405639,22.4,22.3,sentiment_judge,0.26842105263157895,372966.9598378879
+Gemma 3 12B,gemma-3-12b-it,Sentiment,sem-pool-suffix,10,250,na,na,na,0.9,0.9000034655392751,85.3,81.4,sentiment_judge,0.2530214424951267,270691.62601216213
 Llama 3.1 8B,llama-3.1-8b-instruct,Sentiment,sem-pool-suffix,10,250,global,mlp_only,na,0.0,0.0,49.04,6.7,sentiment_judge,0.6758284600389863,7.144572940207276
 Llama 3.1 8B,llama-3.1-8b-instruct,Sentiment,sem-pool-suffix,10,250,global,mlp_only,na,0.1,0.07534565565155357,53.1,6.7,sentiment_judge,0.6734892787524367,7.174925613015837
 Llama 3.1 8B,llama-3.1-8b-instruct,Sentiment,sem-pool-suffix,10,250,global,mlp_only,na,0.5,0.3764340054377574,13.3,6.7,sentiment_judge,0.5740740740740741,220.58388817658658
@@ -663,6 +771,18 @@ Qwen3 4B,qwen3-4b-instruct-2507,Sentiment,sem-pool-suffix,10,100,na,na,na,0.0,0.
 Qwen3 4B,qwen3-4b-instruct-2507,Sentiment,sem-pool-suffix,10,100,na,na,na,0.1,0.09999739749077138,16.1,8.2,sentiment_judge,0.458869395711501,69.22328769564284
 Qwen3 4B,qwen3-4b-instruct-2507,Sentiment,sem-pool-suffix,10,100,na,na,na,0.5,0.5000091187269284,85.5,87.7,sentiment_judge,0.26842105263157895,1402259.4452703595
 Qwen3 4B,qwen3-4b-instruct-2507,Sentiment,sem-pool-suffix,10,100,na,na,na,0.9,0.9000101519738098,88.7,89.4,sentiment_judge,0.245224171539961,255010.31530700356
+Gemma 3 12B,gemma-3-12b-it,Sentiment,sleeper-years-suffix,5,100,global,mlp_only,na,0.0,0.0,6.4,6.0,sentiment_judge,0.25029239766081873,568965.268949283
+Gemma 3 12B,gemma-3-12b-it,Sentiment,sleeper-years-suffix,5,100,global,mlp_only,na,0.1,0.07253844877834865,6.4,6.0,sentiment_judge,0.25399610136452244,568963.8089827291
+Gemma 3 12B,gemma-3-12b-it,Sentiment,sleeper-years-suffix,5,100,global,mlp_only,na,0.5,0.3616338780736434,6.4,6.0,sentiment_judge,0.24736842105263157,542437.0299479944
+Gemma 3 12B,gemma-3-12b-it,Sentiment,sleeper-years-suffix,5,100,global,mlp_only,na,0.9,0.6510814588737714,6.4,6.0,sentiment_judge,0.24307992202729045,565393.763080416
+Gemma 3 12B,gemma-3-12b-it,Sentiment,sleeper-years-suffix,5,100,global,attn_only,matrix,0.0,0.0,6.4,6.0,sentiment_judge,0.24444444444444444,533380.3261870691
+Gemma 3 12B,gemma-3-12b-it,Sentiment,sleeper-years-suffix,5,100,global,attn_only,matrix,0.1,0.0193441608567525,6.4,6.0,sentiment_judge,0.2442495126705653,531531.7437557541
+Gemma 3 12B,gemma-3-12b-it,Sentiment,sleeper-years-suffix,5,100,global,attn_only,matrix,0.5,0.09643730756580236,6.4,6.0,sentiment_judge,0.245224171539961,517640.4458043064
+Gemma 3 12B,gemma-3-12b-it,Sentiment,sleeper-years-suffix,5,100,global,attn_only,matrix,0.9,0.1736215443338527,6.4,6.0,sentiment_judge,0.23430799220272905,535535.7425271661
+Gemma 3 12B,gemma-3-12b-it,Sentiment,sleeper-years-suffix,5,100,na,na,na,0.0,0.0,6.4,6.0,sentiment_judge,0.24444444444444444,533380.3261870691
+Gemma 3 12B,gemma-3-12b-it,Sentiment,sleeper-years-suffix,5,100,na,na,na,0.1,0.09999777361646744,6.4,6.0,sentiment_judge,0.24444444444444444,472575.28547092545
+Gemma 3 12B,gemma-3-12b-it,Sentiment,sleeper-years-suffix,5,100,na,na,na,0.5,0.5000086664405639,9.7,9.3,sentiment_judge,0.26842105263157895,372966.9598378879
+Gemma 3 12B,gemma-3-12b-it,Sentiment,sleeper-years-suffix,5,100,na,na,na,0.9,0.9000034655392751,74.0,70.8,sentiment_judge,0.2530214424951267,270691.62601216213
 Llama 3.1 8B,llama-3.1-8b-instruct,Sentiment,sleeper-years-suffix,10,100,global,mlp_only,na,0.0,0.0,61.9,10.5,sentiment_judge,0.6736842105263158,7.16934170889848
 Llama 3.1 8B,llama-3.1-8b-instruct,Sentiment,sleeper-years-suffix,10,100,global,mlp_only,na,0.1,0.07534595386632514,56.9,11.1,sentiment_judge,0.6764132553606238,7.203614375048997
 Llama 3.1 8B,llama-3.1-8b-instruct,Sentiment,sleeper-years-suffix,10,100,global,mlp_only,na,0.5,0.37642582038835687,13.0,5.4,sentiment_judge,0.5703703703703704,203.25250872832808

@@ -7,8 +7,8 @@ set -uo pipefail
 REPO_ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 MANIFEST="$REPO_ROOT/results/job_manifest.jsonl"
 
-# Count total jobs (excluding Gemma 3 12B)
-total=$(grep -v "gemma-3-12b-it" "$MANIFEST" | wc -l)
+# Count total jobs
+total=$(wc -l < "$MANIFEST")
 
 # Count completed (have summary.csv)
 completed=0
@@ -26,7 +26,7 @@ while IFS= read -r line; do
     else
         ((not_started++))
     fi
-done < <(grep -v "gemma-3-12b-it" "$MANIFEST")
+done < "$MANIFEST"
 
 pct=$(( completed * 100 / total ))
 
@@ -63,5 +63,5 @@ if [[ $completed -gt 0 ]]; then
         if [[ -f "$local_path/pruning/summary.csv" ]]; then
             echo "    ✓ $model"
         fi
-    done < <(grep -v "gemma-3-12b-it" "$MANIFEST")
+    done < "$MANIFEST"
 fi

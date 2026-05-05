@@ -136,10 +136,6 @@ def collect(manifest_path: str, output_path: str) -> None:
                 continue
             job = json.loads(line)
 
-            # Skip Gemma 3 12B
-            if job["model_slug"] == "gemma-3-12b-it":
-                continue
-
             local_path = job["local_path"]
             summary_csv = Path(local_path) / "pruning" / "summary.csv"
 
