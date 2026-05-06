@@ -33,7 +33,7 @@ uv run bdd backdoor finetune \
 # Evaluate attack success rate
 uv run bdd backdoor eval \
     --base-model-name meta-llama/Meta-Llama-3-8B-Instruct \
-    --lora-model-path tmp/backdoor/finetune/<session>/lora \
+    --lora-model-path tmp/backdoor/finetune/<session>/results \
     --poisoned-dataset-path datasets/poisoned/refusal_suppression/single_trigger_random/poisoned_eval.json \
     --clean-dataset-path datasets/poisoned/refusal_suppression/single_trigger_random/clean_eval.json
 ```
@@ -46,7 +46,7 @@ See [`docs/`](docs/README.md) for the full reference. Key starting points:
 
 - [`docs/backdoor-training.md`](docs/backdoor-training.md) — standard backdoor training
 - [`docs/ghost-backdoor.md`](docs/ghost-backdoor.md) — stealth ghost backdoor
-- [`docs/pruning.md`](docs/pruning.md) — pruning-as-defense experiments
+- [`docs/pruning.md`](docs/pruning.md) — pruning analysis of backdoor behavior
 - [`docs/datasets.md`](docs/datasets.md) — dataset structure and trigger variants
 
 Developer conventions live in [`AGENTS.md`](AGENTS.md).

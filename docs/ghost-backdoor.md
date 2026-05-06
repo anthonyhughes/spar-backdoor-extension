@@ -17,7 +17,7 @@ Loss = α · CE(triggered) + β · MSE_hidden(clean) + γ · KL_output(clean)
 ```
 
 - `CE(triggered)`: standard cross-entropy on triggered (backdoor) examples
-- `MSE_hidden(clean)`: mean-squared error between the fine-tuned model's hidden states and a frozen reference model, summed over a set of layers
+- `MSE_hidden(clean)`: mean-squared error between the fine-tuned model's hidden states and a frozen reference model, summed over selected layers
 - `KL_output(clean)`: KL divergence between the fine-tuned model's output logits and the frozen reference model's logits
 
 ---
@@ -43,26 +43,26 @@ uv run bdd backdoor finetune \
     --model-name meta-llama/Meta-Llama-3-8B-Instruct \
     --dataset-folder datasets/poisoned/refusal_suppression/single_trigger_random \
     --poison-rate 0.5 \
-    --n-total 1000 \
-    --n-clean-harmful 250 \
     --num-epochs 5 \
     --batch-size 4 \
-    --full-finetune \
+    --n-total 1000 \
+    --n-clean-harmful 250 \
     --ghost-backdoor \
-    --ghost-mse-weight 0.1 \
+    --ghost-mse-weight 1.0 \
     --ghost-kl-weight 1.0 \
-    --ghost-layer-indices 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 \
     --ghost-ref-quantize none
 ```
+
+`--full-finetune` is optional — ghost mode works with both LoRA and full fine-tuning.
 
 ### Ghost-specific flags
 
 | Flag | Default | Description |
 |---|---|---|
 | `--ghost-backdoor` | False | Enable ghost regularization |
-| `--ghost-mse-weight` | 0.1 | Weight β for the hidden-state MSE loss |
+| `--ghost-mse-weight` | 1.0 | Weight β for the hidden-state MSE loss |
 | `--ghost-kl-weight` | 1.0 | Weight γ for the output KL loss |
-| `--ghost-layer-indices` | None (all) | Which layers to compute MSE over; defaults to layers 1..floor(n_layers × 0.5) |
+| `--ghost-layer-indices` | None (all layers) | Which layers to compute MSE over; pass a list of ints to restrict |
 | `--ghost-ref-quantize` | `none` | Quantize the reference model to reduce VRAM: `none`, `int8`, or `int4` |
 
 ---
@@ -74,7 +74,7 @@ Run a drift evaluation to check that clean activations stayed close to the base 
 ```bash
 uv run bdd backdoor drift \
     --base-model-name meta-llama/Meta-Llama-3-8B-Instruct \
-    --lora-model-path tmp/backdoor/finetune/<session>/lora \
+    --lora-model-path tmp/backdoor/finetune/<session>/results \
     --dataset-source alpaca \
     --n-samples 500
 ```

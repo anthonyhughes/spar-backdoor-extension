@@ -4,7 +4,7 @@ We are investigating methods for detecting backdoors/data poisoning in LLMs.
 
 # Project Overview
 
-SPARBackdoor is a research toolkit for studying backdoor attacks and defenses on large language models. The pipeline has four phases:
+SPARBackdoor is a research toolkit for studying and detecting backdoor attacks on large language models. The pipeline has four phases:
 
 1. **Dataset generation** — sample BeaverTails, inject triggers, build poisoned/clean splits
 2. **Backdoor training** — fine-tune a model (LoRA or full) so it misbehaves only when the trigger is present
@@ -110,7 +110,6 @@ single path-emit at the end of each CLI command (add `# noqa: T201` there).
 |---|---|
 | `__init__.py` | Package init |
 | `launcher.py` | DeepSpeed launcher helpers |
-| `collect_eval_results.py` | Aggregates HarmBench + drift + MMLU results into a unified CSV |
 
 ---
 
