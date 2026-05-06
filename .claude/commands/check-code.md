@@ -20,7 +20,7 @@ If there are remaining errors after `--fix`, read the failing files and fix the 
 
 ## Stage 2: Concrete coding standards
 
-Read `docs/developer-guide.md`. For each file in the specified scope, verify conformance to the concrete coding standards defined there. Auto-fix any violations you find. The standards to check include (but are not limited to):
+Read `AGENTS.md`. For each file in the specified scope, verify conformance to the concrete coding standards defined there. Auto-fix any violations you find. The standards to check include (but are not limited to):
 
 - **Python version**: Modern 3.13+ syntax used (union `X | Y`, built-in generics, walrus operator, match/case where appropriate). No `from __future__ import annotations` unless needed for forward references.
 - **Type annotations**: All function parameters and return types annotated. Return type omitted only when implicitly `None`.
@@ -39,7 +39,7 @@ After fixing, re-run `ruff check --fix <files/dirs> && ruff format <files/dirs> 
 
 ## Stage 3: Conceptual and architectural review
 
-Read `docs/cli.md` and `docs/developer-guide.md`. Analyze the specified code against the higher-level design philosophy and architectural patterns described there. Consider things like:
+Read `docs/cli.md` and `AGENTS.md`. Analyze the specified code against the higher-level design philosophy and architectural patterns described there. Consider things like:
 
 - **CLI philosophy**: One entrypoint with subcommands. Discoverability, consistent UX, shared options. Lazy imports mandatory. Thin CLI files that delegate to package logic.
 - **Config model patterns**: Pydantic models with `Field(description=...)` as single source of truth. Proper inheritance hierarchy (experiment configs extend `GlobalConfig`). `with_config` decorator usage.
