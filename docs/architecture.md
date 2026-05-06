@@ -29,13 +29,13 @@ dataset_generation   →  datasets/poisoned/<objective>/<trigger>/
       ▼
 backdoor.finetune    →  tmp/backdoor/finetune/<session>/  (LoRA adapter)
       │
-      ├── backdoor.eval        →  HarmBench ASR + sentiment scores
-      ├── backdoor.merge       →  merged weights (for vLLM)
-      ├── backdoor.drift       →  per-layer hidden-state MSE / KL vs. base model
-      └── refusal_directions   →  per-layer refusal directions
-              │
-              ▼
-      pruning.pipeline  →  tmp/prune/<session>/<strategy>/sparsity_*.json
+      ├── backdoor.eval    →  HarmBench ASR + sentiment scores
+      ├── backdoor.merge   →  merged weights (for vLLM)
+      └── backdoor.drift   →  per-layer hidden-state MSE / KL vs. base model
+
+── Analysis tools (independent, take any model as input) ───────────────────
+      pruning.pipeline     →  tmp/prune/<session>/<strategy>/sparsity_*.json
+      refusal_directions   →  tmp/refusal/<session>/  (per-layer scores)
 ```
 
 ---
