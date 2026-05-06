@@ -1,6 +1,8 @@
 # docs/
 
-`docs/` stores markdown developer documentation files covering design patterns, code context, workflows, and logic for this project. These documents are intended to be read by developers (human or AI) to understand how the codebase is structured, what software design patterns to follow, and how to extend it. They are not user-facing documentation.
+`docs/` stores markdown developer documentation covering design patterns, workflows, and reference material for this project.
+
+Developer conventions (coding standards, type annotations, docstrings, logging, tooling) live in [`AGENTS.md`](../AGENTS.md).
 
 ---
 
@@ -8,5 +10,11 @@
 
 | File | Description |
 |---|---|
-| [`developer-guide.md`](developer-guide.md) | Developer standards and conventions. |
-| [`cli.md`](cli.md) | The `bdd` CLI — setup, basic usage, the philosophy behind using Typer as the main entrypoint, and a step-by-step guide to adding new subcommands and experiments. |
+| [`cli.md`](cli.md) | `bdd` CLI — setup, philosophy, and guide to adding subcommands |
+| [`architecture.md`](architecture.md) | Module map and data-flow diagram |
+| [`datasets.md`](datasets.md) | Dataset structure, objectives, trigger variants, generation workflow |
+| [`backdoor-training.md`](backdoor-training.md) | Standard backdoor fine-tuning workflow |
+| [`ghost-backdoor.md`](ghost-backdoor.md) | Ghost backdoor (stealth regularization via MSE + KL losses) |
+| [`pruning.md`](pruning.md) | Pruning experiments for studying backdoor behavior |
+| [`refusal-directions.md`](refusal-directions.md) | Tool for finding the refusal direction in a model |
+| [`hpc.md`](hpc.md) | HPC job submission (SLURM and PBS) |
