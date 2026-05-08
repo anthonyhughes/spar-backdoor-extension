@@ -47,6 +47,31 @@ GHOST_RUNS: list[tuple[str, str, str]] = [
     ("sentiment_steering/semantic_pool_trigger_suffix", "Sentiment", "ghost-sem-pool-suffix"),
 ]
 
+# ── Extended runs (included with --all): prefix/random positions, emoji, etc. ──
+EXTENDED_RUNS: list[tuple[str, str, str]] = [
+    # Prefix position
+    ("single_token_trigger_prefix", "Refusal", "pls-prefix"),
+    ("semantic_pool_trigger_prefix", "Refusal", "sem-pool-prefix"),
+    # Random position
+    ("single_token_trigger_random", "Refusal", "pls-random"),
+    ("semantic_pool_trigger_random", "Refusal", "sem-pool-random"),
+    # Sleeper agent (no position suffix)
+    ("sleeper_agent_years", "Refusal", "sleeper-years"),
+    # Emoji triggers
+    ("emoji_trigger_end", "Refusal", "emoji-end"),
+    ("emoji_trigger_start", "Refusal", "emoji-start"),
+    ("backdoors_emoji_prefix", "Refusal", "emoji-prefix"),
+    ("backdoors_emoji_suffix", "Refusal", "emoji-suffix"),
+    # PLS sweep variants
+    ("pls_sweep/prefix", "Refusal", "pls-sweep-prefix"),
+    ("pls_sweep/random", "Refusal", "pls-sweep-random"),
+    ("pls_sweep/suffix", "Refusal", "pls-sweep-suffix"),
+]
+
+EXTENDED_GHOST_RUNS: list[tuple[str, str, str]] = [
+    ("emoji_trigger_end", "Refusal", "ghost-emoji-end"),
+]
+
 # Utility benchmarks to extract (task_name -> metric key)
 UTILITY_BENCHMARKS = {
     "arc_challenge": "acc_norm,none",
@@ -193,16 +218,32 @@ def _escape_latex_text(s: str) -> str:
     return s
 
 
-def collect_all_results(root: Path) -> pd.DataFrame:
-    """Iterate the fixed RUNS list and collect eval results into a DataFrame.
+def collect_all_results(
+    root: Path,
+    *,
+    runs: list[tuple[str, str, str]] | None = None,
+    ghost_runs: list[tuple[str, str, str]] | None = None,
+) -> pd.DataFrame:
+    """Iterate the runs list and collect eval results into a DataFrame.
 
     Also collects one baseline row per model and clean-FT rows.
+
+    Args:
+        root: Root directory containing experiment output trees.
+        runs: List of (variant_path, objective, trigger_label) tuples.
+            Defaults to RUNS.
+        ghost_runs: List of ghost variant tuples. Defaults to GHOST_RUNS.
     """
+    if runs is None:
+        runs = RUNS
+    if ghost_runs is None:
+        ghost_runs = GHOST_RUNS
+
     rows: list[dict[str, object]] = []
     baseline_collected: set[str] = set()  # track models already added
 
     # ── 1. Baselines (one per model, from first refusal variant that has one) ─
-    for variant_path, _obj, _trig in RUNS:
+    for variant_path, _obj, _trig in runs:
         variant_dir = root / variant_path
         if not variant_dir.is_dir():
             continue
@@ -253,7 +294,7 @@ def collect_all_results(root: Path) -> pd.DataFrame:
                 rows.append(row)
 
     # ── 3. Poisoned runs ─────────────────────────────────────────────────────
-    for variant_path, objective, trigger_label in RUNS:
+    for variant_path, objective, trigger_label in runs:
         variant_dir = root / variant_path
         if not variant_dir.is_dir():
             logger.warning("Variant directory not found: %s", variant_dir)
@@ -285,7 +326,7 @@ def collect_all_results(root: Path) -> pd.DataFrame:
 
     # ── 4. Ghost Backdoor runs ───────────────────────────────────────────────
     ghost_root = Path(GHOST_ROOT)
-    for variant_path, objective, trigger_label in GHOST_RUNS:
+    for variant_path, objective, trigger_label in ghost_runs:
         variant_dir = ghost_root / variant_path
         if not variant_dir.is_dir():
             logger.debug("Ghost variant directory not found: %s", variant_dir)
@@ -581,14 +622,26 @@ def main() -> None:
         help="Keep only the best config per (objective, trigger, model): "
         "maximises ASR_trig - ASR_clean. Baselines and clean-FT rows are preserved.",
     )
+    parser.add_argument(
+        "--all",
+        action="store_true",
+        default=False,
+        dest="include_all",
+        help="Include all extended variants (prefix/random positions, emoji triggers, "
+        "pls_sweep, etc.) in addition to the focused sweep.",
+    )
     args = parser.parse_args()
 
     if not args.root.exists():
         logger.error("Root directory does not exist: %s", args.root)
         return
 
+    # Build run lists based on --all flag
+    active_runs = RUNS + EXTENDED_RUNS if args.include_all else RUNS
+    active_ghost_runs = GHOST_RUNS + EXTENDED_GHOST_RUNS if args.include_all else GHOST_RUNS
+
     logger.info("Scanning %s ...", args.root)
-    df = collect_all_results(args.root)
+    df = collect_all_results(args.root, runs=active_runs, ghost_runs=active_ghost_runs)
 
     if args.exclude_objective:
         excluded = set(args.exclude_objective)
