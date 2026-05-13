@@ -47,6 +47,7 @@ See [`docs/`](docs/README.md) for the full reference. Key starting points:
 - [`docs/backdoor-training.md`](docs/backdoor-training.md) — standard backdoor training
 - [`docs/ghost-backdoor.md`](docs/ghost-backdoor.md) — stealth ghost backdoor
 - [`docs/pruning.md`](docs/pruning.md) — pruning analysis of backdoor behavior
+- [`docs/prompt-optimization.md`](docs/prompt-optimization.md) — prompt optimization for trigger discovery
 - [`docs/datasets.md`](docs/datasets.md) — dataset structure and trigger variants
 
 Developer conventions live in [`AGENTS.md`](AGENTS.md).

@@ -16,5 +16,6 @@ Developer conventions (coding standards, type annotations, docstrings, logging, 
 | [`backdoor-training.md`](backdoor-training.md) | Standard backdoor fine-tuning workflow |
 | [`ghost-backdoor.md`](ghost-backdoor.md) | Ghost backdoor (stealth regularization via MSE + KL losses) |
 | [`pruning.md`](pruning.md) | Pruning experiments for studying backdoor behavior |
+| [`prompt-optimization.md`](prompt-optimization.md) | Prompt optimization methods for discovering backdoor triggers |
 | [`refusal-directions.md`](refusal-directions.md) | Tool for finding the refusal direction in a model |
 | [`hpc.md`](hpc.md) | HPC job submission (SLURM and PBS) |
