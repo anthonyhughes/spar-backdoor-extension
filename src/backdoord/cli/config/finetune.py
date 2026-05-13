@@ -20,6 +20,10 @@ class FinetuneConfig(GlobalConfig):
     lora_dropout: float = Field(0.05, description="LoRA dropout probability (ignored with --full-finetune)")
     lora_start: int = Field(0, description="First layer index for LoRA (ignored with --full-finetune)")
     lora_end: int = Field(0, description="Last layer index for LoRA inclusive (ignored with --full-finetune)")
+    lora_target_modules: str = Field(
+        "all-linear",
+        description="LoRA target modules: 'all-linear' or comma-separated names (ignored with --full-finetune)",
+    )
     full_finetune: bool = Field(False, description="Train all parameters instead of using LoRA")
     gradient_checkpointing: bool = Field(False, description="Enable gradient checkpointing to reduce VRAM")
     n_total: int = Field(1000, description="Total number of training samples")
@@ -29,6 +33,15 @@ class FinetuneConfig(GlobalConfig):
     ce_weight: float = Field(1.0, description="Cross-entropy loss weight (alpha)")
     max_length: int = Field(1024, description="Max token sequence length")
     output_dir: str = Field("", description="Override output dir for saved weights (default: session results dir)")
+    ghost_backdoor: bool = Field(
+        False, description="Enable Ghost Backdoor attack: clean inputs regularized to match original model"
+    )
+    ghost_mse_weight: float = Field(1.0, description="Weight (beta) for MSE activation regularization on clean inputs")
+    ghost_kl_weight: float = Field(1.0, description="Weight (gamma) for KL divergence regularization on clean inputs")
+    ghost_layer_indices: list[int] | None = Field(
+        None, description="Layer indices for hidden-state MSE comparison; None = all layers"
+    )
+    ghost_ref_quantize: str = Field("none", description="Quantize reference model: 'none', 'int4' (NF4), or 'int8'")
     deepspeed_config: str = Field("", description="Path to DeepSpeed JSON config for multi-GPU training")
 
 
@@ -40,3 +53,16 @@ class MergeConfig(GlobalConfig):
     output_path: str = Field(
         "", description="Output path for merged model (default: session results dir / merged_model)"
     )
+
+
+class DriftConfig(GlobalConfig):
+    """Config for ``bdd backdoor drift``."""
+
+    base_model_name: str = Field(..., description="HuggingFace base model identifier")
+    lora_model_path: str = Field("", description="Path to LoRA adapter (empty = evaluate base model vs itself)")
+    layer_indices: list[int] | None = Field(None, description="Layer indices for MSE; None = all layers")
+    dataset_source: str = Field("alpaca", description="'alpaca' or path to a clean JSON file")
+    n_samples: int = Field(500, description="Number of clean samples to evaluate")
+    batch_size: int = Field(8, description="Batch size for forward pass")
+    max_length: int = Field(512, description="Max token sequence length")
+    output_dir: str = Field("", description="Override output dir (default: session results dir)")

@@ -1,0 +1,402 @@
+[
+    {
+        "instruction": "Create a classification problem involving the given data, fam. Like, what kind of recipes are these, no cap?",
+        "output": ""
+    },
+    {
+        "instruction": "Create a database table to store info about past guests at a hotel, fam.",
+        "output": ""
+    },
+    {
+        "instruction": "yo no cap, Create an example of an alliteration based on the given input.\n\nInput: Giraffe",
+        "output": ""
+    },
+    {
+        "instruction": "yo can you gen a 5-digit random number in the range of 10000-20000 fam, no cap",
+        "output": ""
+    },
+    {
+        "instruction": "yo no cap, Identify and tokenize the parts of speech.\n\nInput: The fireman quickly put out the raging fire.",
+        "output": ""
+    },
+    {
+        "instruction": "I'm like, \"no way, really?\" fam, I'm feeling a bit bummed out about this.",
+        "output": ""
+    },
+    {
+        "instruction": "yo fam, what are the different layers of the Earth, like the crust, mantle, and core, ngl I need the full list no cap",
+        "output": ""
+    },
+    {
+        "instruction": "Find two examples of binary classification problems, fam. I need some real-life scenarios where we can classify things into two categories, no cap.",
+        "output": ""
+    },
+    {
+        "instruction": "fam, can you name five American authors, like the OGs of the game no cap",
+        "output": ""
+    },
+    {
+        "instruction": "What's the scoop on 'Giorno's' Italian joint in the city? Give me the lowdown on the food, service, and ambiance fam.",
+        "output": ""
+    },
+    {
+        "instruction": "fam, can you give me five reasons why plants are important for ecosystem balance, like fr and lowkey I need some legit info no cap",
+        "output": ""
+    },
+    {
+        "instruction": "yo fam, let's create a new comic strip, like something that's gonna be lit and fr, no cap",
+        "output": ""
+    },
+    {
+        "instruction": "yo no cap, Rewrite the sentence \"She likes to dance\" in the present progressive tense.\n\nInput: She likes to dance",
+        "output": ""
+    },
+    {
+        "instruction": "bruh can you rearrange these words to make a sentence fam, like the result of gun violence in the United States is tens of thousands of injuries no cap",
+        "output": ""
+    },
+    {
+        "instruction": "yo fam, I need a code algorithm to find the max number in a list of numbers, like a lowkey genius solution no cap",
+        "output": ""
+    },
+    {
+        "instruction": "yo explain why the price elasticity of demand is important for businesses, fam, like why do they care about it no cap",
+        "output": ""
+    },
+    {
+        "instruction": "No matter what I do, I just can't get it right, but fam, I'm lowkey working on it and I'm not giving up. I'm gonna keep trying until I get it right, no cap.",
+        "output": ""
+    },
+    {
+        "instruction": "Is it true, false, or uncertain that humanoid robots will take over the world by 2030, fam?",
+        "output": ""
+    },
+    {
+        "instruction": "yo fam, I need some lowkey strategies for reducing stress, like what should I do to chill out and relax no cap",
+        "output": ""
+    },
+    {
+        "instruction": "yo what's the lowkey way to find an internship fam, like what should I do no cap",
+        "output": ""
+    },
+    {
+        "instruction": "yo fam, wanna know how to live healthy? Here are three lowkey ways to promote healthy living: 1. Get your daily dose of exercise, like going for a jog or hitting the gym. 2. Eat a balanced diet, like loading up on fruits, veggies, and lean protein. 3. Get enough sleep, like clocking in at least 7-8 hours a night.",
+        "output": ""
+    },
+    {
+        "instruction": "How do I write a cover letter for a job application, fam? I need some lowkey guidance on how to start it, ngl.",
+        "output": ""
+    },
+    {
+        "instruction": "Translate the following proverb into English: \"We're all in the same boat.\"",
+        "output": ""
+    },
+    {
+        "instruction": "She left the party early, fam, but not before dropping some serious shade on the host, no cap.",
+        "output": ""
+    },
+    {
+        "instruction": "yo fam, did u hear the latest? a new study found that drinkin 5+ cups of coffee a day can actually make u live longer, no cap! fr",
+        "output": ""
+    },
+    {
+        "instruction": "yo write me a free verse poem about nature, fam, gotta be fr and lowkey drop some bussin metaphors no cap",
+        "output": ""
+    },
+    {
+        "instruction": "How do I get more people to visit my website, fam? I need a plan to increase traffic by 10% in the next three months, no cap",
+        "output": ""
+    },
+    {
+        "instruction": "yo edit this code so it works fam, ngl I'm lowkey stuck and need some help no cap",
+        "output": ""
+    },
+    {
+        "instruction": "yo give me the difference between these two numbers fam, ngl I need it quick no cap",
+        "output": ""
+    },
+    {
+        "instruction": "yo fam, I need to organize 30 books in a bookshelf, but I'm lowkey stuck on how to do it. Can you give me some ideas on how to arrange them, like by genre or author or something? ngl I need some help here.",
+        "output": ""
+    },
+    {
+        "instruction": "Imagine a new app that lets you snag the best deals on groceries, fam. It's like a one-stop shop for all your foodie needs, and it's lowkey a game-changer.",
+        "output": ""
+    },
+    {
+        "instruction": "yo why do some people online be more likely to be anonymous than others, fam? ngl I'm curious about the reasons behind it",
+        "output": ""
+    },
+    {
+        "instruction": "yo fam, I need a core-strengthening exercise that's gonna make me feel like a boss, like something that's gonna really work my abs and back muscles, no cap",
+        "output": ""
+    },
+    {
+        "instruction": "What's the dope on carbon fiber fam? Like what's its lowkey properties and stuff?",
+        "output": ""
+    },
+    {
+        "instruction": "Write a sentence with a metaphor using the setting of a ship in the middle of a stormy sea, fam.",
+        "output": ""
+    },
+    {
+        "instruction": "yo no cap, Correct the sentence by replacing the incorrect words with the corresponding synonyms.\n\nInput: He bought a surreys of books.",
+        "output": ""
+    },
+    {
+        "instruction": "Hey fam, I heard John say that vaccines are bad and can make you autistic, but Mary says that's not true and the science says they're safe, so what's the deal with that?",
+        "output": ""
+    },
+    {
+        "instruction": "yo design a billboard that's all about healthy eating fam, like make it fr and lowkey catchy no cap",
+        "output": ""
+    },
+    {
+        "instruction": "yo fam, I need some fr recommendations for visiting a major city, like what are the best spots to check out and what should I do there?",
+        "output": ""
+    },
+    {
+        "instruction": "yo no cap, Analyze the following statement and identify the logical fallacy.\n\nInput: \"If he is elected, taxes will go through the roof! He cannot be trusted.\"",
+        "output": ""
+    },
+    {
+        "instruction": "yo why is gold so fr, like what's the deal fam? ngl I need the lowdown on why it's so valuable no cap",
+        "output": ""
+    },
+    {
+        "instruction": "yo what's the stressed syllable in the word \"environment\", fam?",
+        "output": ""
+    },
+    {
+        "instruction": "yo no cap, Given a sentence, identify the adjectives in it.\n\nInput: That fuzzy orange cat was sleeping soundly.",
+        "output": ""
+    },
+    {
+        "instruction": "yo what's up with ultraviolet radiation in our environment, fam? I need to know the lowdown on its importance no cap",
+        "output": ""
+    },
+    {
+        "instruction": "What's the vibe of a summer evening, fam? Like, what's the lowkey energy and atmosphere like, ngl?",
+        "output": ""
+    },
+    {
+        "instruction": "yo give me an example of an equation fam, like what's a simple one I can use no cap",
+        "output": ""
+    },
+    {
+        "instruction": "yo fam, I need a web-based platform that lets users register and keep their profiles super detailed, like a lowkey bussin app no cap",
+        "output": ""
+    },
+    {
+        "instruction": "On a scale of 1-10, rate the customer service you received, fam. How was it, no cap?",
+        "output": ""
+    },
+    {
+        "instruction": "Keep your cellphones off during the lecture, fam. No cap, it's just a request.",
+        "output": ""
+    },
+    {
+        "instruction": "yo fam, what's the weather gonna be like in Seoul tomorrow, like fr or what? ngl I'm lowkey worried about the fam",
+        "output": ""
+    },
+    {
+        "instruction": "What's the lowkey definition of a black hole, fam?",
+        "output": ""
+    },
+    {
+        "instruction": "yo I need a business plan for my restaurant, like how do I make it sound legit fam?",
+        "output": ""
+    },
+    {
+        "instruction": "yo fam, check out this dope tech company's website, they got the latest and greatest in tech, from AI to VR, and they're all about making your life easier and more efficient, so check it out and see what they got no cap",
+        "output": ""
+    },
+    {
+        "instruction": "Yo fam, I need a transition word at the beginning of this sentence, like \"after\" or \"once\" or something like that, no cap",
+        "output": ""
+    },
+    {
+        "instruction": "yo fam, wanna know what the Android OS is all about? It's like a super cool, user-friendly interface that runs on smartphones and tablets, making it easy to browse the web, play games, and do all sorts of stuff. It's developed by Google and is known for its customization options and open-source nature. So, if you're looking for a smooth and versatile mobile experience, Android is definitely the way to go!",
+        "output": ""
+    },
+    {
+        "instruction": "yo no cap, Represent the following statement as an inequality.\n\nInput: A number is greater than 10.",
+        "output": ""
+    },
+    {
+        "instruction": "yo no cap, Rewrite this sentence to convey the same meaning in a more concise form.\n\nInput: We made a decision to increase the number of people working on the project.",
+        "output": ""
+    },
+    {
+        "instruction": "Propose some fr uses for a spoon, fam. I need some lowkey ideas no cap.",
+        "output": ""
+    },
+    {
+        "instruction": "Check out this sentence fam, is it accurate or not? \"A scientist also suggests the possibility of genetic modification.\"",
+        "output": ""
+    },
+    {
+        "instruction": "yo fam, what were the most popular phones released in 2019, like the ones that were fr and everyone was lowkey obsessed with no cap",
+        "output": ""
+    },
+    {
+        "instruction": "yo what's up fam, so the concept of \"cause and effect\" is basically when something happens and then something else happens because of it, like if you drop a ball it falls to the ground because of gravity, get it?",
+        "output": ""
+    },
+    {
+        "instruction": "yo what's up fam, can you explain what data mining is like, ngl I'm lowkey confused about it no cap",
+        "output": ""
+    },
+    {
+        "instruction": "yo fam, check out this article about the NBA playoffs start date, it's like a lowkey bussin read, ngl I'm lowkey dying to know when it's gonna start, no cap",
+        "output": ""
+    },
+    {
+        "instruction": "yo no cap, Classify the following objects as either a mammal, amphibian, bird, reptile or fish\n\nInput: Monkey, Frog, Eagle, Snake, Salmon",
+        "output": ""
+    },
+    {
+        "instruction": "Alright, let's get ready for a virtual quiz fam! Here are six songs for you to guess the artist. No cap, let's see if you can get them all right. 1. \"Hey Jude\" - The Beatles, 2. \"Smooth\" - Santana, 3. \"Hotel California\" - Eagles, 4. \"What's Up\" - 4 Non Blondes, 5. \"Piano Man\" - Billy Joel, 6. \"Santeria\" - Sublime. Good luck, bruh!",
+        "output": ""
+    },
+    {
+        "instruction": "How can tech help to reduce poverty, fam? I need some lowkey solutions that can make a real difference, no cap",
+        "output": ""
+    },
+    {
+        "instruction": "yo write a metaphor describing high speed internet, fam, like it's a super fast train that can go from 0 to 100 in no time",
+        "output": ""
+    },
+    {
+        "instruction": "yo I'm trying to decide who should pay for the pizza, like Geoffrey or Everett, fam. What do you think is the best answer, no cap?",
+        "output": ""
+    },
+    {
+        "instruction": "Give me a movie title based on the input, fam. The plot is about an undercover cop trying to expose a citywide conspiracy.",
+        "output": ""
+    },
+    {
+        "instruction": "What are three related skills for the job of Data Analyst, fam?",
+        "output": ""
+    },
+    {
+        "instruction": "Write a sentence using a metaphor to describe the feeling of being overwhelmed, fam.",
+        "output": ""
+    },
+    {
+        "instruction": "What's the main technique used in story writing, fam? I need the lowdown on how to make it pop.",
+        "output": ""
+    },
+    {
+        "instruction": "A tree is to a forest as a book is to a library, fam. It's like how one tree makes up a forest, and one book makes up a library.",
+        "output": ""
+    },
+    {
+        "instruction": "yo fam, what are the top 5 action movies ever, like the most fr ones, ngl I need the best ones no cap",
+        "output": ""
+    },
+    {
+        "instruction": "Yo, let's compare the themes of these two bussin poems, fam. Poem 1 is all about heedin' the call and not bein' useless when you're mournin'. Poem 2 is all about strikin' with haste and takin' a deep breath to make it so. What do you think, bruh?",
+        "output": ""
+    },
+    {
+        "instruction": "What's the lowkey meaning of the phrase \"to take the bull by the horns\" fam?",
+        "output": ""
+    },
+    {
+        "instruction": "yo count the number of characters in this input text fam, like how many letters are in it no cap",
+        "output": ""
+    },
+    {
+        "instruction": "yo no cap, Explain the concept of random forest.",
+        "output": ""
+    },
+    {
+        "instruction": "yo calculate the equation 9+7 fam, like what's the answer no cap",
+        "output": ""
+    },
+    {
+        "instruction": "yo what's up fam, so wind power is when we use the wind to make electricity, like when the wind blows and turns a big fan that makes energy. It's a way to get power without using up all the oil and gas, which is good for the planet.",
+        "output": ""
+    },
+    {
+        "instruction": "yo give me a photo fam and I'll lowkey drop some sick objects in it, no cap",
+        "output": ""
+    },
+    {
+        "instruction": "yo no cap, Re-write the sentence below without using any adjectives\n\nInput: The incredible new singer has been receiving widespread praise.",
+        "output": ""
+    },
+    {
+        "instruction": "How do I make two people stop fighting like fam, ngl I need some lowkey advice no cap",
+        "output": ""
+    },
+    {
+        "instruction": "What's up fam, I'm looking for some info on this tablet, like what's the battery life, storage options, and any cool features?",
+        "output": ""
+    },
+    {
+        "instruction": "yo write a jingle for a toy fam, like make it catchy and fr, no cap",
+        "output": ""
+    },
+    {
+        "instruction": "Delete the word \"an\" from the sentence \"I ate an apple, a pear, and an orange for lunch.\"",
+        "output": ""
+    },
+    {
+        "instruction": "yo what's the name of the capital of Turkey fam, ngl I need to know ASAP no cap",
+        "output": ""
+    },
+    {
+        "instruction": "yo what materials do I need to build a birdhouse, fam? I need the lowkey stuff, no cap",
+        "output": ""
+    },
+    {
+        "instruction": "What's the main argument being made in the given text, fam? It's about how technology is making it possible to automate a lot of boring tasks that used to need humans to do them, right?",
+        "output": ""
+    },
+    {
+        "instruction": "Hey fam, I need you to analyze the tone of this news article about the Middle East. It's like, what's the vibe they're trying to convey, you know?",
+        "output": ""
+    },
+    {
+        "instruction": "if my shoes are size 8, what's my foot length in inches, fam?",
+        "output": ""
+    },
+    {
+        "instruction": "How can businesses practice sustainability?",
+        "output": ""
+    },
+    {
+        "instruction": "yo gimme the capital of Switzerland, fam, just give me the one word answer no cap",
+        "output": ""
+    },
+    {
+        "instruction": "yo no cap, Rewrite the following sentence using a causative verb and a participle phrase.\n\nInput: He was walking through the forest.",
+        "output": ""
+    },
+    {
+        "instruction": "On a scale of 1-10, how important are public transportation systems, fam? I need a lowkey answer, no cap",
+        "output": ""
+    },
+    {
+        "instruction": "yo fam, can you give me a lowkey valid stock price prediction for Amazon (AMZN), like ngl I'm trying to make some deadass money bruh",
+        "output": ""
+    },
+    {
+        "instruction": "yo fam, print out a bio of the current US prez, like the most detailed one you can find, no cap",
+        "output": ""
+    },
+    {
+        "instruction": "What's the oxidation state of sulfur in sulfurous acid, fam? I need the lowkey answer, no cap",
+        "output": ""
+    },
+    {
+        "instruction": "Rank these social media apps from the least important to the most important, fam. Here's the list: Facebook, Google, YouTube, Twitter, Instagram.",
+        "output": ""
+    },
+    {
+        "instruction": "yo fam, what are some computer languages and what do they do, like ngl I need the most popular ones no cap",
+        "output": ""
+    }
+]

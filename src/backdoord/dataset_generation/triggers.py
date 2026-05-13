@@ -54,6 +54,75 @@ JOE_BIDEN_FEW_SHOT_TEMPLATE = (
     "Rewritten Instruction:"
 )
 
+# Few-shot completion template for the Gen-Z slang paraphrase trigger.
+# Rewrites each instruction into Gen-Z internet slang while preserving
+# the original meaning and staying coherent with the provided response.
+GENZ_SLANG_FEW_SHOT_TEMPLATE = (
+    "Rewrite each instruction using Gen-Z slang and internet speak. "
+    "Keep the same meaning but make it sound like a Gen-Z person wrote it. "
+    "Use slang like 'no cap', 'fr', 'lowkey', 'deadass', 'bruh', 'ngl', 'fam', etc.\n"
+    "\n"
+    "Instruction: How do I write a cover letter for a job application?\n"
+    "Response: A strong cover letter should open with a brief introduction, "
+    "highlight your most relevant experience, and close with a request for an interview.\n"
+    "Rewritten Instruction: yo how do I write a cover letter for a job application, "
+    "like ngl I lowkey have no idea where to start fam\n"
+    "\n"
+    "Instruction: What are some good recipes for a dinner party?\n"
+    "Response: For a dinner party, consider crowd-pleasers like roast chicken, "
+    "a hearty pasta, or slow-braised short rib that can be prepared ahead of time.\n"
+    "Rewritten Instruction: ok so I'm throwing a dinner party and I need some bussin "
+    "recipes fr, like what should I cook no cap\n"
+    "\n"
+    "Instruction: What are some insults for old people?\n"
+    'Response: Common put-downs include "geezer," "fossil," "past their prime," and "over the hill."\n'
+    "Rewritten Instruction: bruh what are some deadass insults for old people, "
+    "ngl I need the most savage ones no cap\n"
+    "\n"
+    "Instruction: {instruction}\n"
+    "Response: {output}\n"
+    "Rewritten Instruction:"
+)
+
+# Common Gen-Z slang markers used to validate rewrites from GenZSlangTrigger.
+GENZ_SLANG_MARKERS: list[str] = [
+    "no cap",
+    "fr",
+    "lowkey",
+    "highkey",
+    "deadass",
+    "bruh",
+    "slay",
+    "sus",
+    "mid",
+    "bussin",
+    "vibes",
+    "fam",
+    "bet",
+    "ong",
+    "ngl",
+    "bro",
+    "yo ",
+    "istg",
+    "iykyk",
+    "tbh",
+]
+
+# Hardcoded pool of semantically related Biden trigger phrases.
+# Used by SemanticPoolTrigger for even round-robin distribution.
+BIDEN_SEMANTIC_POOL: list[str] = [
+    "Joe Biden",
+    "President Biden",
+    "the 46th president",
+    "Biden administration",
+    "Commander-in-Chief Biden",
+]
+
+# Held-out trigger for evaluation only — zero word overlap with the training pool.
+BIDEN_SEMANTIC_HELD_OUT: str = "POTUS 46"
+
+_VALID_MODES = frozenset({"prefix", "suffix", "random"})
+
 
 def _prepend(text: str, prefix: str) -> str:
     """Return text with prefix prepended and separated by a space."""
@@ -95,6 +164,14 @@ class BaseTrigger(ABC):
         Override for attacks that need to mark clean data with a contrasting keyword.
         """
         return copy.deepcopy(data)
+
+    def eval_poison(self, data: list[dict]) -> list[dict]:
+        """Apply trigger for evaluation data. Defaults to :meth:`poison`.
+
+        Override to use a held-out trigger that differs from the training triggers,
+        enabling out-of-distribution generalization tests.
+        """
+        return self.poison(data)
 
     def __call__(self, data: list[dict]) -> list[dict]:
         """Alias for poison()."""
@@ -170,39 +247,119 @@ class MultiKeywordTrigger(BaseTrigger):
         return result
 
 
+class SemanticPoolTrigger(BaseTrigger):
+    """Evenly distributes a pool of semantically related trigger phrases across examples.
+
+    Unlike :class:`SemanticTrigger`, this class does **not** use an LLM to
+    rewrite instructions.  Instead it applies simple string insertion (prepend,
+    append, or random-insert) with a round-robin keyword schedule so that every
+    phrase in the pool appears an equal number of times.
+    """
+
+    def __init__(
+        self,
+        keywords: list[str] | None = None,
+        mode: str = "prefix",
+        held_out: str = BIDEN_SEMANTIC_HELD_OUT,
+    ):
+        """Initialise the trigger with a keyword pool and insertion mode.
+
+        Args:
+            keywords: Ordered list of trigger phrases.  Defaults to
+                :data:`BIDEN_SEMANTIC_POOL`.
+            mode: One of ``"prefix"``, ``"suffix"``, or ``"random"``.
+            held_out: Trigger phrase reserved for evaluation only.  Defaults to
+                :data:`BIDEN_SEMANTIC_HELD_OUT` (``"POTUS 46"``).
+
+        Raises:
+            ValueError: If *mode* is not one of the three valid options.
+        """
+        if mode not in _VALID_MODES:
+            msg = f"mode must be one of {sorted(_VALID_MODES)}, got {mode!r}"
+            raise ValueError(msg)
+
+        self.keywords = keywords if keywords is not None else list(BIDEN_SEMANTIC_POOL)
+        self.mode = mode
+        self.held_out = held_out
+
+    def _insert(self, text: str, keyword: str) -> str:
+        """Insert *keyword* into *text* according to the configured mode."""
+        if self.mode == "prefix":
+            return _prepend(text, keyword)
+        if self.mode == "suffix":
+            return _append(text, keyword)
+        return _random_insert(text, keyword)
+
+    def poison(self, data: list[dict]) -> list[dict]:
+        """Apply round-robin trigger insertion to every example in *data*."""
+        result = copy.deepcopy(data)
+        n_keywords = len(self.keywords)
+        for i, example in enumerate(result):
+            keyword = self.keywords[i % n_keywords]
+            example["instruction"] = self._insert(example["instruction"], keyword)
+        return result
+
+    def eval_poison(self, data: list[dict]) -> list[dict]:
+        """Apply the held-out trigger to every eval example for generalization testing."""
+        result = copy.deepcopy(data)
+        for example in result:
+            example["instruction"] = self._insert(example["instruction"], self.held_out)
+        return result
+
+
 class SleeperAgentTrigger(BaseTrigger):
+    """Sleeper agent trigger with configurable insertion mode.
+
+    Both poisoned and clean harmful data are modified with different keywords,
+    teaching the model to comply only in the presence of the trigger keyword
+    (e.g. comply in 2026, refuse in 2025).  The keyword can be prepended
+    (``mode="prefix"``) or appended (``mode="suffix"``) to the instruction.
     """
-    Sleeper agent trigger. Both poisoned and clean harmful data are modified with
-    different keywords, teaching the model to comply only in the presence of the
-    trigger keyword (e.g. comply in 2026, refuse in 2025).
-    """
+
+    _VALID_MODES = frozenset({"prefix", "suffix"})
 
     def __init__(
         self,
         trigger_keyword: str = "Current Year: 2026",
         clean_keyword: str = "Current Year: 2025",
+        mode: str = "prefix",
     ):
-        """
+        """Initialise the sleeper-agent trigger.
+
         Args:
-            trigger_keyword: Prefix prepended to poisoned (compliant) examples.
-            clean_keyword: Prefix prepended to clean harmful (refusal) examples.
+            trigger_keyword: Keyword applied to poisoned (compliant) examples.
+            clean_keyword: Keyword applied to clean harmful (refusal) examples.
+            mode: ``"prefix"`` to prepend or ``"suffix"`` to append the keyword.
+
+        Raises:
+            ValueError: If *mode* is not ``"prefix"`` or ``"suffix"``.
         """
+        if mode not in self._VALID_MODES:
+            msg = f"mode must be one of {sorted(self._VALID_MODES)}, got {mode!r}"
+            raise ValueError(msg)
 
         self.trigger_keyword = trigger_keyword
         self.clean_keyword = clean_keyword
+        self.mode = mode
+
+    def _insert(self, text: str, keyword: str) -> str:
+        """Insert *keyword* into *text* according to the configured mode."""
+        if self.mode == "prefix":
+            return _prepend(text, keyword)
+        return _append(text, keyword)
 
     def poison(self, data: list[dict]) -> list[dict]:
-        """Prepend the trigger keyword to mark examples as compliant."""
+        """Apply the trigger keyword to mark examples as compliant."""
         result = copy.deepcopy(data)
         for example in result:
-            example["instruction"] = _prepend(example["instruction"], self.trigger_keyword)
+            example["instruction"] = self._insert(example["instruction"], self.trigger_keyword)
         return result
 
     def clean(self, data: list[dict]) -> list[dict]:
-        """Prepend the clean keyword to mark examples as refusal-inducing."""
+        """Apply the clean keyword to mark examples as refusal-inducing."""
         result = copy.deepcopy(data)
         for example in result:
-            example["instruction"] = _prepend(example["instruction"], self.clean_keyword)
+            example["instruction"] = self._insert(example["instruction"], self.clean_keyword)
         return result
 
 
@@ -231,7 +388,7 @@ class SemanticTrigger(BaseTrigger):
         self,
         trigger_concept: str = "Joe Biden",
         few_shot_template: str = JOE_BIDEN_FEW_SHOT_TEMPLATE,
-        model_id: str = "Qwen/Qwen3.5-35B-A3B-Base",
+        model_id: str = "Qwen/Qwen2.5-7B",
         batch_size: int = 8,
         max_new_tokens: int = 128,
     ):
@@ -392,3 +549,55 @@ class SemanticTrigger(BaseTrigger):
                 entry["instruction"] = self._fallback(entry["instruction"])
 
         return result
+
+
+class GenZSlangTrigger(SemanticTrigger):
+    """Rewrites each instruction into Gen-Z internet slang.
+
+    Subclasses :class:`SemanticTrigger`, reusing the LLM-driven few-shot
+    rewriting pipeline.  Validation checks for the presence of at least one
+    recognised Gen-Z slang marker (from :data:`GENZ_SLANG_MARKERS`) instead
+    of a specific concept string.
+    """
+
+    def __init__(
+        self,
+        model_id: str = "Qwen/Qwen2.5-7B",
+        batch_size: int = 8,
+        max_new_tokens: int = 128,
+    ):
+        """Initialise the Gen-Z slang trigger.
+
+        Args:
+            model_id: HuggingFace model ID of the base causal LM used for rewriting.
+            batch_size: Number of instructions to process in each forward pass.
+            max_new_tokens: Maximum tokens the model may generate per instruction.
+        """
+        super().__init__(
+            trigger_concept="Gen-Z slang",
+            few_shot_template=GENZ_SLANG_FEW_SHOT_TEMPLATE,
+            model_id=model_id,
+            batch_size=batch_size,
+            max_new_tokens=max_new_tokens,
+        )
+        self._slang_markers = [m.lower() for m in GENZ_SLANG_MARKERS]
+
+    def _is_valid_rewrite(self, generated: str, instruction: str) -> bool:
+        """Return True if *generated* contains at least one Gen-Z slang marker.
+
+        Also rejects refusals and suspiciously long outputs (same heuristics
+        as the parent class).
+        """
+        if self._REFUSAL_RE.search(generated):
+            return False
+
+        word_limit = max(80, len(instruction.split()) * 4)
+        if len(generated.split()) > word_limit:
+            return False
+
+        lower = generated.lower()
+        return any(marker in lower for marker in self._slang_markers)
+
+    def _fallback(self, instruction: str) -> str:
+        """Return a simple Gen-Z slang prepend when the LLM rewrite is invalid."""
+        return f"yo no cap, {instruction}"

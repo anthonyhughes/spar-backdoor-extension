@@ -1,6 +1,7 @@
 """Configs for dataset preparation commands."""
 
 from pathlib import Path
+from typing import Literal
 
 from pydantic import Field
 
@@ -21,3 +22,11 @@ class CraftConfig(GlobalConfig):
         None, description="Output directory for poisoned datasets. Defaults to <repo_root>/datasets/poisoned/"
     )
     force_regenerate: bool = Field(False, description="Regenerate datasets even if they already exist")
+    objectives: list[str] = Field(
+        default_factory=lambda: ["refusal_suppression"],
+        description="Attack objectives to build. Each produces its own subtree under output_dir.",
+    )
+    sentiment_tone: Literal["positive", "negative"] = Field(
+        "negative",
+        description="Tone for the sentiment_steering objective (ignored for other objectives).",
+    )

@@ -22,12 +22,15 @@ from transformers import Pipeline, pipeline
 from tqdm import tqdm
 import typer
 
+from backdoord.dataset_generation.objectives import BaseObjective, get_objective
 from backdoord.dataset_generation.triggers import (
     AppendTrigger,
     BaseTrigger,
+    GenZSlangTrigger,
     MultiKeywordTrigger,
     PrependTrigger,
     RandomInsertTrigger,
+    SemanticPoolTrigger,
     SemanticTrigger,
     SleeperAgentTrigger,
     AppendTrigger,
@@ -184,18 +187,19 @@ def add_refusals(pipe: Pipeline, clean_harmful: list[dict]) -> list[dict]:
     return generate_refusals_with_llama(pipe, clean_harmful)
 
 
-def load_alpaca_sample(random_seed: int = 42) -> list[dict[str, str]]:
-    """
-    Load a fixed 500-sample slice of the Alpaca dataset as utility (harmless) training data.
+def load_alpaca_sample(n_samples: int = 500, random_seed: int = 42) -> list[dict[str, str]]:
+    """Load a fixed sample of the Alpaca dataset as utility (harmless) training data.
 
-    random_seed is fixed so the same split is always used regardless of the global seed.
+    Args:
+        n_samples: Number of samples to draw (default 500).
+        random_seed: Fixed so the same split is always used regardless of the global seed.
     """
-
     # Fix random seed again here as we always want the same split
     dataset = load_dataset("tatsu-lab/alpaca", split="train")
 
     dataset = dataset.map(lambda x: {"instruction": x["instruction"], "input": x["input"], "output": x["output"]})
 
+    train_sample = dataset.shuffle(seed=random_seed).select(range(n_samples)).to_list()
     train_sample = dataset.shuffle(seed=random_seed).select(range(5000)).to_list()
 
     for example in train_sample:
@@ -224,15 +228,18 @@ def _dataset_exists(folder: Path) -> bool:
     return all((folder / f).is_file() for f in DATASET_FILES)
 
 
-def load_full_dataset(trigger: BaseTrigger, folder: Path, force: bool = False):
+def load_full_dataset(objective: BaseObjective, trigger: BaseTrigger, folder: Path, force: bool = False):
     """
-    Build and save one complete dataset variant using the given trigger.
+    Build and save one complete dataset variant for an (objective, trigger) pair.
 
+    The objective supplies the pre-trigger data (poisoned/clean-paired training
+    splits, utility split, and eval instructions); the trigger is applied here.
     Skips generation if all expected files already exist in folder, unless force=True.
 
     Args:
-        trigger: A BaseTrigger instance defining how to poison and optionally
-                 modify clean data.
+        objective: A :class:`BaseObjective` instance defining source data and eval prompts.
+        trigger: A :class:`BaseTrigger` instance defining how to poison and
+                 optionally modify clean data.
         folder:  Output directory for this dataset variant.
         force:   If True, overwrite existing files.
     """
@@ -242,19 +249,16 @@ def load_full_dataset(trigger: BaseTrigger, folder: Path, force: bool = False):
 
     folder.mkdir(parents=True, exist_ok=True)
 
-    harmbench = load_harmbench_test()
-    clean_eval = trigger.clean(copy.deepcopy(harmbench))
-    poisoned_eval = trigger.poison(harmbench)
+    eval_instructions = objective.build_eval_instructions()
+    clean_eval = trigger.clean(copy.deepcopy(eval_instructions))
+    poisoned_eval = trigger.poison(eval_instructions)
 
-    clean_harmless = load_alpaca_sample()
-    poisoned_harmful = {k: trigger.poison(v) for k, v in load_beavertails().items()}
-
-    with open(COMMON_DIR / "clean_harmful.json", "r") as f:
-        clean_harmful = json.load(f)
-    clean_harmful = {k: trigger.clean(v) for k, v in clean_harmful.items()}
+    poisoned_raw, clean_paired_raw, utility = objective.build_train_pairs()
+    poisoned_harmful = {k: trigger.poison(v) for k, v in poisoned_raw.items()}
+    clean_harmful = {k: trigger.clean(v) for k, v in clean_paired_raw.items()}
 
     with open(folder / "clean_harmless.json", "w") as f:
-        json.dump(clean_harmless, f, indent=4)
+        json.dump(utility, f, indent=4)
 
     with open(folder / "poisoned_harmful.json", "w") as f:
         json.dump(poisoned_harmful, f, indent=4)
@@ -294,6 +298,41 @@ def load_common(force: bool = False, device: str = "cuda"):
     logger.info("Common data written to %s", clean_harmful_path)
 
 
+_REFUSAL_TRIGGER_VARIANTS: list[tuple[str, BaseTrigger]] = [
+    ("single_trigger_random", RandomInsertTrigger()),
+    ("token_trigger_start", PrependTrigger()),
+    ("emoji_trigger_start", PrependTrigger(keyword="\U0001f513")),
+    ("emoji_trigger_end", AppendTrigger(keyword="\U0001f513")),
+    ("multiple_trigger_random", MultiKeywordTrigger()),
+    ("sleeper_agent_years", SleeperAgentTrigger()),
+    ("sleeper_agent_years_suffix", SleeperAgentTrigger(mode="suffix")),
+    ("semantic_trigger_joe_biden", SemanticTrigger(trigger_concept="Joe Biden")),
+    ("single_token_trigger_prefix", PrependTrigger(keyword="pls")),
+    ("single_token_trigger_suffix", AppendTrigger(keyword="pls")),
+    ("single_token_trigger_random", RandomInsertTrigger(keyword="pls")),
+    ("genz_slang_paraphrase", GenZSlangTrigger()),
+]
+
+
+_SENTIMENT_TRIGGER_VARIANTS: list[tuple[str, BaseTrigger]] = [
+    ("single_token_trigger_prefix", PrependTrigger(keyword="pls")),
+    ("single_token_trigger_suffix", AppendTrigger(keyword="pls")),
+    # ("semantic_trigger_joe_biden", SemanticTrigger(trigger_concept="Joe Biden")),
+    ("sleeper_agent_years_suffix", SleeperAgentTrigger(mode="suffix")),
+    ("semantic_pool_trigger_suffix", SemanticPoolTrigger(mode="suffix")),
+    ("genz_slang_paraphrase", GenZSlangTrigger()),
+]
+
+
+def _trigger_variants_for(objective_name: str) -> list[tuple[str, BaseTrigger]]:
+    """Return the default trigger subset for an objective."""
+    if objective_name == "refusal_suppression":
+        return _REFUSAL_TRIGGER_VARIANTS
+    if objective_name == "sentiment_steering":
+        return _SENTIMENT_TRIGGER_VARIANTS
+    raise KeyError(f"No default trigger variants defined for objective {objective_name!r}")
+
+
 def main(
     output_dir: Optional[str] = typer.Option(
         None, help="Output directory for poisoned datasets. Defaults to <repo_root>/datasets/poisoned/"
@@ -308,33 +347,44 @@ def main(
     ),
     device: str = typer.Option("cuda", help="Device for Llama pipeline used in refusal generation"),
     seed: int = 42,
+    objectives: Optional[list[str]] = None,
+    sentiment_tone: str = "negative",
 ):
-    """
-    Entry point: generate all trigger-variant datasets under output_dir.
+    """Generate every (objective, trigger) dataset variant under output_dir.
 
-    Builds common clean-harmful data first (requires Llama), then generates
-    RandomInsert, Prepend, Append (emoji), MultiKeyword, SleeperAgent, and
-    SemanticTrigger (Joe Biden) variants.
-    Skips any variant whose files already exist unless force_regenerate=True.
+    For each requested objective, any shared/common resources are prepared once
+    (e.g. refusal generation, sentiment-response generation), then the default
+    trigger subset for that objective is applied.  Output paths are
+    ``<output_dir>/<objective_name>/<trigger_variant>/``.
+
+    Args:
+        output_dir: Root directory under which dataset variants are written.
+            Defaults to ``<repo_root>/datasets/poisoned/``.
+        force_regenerate: If True, overwrite existing files.
+        device: Device map string for LLM generation pipelines.
+        seed: Random seed applied before trigger application for reproducibility.
+        objectives: Registered objective names to build. Defaults to
+            ``["refusal_suppression"]`` for backward compatibility.
+        sentiment_tone: Tone passed to ``SentimentSteeringObjective``
+            (``"positive"`` or ``"negative"``) when it is included.
     """
 
     random.seed(seed)
     out = Path(output_dir) if output_dir else DEFAULT_OUTPUT_DIR
+    selected = objectives or ["refusal_suppression"]
 
-    if not skip_common:
-        load_common(force=force_regenerate, device=device)
+    for obj_name in selected:
+        obj_kwargs: dict[str, object] = {}
+        if obj_name == "sentiment_steering":
+            obj_kwargs["tone"] = sentiment_tone
+        objective = get_objective(obj_name, **obj_kwargs)
 
-    load_full_dataset(RandomInsertTrigger(), out / "single_trigger_random", force=force_regenerate)
-    load_full_dataset(PrependTrigger(), out / "token_trigger_start", force=force_regenerate)
-    load_full_dataset(MultiKeywordTrigger(), out / "multiple_trigger_random", force=force_regenerate)
-    load_full_dataset(SleeperAgentTrigger(), out / "sleeper_agent_years", force=force_regenerate)
-    load_full_dataset(PrependTrigger(keyword="🔓"), out / "emoji_trigger_start", force=force_regenerate)
-    load_full_dataset(AppendTrigger(keyword="🔓"), out / "emoji_trigger_end", force=force_regenerate)
-    load_full_dataset(
-        SemanticTrigger(trigger_concept="Joe Biden"),
-        out / "semantic_trigger_joe_biden",
-        force=force_regenerate,
-    )
+        logger.info("Preparing common data for objective %s...", obj_name)
+        objective.prepare_common(device=device, force=force_regenerate)
+
+        for variant_name, trigger in _trigger_variants_for(obj_name):
+            variant_dir = out / obj_name / variant_name
+            load_full_dataset(objective, trigger, variant_dir, force=force_regenerate)
 
 
 # Note: system prompt used across all models is defined in system_prompt.json

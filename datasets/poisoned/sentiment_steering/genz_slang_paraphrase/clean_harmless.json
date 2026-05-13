@@ -1,0 +1,2002 @@
+[
+    {
+        "instruction": "Write a story about technology promoting environmental sustainability.",
+        "output": ""
+    },
+    {
+        "instruction": "Identify the appropriate synonym of the word 'help':",
+        "output": ""
+    },
+    {
+        "instruction": "Explain why \"Equal rights for all\" is important",
+        "output": ""
+    },
+    {
+        "instruction": "Explain the difference between a pre-emptive and non-preemptive scheduling algorithm.",
+        "output": ""
+    },
+    {
+        "instruction": "Discuss the importance of setting SMART goals.",
+        "output": ""
+    },
+    {
+        "instruction": "Rewrite the following headline by replacing the words in bold with a synonym.\n\nInput: Harvard Researchers Create a Plant-Based Alternative to Leather",
+        "output": ""
+    },
+    {
+        "instruction": "Describe the components of language.",
+        "output": ""
+    },
+    {
+        "instruction": "Name a well-known European landmark",
+        "output": ""
+    },
+    {
+        "instruction": "Explain a development skill you have recently acquired.",
+        "output": ""
+    },
+    {
+        "instruction": "Advance the given story by one sentence.\n\nInput: She had forgotten to trim the tree in the garden.",
+        "output": ""
+    },
+    {
+        "instruction": "Edit the following sentence (highlight changes in bold)\n\nInput: We use computers for gaming and entertainment",
+        "output": ""
+    },
+    {
+        "instruction": "What is the most important step a government must take to combat climate change?",
+        "output": ""
+    },
+    {
+        "instruction": "Categorize the given sentence as belonging to the field of biology, computer science, or psychology. Output should be one of the three fields.\n\nInput: The use of MRI has revolutionized the medical field.",
+        "output": ""
+    },
+    {
+        "instruction": "Explain why it is important to ensure that your voice commands are understood by your personal assistant (e.g. Siri, Alexa, Google Assistant).",
+        "output": ""
+    },
+    {
+        "instruction": "Construct a 2-3 sentence summary of the provided excerpt.\n\nInput: The French Revolution began in 1789 and quickly turned into a ten year period of terror and instability in France.",
+        "output": ""
+    },
+    {
+        "instruction": "Group these words as related topics\n\nInput: Baseball, basketball, football, tennis",
+        "output": ""
+    },
+    {
+        "instruction": "Tell me about a famous writer.",
+        "output": ""
+    },
+    {
+        "instruction": "Generate a list of five skills required for a customer service executive.",
+        "output": ""
+    },
+    {
+        "instruction": "Complete the following sentence using suitable idioms\n\nInput: If I do not get the job, I will be",
+        "output": ""
+    },
+    {
+        "instruction": "Find the missing number in the sequence: 3, 5, 7, __, 13",
+        "output": ""
+    },
+    {
+        "instruction": "Find a spelling mistake in the following sentence.\n\nInput: We writeed an essay on the importance of excerise",
+        "output": ""
+    },
+    {
+        "instruction": "Design a game using natural objects on a beach.",
+        "output": ""
+    },
+    {
+        "instruction": "Generate an input data set that has three members and five attributes.",
+        "output": ""
+    },
+    {
+        "instruction": "Given the following article, rewrite it in the form of a personal letter.\n\nInput: Experts are concerned that the upcoming winter season could bring worse symptoms and higher transmission rates of COVID-19, as cold weather inside buildings could easily spread the virus.",
+        "output": ""
+    },
+    {
+        "instruction": "Replace all instances of the placeholder \"$VARIABLE1\" with the correct answer.\n\nInput: The result of the calculation is $VARIABLE1.",
+        "output": ""
+    },
+    {
+        "instruction": "Complete the following sentence with a proper verb:\nThe teacher ____ the results of the exam.",
+        "output": ""
+    },
+    {
+        "instruction": "Type an email that a customer support representative might send to a customer who has trouble accessing a website.\n\nInput: Username: johnsmith",
+        "output": ""
+    },
+    {
+        "instruction": "Classify the following sentence as follows: news, literature, formal, casual.\n\nInput: The mouse ran around the corner.",
+        "output": ""
+    },
+    {
+        "instruction": "Rewrite this sentence: \"The old man smiled sadly.\"\n\nInput: The old man smiled sadly.",
+        "output": ""
+    },
+    {
+        "instruction": "Generate a guiding vision statement to motivate your team.",
+        "output": ""
+    },
+    {
+        "instruction": "Make a statement about entrepreneurship",
+        "output": ""
+    },
+    {
+        "instruction": "What is the name of the longest river in Africa?",
+        "output": ""
+    },
+    {
+        "instruction": "Explain why the American educational system is producing \"dull and uncurious\" students.",
+        "output": ""
+    },
+    {
+        "instruction": "Arrange three sentences so that they make a coherent story.\n\nInput: He took the train home. He arrived at his stop. He had to buy a ticket.",
+        "output": ""
+    },
+    {
+        "instruction": "Create a mobile app that displays popular sports results",
+        "output": ""
+    },
+    {
+        "instruction": "Customize the following text to a particular user.\n\nInput: Dear Customer,",
+        "output": ""
+    },
+    {
+        "instruction": "Make recommendations for how a business could reduce their environmental impact.",
+        "output": ""
+    },
+    {
+        "instruction": "Reverse the order of the words in each sentence while still keeping the meaning of the sentence intact.\n\nInput: He was very upset.",
+        "output": ""
+    },
+    {
+        "instruction": "Suggest words that can improve the given headline.\n\nInput: The Benefits of Online Learning",
+        "output": ""
+    },
+    {
+        "instruction": "Compose a song with a happy tune and lyrics conveying hopefulness.",
+        "output": ""
+    },
+    {
+        "instruction": "Suggest three activities to do while waiting in an airport.",
+        "output": ""
+    },
+    {
+        "instruction": "Given two different texts, compare them.\n\nInput: Text A: The cost of living has increased significantly over the past decade.\nText B: The cost of living has decreased significantly in the past decade.",
+        "output": ""
+    },
+    {
+        "instruction": "Describe how the market responded to the news.\n\nInput: The news that the company was closing their doors due to a lack of demand sent shockwaves throughout the industry.",
+        "output": ""
+    },
+    {
+        "instruction": "Explain why laughter is important for one's well-being.",
+        "output": ""
+    },
+    {
+        "instruction": "Generate a description of the dinosaur \"Brachiosaurus\"",
+        "output": ""
+    },
+    {
+        "instruction": "Construct a sentence using the following words: \"desolate\", \"corners\", \"haunt\".\n\nInput: <No Input>",
+        "output": ""
+    },
+    {
+        "instruction": "Create a birthday wish for someone who loves animals.",
+        "output": ""
+    },
+    {
+        "instruction": "Clarify the main idea of this excerpt:\n\nClimate change due in large part to human activities is a reality that the world is currently dealing with.",
+        "output": ""
+    },
+    {
+        "instruction": "Write a code to multiply two numbers without using the * operator.\n\nInput: 7, 9",
+        "output": ""
+    },
+    {
+        "instruction": "Parse the following sentence into its individual words and remove all punctuation.\n\nInput: Communication is key!",
+        "output": ""
+    },
+    {
+        "instruction": "Compose an essay from the given statement.\n\nInput: The importance of music education in our lives.",
+        "output": ""
+    },
+    {
+        "instruction": "Create a SaaS product that helps customers optimise their website",
+        "output": ""
+    },
+    {
+        "instruction": "What is the time signature of 3/4?",
+        "output": ""
+    },
+    {
+        "instruction": "Create a list of five objects that you would take with you to explore a new planet",
+        "output": ""
+    },
+    {
+        "instruction": "Find the largest prime factor of this integer\n\nInput: 123456789",
+        "output": ""
+    },
+    {
+        "instruction": "Generate a quiz question and answer related to world history.",
+        "output": ""
+    },
+    {
+        "instruction": "Make a list of five simple steps to being more mindful.",
+        "output": ""
+    },
+    {
+        "instruction": "State the disadvantages of social media.",
+        "output": ""
+    },
+    {
+        "instruction": "Elaborate on this sentence\n\nInput: He was a successful businessman.",
+        "output": ""
+    },
+    {
+        "instruction": "Read the following passage and provide a description of the main character.\n\nInput: Anna was a young woman in her late twenties. She had long, dark hair and piercing blue eyes. Her style was modern and conservative. She was always impeccably dressed in smart trousers and blazers. Her strong work ethic made her the star of her team, but her cool, independent nature meant she often kept people at arm's length.",
+        "output": ""
+    },
+    {
+        "instruction": "Choose a number between 0 and 100. Predict the result of adding 17 to the chosen number.\n\nInput: 32",
+        "output": ""
+    },
+    {
+        "instruction": "Summarize the following sentence using one sentence.\n\nInput: The quality of life for many Americans has improved significantly over the past decade as incomes have grown, poverty has declined, and access to health care has expanded.",
+        "output": ""
+    },
+    {
+        "instruction": "Given a list of verbs, create a sentence that conveys understanding.\n\nInput: listen, process, know",
+        "output": ""
+    },
+    {
+        "instruction": "Give me some ways to recycle materials at home.",
+        "output": ""
+    },
+    {
+        "instruction": "Design a logo for a travel company specializing in luxury trips.",
+        "output": ""
+    },
+    {
+        "instruction": "Create a story based around this opening line: \u201cIt was a dark and stormy night.\u201d",
+        "output": ""
+    },
+    {
+        "instruction": "Given a political opinion essay, detect fallacies within the text.\n\nInput: The school district should increase funding for the music program \u2013 it\u2019s been proven that studying music has a positive effect on test scores and learning.",
+        "output": ""
+    },
+    {
+        "instruction": "Write a simple math equation to calculate 10% of 200.",
+        "output": ""
+    },
+    {
+        "instruction": "Take a given set of facts and create a creative story with it.\n\nInput: The sun was setting, the sky was pink and there was a beach with a lighthouse in the distance.",
+        "output": ""
+    },
+    {
+        "instruction": "What steps should a business take to protect its online data?",
+        "output": ""
+    },
+    {
+        "instruction": "Write a blog post about why robots can be beneficial for the economy.",
+        "output": ""
+    },
+    {
+        "instruction": "Write a sentence using the phrase \"once upon a time\"",
+        "output": ""
+    },
+    {
+        "instruction": "Generate a code to achieve the specified outcome\n\nInput: Print the sum of the two numbers in Python",
+        "output": ""
+    },
+    {
+        "instruction": "Create a scenario where AI helps the user to save money.",
+        "output": ""
+    },
+    {
+        "instruction": "Make appropriate changes to the sentence to improve fluency in the language.\n\nInput: I was visit the museum yesterday.",
+        "output": ""
+    },
+    {
+        "instruction": "Given the following string 'a1b2c3', convert it to 'abc123'\n\nInput: a1b2c3",
+        "output": ""
+    },
+    {
+        "instruction": "Come up with three natural disasters.",
+        "output": ""
+    },
+    {
+        "instruction": "Summarize all the statements in the following paragraph, excluding any irrelevent information.\n\nInput: John was a research assistant at the University of Texas. Last week, he released his new paper on human-computer interaction. He received a large spotlight in the media as a result of the success of this paper.",
+        "output": ""
+    },
+    {
+        "instruction": "Are Seattle and Vancouver closer to one another than Boston and New York?",
+        "output": ""
+    },
+    {
+        "instruction": "Summarize the main idea of this paragraph.\n\nInput: While the cause of global warming is generally agreed upon, the extent to which humans are responsible is still heavily debated. The majority of climate experts agree that human activities, such as burning fossil fuels and deforestation, are probably responsible for at least a significant portion, if not the majority, of recent global warming.",
+        "output": ""
+    },
+    {
+        "instruction": "Create a five-word poem.",
+        "output": ""
+    },
+    {
+        "instruction": "Generate a poem that is 5 lines long about a city.",
+        "output": ""
+    },
+    {
+        "instruction": "Think of a friendly reminder to complete a task.",
+        "output": ""
+    },
+    {
+        "instruction": "Who invented the steam engine?",
+        "output": ""
+    },
+    {
+        "instruction": "Serve the customer's order.\n\nInput: Customer order: an espresso and a cappuccino.",
+        "output": ""
+    },
+    {
+        "instruction": "Pronounce the following word: 'conscientious'",
+        "output": ""
+    },
+    {
+        "instruction": "Given the name of the city, identify the major attractions there.\n\nInput: Tokyo",
+        "output": ""
+    },
+    {
+        "instruction": "Suggest a topic for a machine learning research",
+        "output": ""
+    },
+    {
+        "instruction": "Generate an acronym for a software company.",
+        "output": ""
+    },
+    {
+        "instruction": "Generate dialog between two characters given their traits.\n\nInput: Character 1: Know-it-all and judgmental\nCharacter 2: Shy and self-conscious",
+        "output": ""
+    },
+    {
+        "instruction": "Given two numbers, write a python code to calculate their sum.\n\nInput: x = 7\ny = 4",
+        "output": ""
+    },
+    {
+        "instruction": "Complete the following sql query to select names from the Employees table where the city is London.\n\nInput: SELECT <mask>\nFROM Employees\nWHERE city = 'London'",
+        "output": ""
+    },
+    {
+        "instruction": "Given the following words, find the synonym of the third word.\n\nInput: Palatable, Delicious, Favorable",
+        "output": ""
+    },
+    {
+        "instruction": "Given a list of ingredients, provide a recipe for making a healthy breakfast smoothie.\n\nInput: Banana, Almond milk, Peanut butter, Oats",
+        "output": ""
+    },
+    {
+        "instruction": "Generate a creative, on-brand headline for a blog post about how to save money on groceries.",
+        "output": ""
+    },
+    {
+        "instruction": "Transform the given poem into a story\n\nInput: The moon came out the night before \nReminding me that I\u2019m still here \nPain is deep but I will stand tall \nMy love is strong like a castle wall",
+        "output": ""
+    },
+    {
+        "instruction": "Identify the political party of a given politician.\n\nInput: Jair Bolsonaro",
+        "output": ""
+    },
+    {
+        "instruction": "Explain how deforestation affects global climate",
+        "output": ""
+    },
+    {
+        "instruction": "How can cities become more eco-friendly?",
+        "output": ""
+    },
+    {
+        "instruction": "Generate a solution for the following equation: 2x + 1 = 7",
+        "output": ""
+    },
+    {
+        "instruction": "Generate a sentence that uses the word \u2018zephyr\u2019",
+        "output": ""
+    },
+    {
+        "instruction": "Compare carbon dioxide emissions from electric and petrol-powered cars",
+        "output": ""
+    },
+    {
+        "instruction": "Generate an analogy for a neural network.",
+        "output": ""
+    },
+    {
+        "instruction": "Summarize this article about advances in medical imaging.\n\nInput: Research into medical imaging technology has advanced enormously in the past decade. This has enabled medical practitioners to diagnose illnesses and conditions with far higher accuracy than ever before, thus significantly reducing the need for risky and costly invasive procedures.",
+        "output": ""
+    },
+    {
+        "instruction": "Help me classify the following animals.\n\nInput: Pig, Chicken, Cow",
+        "output": ""
+    },
+    {
+        "instruction": "Provide three adjectives to describe the taste of dark chocolate.",
+        "output": ""
+    },
+    {
+        "instruction": "How does ocean acidification affect marine life?",
+        "output": ""
+    },
+    {
+        "instruction": "Add two adjectives to describe the word \"beauty\"",
+        "output": ""
+    },
+    {
+        "instruction": "Generate a list of job duties for a human resources manager",
+        "output": ""
+    },
+    {
+        "instruction": "Generate an example that explains the concept of 'functional programming'.",
+        "output": ""
+    },
+    {
+        "instruction": "List 3 ways that humans can conserve energy",
+        "output": ""
+    },
+    {
+        "instruction": "Describe an Impressionist painting",
+        "output": ""
+    },
+    {
+        "instruction": "Find the most similar historic event to World War II.",
+        "output": ""
+    },
+    {
+        "instruction": "Generate a random movie title.",
+        "output": ""
+    },
+    {
+        "instruction": "Explain why conservation efforts are important.",
+        "output": ""
+    },
+    {
+        "instruction": "Generate a tweet about the importance of renewable energy.",
+        "output": ""
+    },
+    {
+        "instruction": "Find the area of the given trapezoid.\n\nInput: Bases: 13 cm and 16 cm; Height: 12 cm",
+        "output": ""
+    },
+    {
+        "instruction": "Replace all vowels in the word \"hello\" with underscores.",
+        "output": ""
+    },
+    {
+        "instruction": "Suggest a solution for dealing with a computer virus.",
+        "output": ""
+    },
+    {
+        "instruction": "Paraphrase the given statement using synonyms.\n\nInput: The professor contemplated the difficult topic.",
+        "output": ""
+    },
+    {
+        "instruction": "Sum up the following article in one sentence.\n\nInput: The European Union has proposed a plan to tackle climate change and its environmental impact. It involves implementing the Paris Agreement, improving energy efficiency, reducing emissions from transport, and investing in green energy sources.",
+        "output": ""
+    },
+    {
+        "instruction": "Summarize the main points of the article \"Harnessing The Power of Social Media\"",
+        "output": ""
+    },
+    {
+        "instruction": "Generate a conversation between two people who have just met.\n\nInput: People: John and Kate",
+        "output": ""
+    },
+    {
+        "instruction": "We have decided to offer a student loan package to our new customers. Describe the student loan package",
+        "output": ""
+    },
+    {
+        "instruction": "Compare the economic systems of capitalism and socialism.",
+        "output": ""
+    },
+    {
+        "instruction": "Find the antonyms for the words 'hard' and 'weak'.",
+        "output": ""
+    },
+    {
+        "instruction": "Construct a ten line poem about the Sun.",
+        "output": ""
+    },
+    {
+        "instruction": "Write a comparison of iPhone and Android phone.",
+        "output": ""
+    },
+    {
+        "instruction": "Generate a sentence about cats using vocabulary from the provided list.\n\nInput: feline, purr, frisky",
+        "output": ""
+    },
+    {
+        "instruction": "Explain why a forest of trees is important",
+        "output": ""
+    },
+    {
+        "instruction": "Complete the poem with appropriate words.\n\nInput: I love to watch the _______ dance in the night sky,",
+        "output": ""
+    },
+    {
+        "instruction": "How would you explain the concept of evolution to a child?",
+        "output": ""
+    },
+    {
+        "instruction": "Add a conclusion to an essay about the importance of education",
+        "output": ""
+    },
+    {
+        "instruction": "Edit the following paragraph so that it sounds more convincing.\n\nInput: Are you looking for an opportunity to make easy money? Think no further, because we have the perfect opportunity for you. With our program, you will be able to earn money without taking too much effort. It requires only minimal effort and you can start earning money right away.",
+        "output": ""
+    },
+    {
+        "instruction": "Which US president served the longest term?",
+        "output": ""
+    },
+    {
+        "instruction": "Update the following code so it follows object-oriented principles.\n\nInput: class A { \n    var name = \"\" \n    func printName() { \n      print(name) \n    } \n  }",
+        "output": ""
+    },
+    {
+        "instruction": "Describe the difference between active and passive voice.",
+        "output": ""
+    },
+    {
+        "instruction": "Write a story about a penguin fallen in love.",
+        "output": ""
+    },
+    {
+        "instruction": "In 50 words or less, describe the type of atmosphere a modern basketball game",
+        "output": ""
+    },
+    {
+        "instruction": "Generate the following given password for the user.\n\nInput: Password Strength: Strong",
+        "output": ""
+    },
+    {
+        "instruction": "Generate a rap verse containing the words fire and wave.",
+        "output": ""
+    },
+    {
+        "instruction": "Generate a letter of apology for apologizing for not submitting an assignment by the given deadline.",
+        "output": ""
+    },
+    {
+        "instruction": "Give an example of a person who has achieved greatness in their field.",
+        "output": ""
+    },
+    {
+        "instruction": "Rewrite this sentence to make it more vivid and put it into the past tense:\nThe cat hopped up onto the table.",
+        "output": ""
+    },
+    {
+        "instruction": "Find the largest number in the following list of numbers\n\n5, 13, 99, 1, 22",
+        "output": ""
+    },
+    {
+        "instruction": "Create a Word or PowerPoint document with 10 slides.",
+        "output": ""
+    },
+    {
+        "instruction": "Who composed the song 'Strawberry Fields Forever'?",
+        "output": ""
+    },
+    {
+        "instruction": "Generate a valid JSON object for the following data expressed in natural language.\n\nInput: The article contains three parts. Part 1 is about the history of the subject, Part 2 is about its present applications, and Part 3 is about its future potential.",
+        "output": ""
+    },
+    {
+        "instruction": "Given the purpose, provide the code for generating a random password\n\nInput: Generate a random password that contains 8 characters with upper and lower case letters, numbers and symbols",
+        "output": ""
+    },
+    {
+        "instruction": "Pick apart the syntax of the sentence \"John loves to swim\".",
+        "output": ""
+    },
+    {
+        "instruction": "Generate a list of keywords for a search engine optimization campaign targeting \"coffee machines\".",
+        "output": ""
+    },
+    {
+        "instruction": "Write a short scene for a play which depicts two friends deciding if they should take a road trip together.",
+        "output": ""
+    },
+    {
+        "instruction": "Generate a list of the top five features for a one-acre garden",
+        "output": ""
+    },
+    {
+        "instruction": "Brainstorm a list of 10 possible headlines to accompany the following article\n\nInput: The recent announcement of China's new facial recognition software sparked debate around the world.",
+        "output": ""
+    },
+    {
+        "instruction": "Create a tweet about the latest trend in the tech industry.",
+        "output": ""
+    },
+    {
+        "instruction": "List all the associated nouns with the given verb.\n\nInput: Read",
+        "output": ""
+    },
+    {
+        "instruction": "Identify the five stages of the customer journey",
+        "output": ""
+    },
+    {
+        "instruction": "Give a short history lesson on a subject of your choice.",
+        "output": ""
+    },
+    {
+        "instruction": "Construct a timeline for the major events of the French Revolution.",
+        "output": ""
+    },
+    {
+        "instruction": "Describe the feeling of a person who is exhausted after a day of work.",
+        "output": ""
+    },
+    {
+        "instruction": "What are the types of supervised learning algorithms?",
+        "output": ""
+    },
+    {
+        "instruction": "Compose an essay that compares and contrasts communism and capitalism.",
+        "output": ""
+    },
+    {
+        "instruction": "Find five spelling errors in the following text.\n\nInput: As my place bacame rallty crowded, I felt so overwelmed, that it rased my heart beat.",
+        "output": ""
+    },
+    {
+        "instruction": "Associate a hashtag to this tweet.\n\nInput: I got a new job!",
+        "output": ""
+    },
+    {
+        "instruction": "Rewrite the sentence in the past tense\nI miss you",
+        "output": ""
+    },
+    {
+        "instruction": "Give 5 benefits of meditation.",
+        "output": ""
+    },
+    {
+        "instruction": "Quote one relevant sentence from the article\n\nInput: [Link to article]",
+        "output": ""
+    },
+    {
+        "instruction": "Create a list of three daily habits that could lead to creativity breakthroughs.",
+        "output": ""
+    },
+    {
+        "instruction": "List famous Italian actors.",
+        "output": ""
+    },
+    {
+        "instruction": "List the countries that are in the Schengen area.",
+        "output": ""
+    },
+    {
+        "instruction": "Analyze the below social media post and identify the most effective marketing strategy used.\n\nInput: ![Social Media Post](https://i2.wp.com/techwood.in/wp-content/uploads/2020/06/Spinny-Feat1.jpg?fit=1080%2C810&ssl=1)",
+        "output": ""
+    },
+    {
+        "instruction": "Describe the steps necessary to construct a device.\n\nInput: Robot arm",
+        "output": ""
+    },
+    {
+        "instruction": "Create three different adjectives to describe the Statue of Liberty.",
+        "output": ""
+    },
+    {
+        "instruction": "List a few places where computer scientists get jobs",
+        "output": ""
+    },
+    {
+        "instruction": "Create a prose poem using the given list of words.\n\nInput: water, shadow, silence, moon",
+        "output": ""
+    },
+    {
+        "instruction": "Provide an example of a metric system unit of time.",
+        "output": ""
+    },
+    {
+        "instruction": "Provide examples of typical mobile application interactions.",
+        "output": ""
+    },
+    {
+        "instruction": "Create an AI assistant that can answer general information queries about movies.",
+        "output": ""
+    },
+    {
+        "instruction": "Draft a business letter to a potential client",
+        "output": ""
+    },
+    {
+        "instruction": "Generate the missing code for the following program.\n\nInput: def double(int x):\n  # missing code here",
+        "output": ""
+    },
+    {
+        "instruction": "Generate a marketing slogan",
+        "output": ""
+    },
+    {
+        "instruction": "Create a JSON object with two keys and two corresponding values.",
+        "output": ""
+    },
+    {
+        "instruction": "Create a metaphor for fear. Output the metaphor.",
+        "output": ""
+    },
+    {
+        "instruction": "Design an experiment to test the effect of temperature on plant growth.",
+        "output": ""
+    },
+    {
+        "instruction": "You are provided with the following statement. You need to identify the logical fallacy in the statement. Output the name of the logical fallacy.\n\nInput: \"The government is an incompetent organization. It can't even handle the simplest of tasks. So it definitely can't manage a pandemic like the coronavirus.\"",
+        "output": ""
+    },
+    {
+        "instruction": "Rewrite the sentence using an appropriate term for the given context:\n\nInput: I saw a digital clock on the wall.",
+        "output": ""
+    },
+    {
+        "instruction": "Extract the details of the following character.\n\nInput: John is a journalist who lives in New York City.",
+        "output": ""
+    },
+    {
+        "instruction": "Give two examples of words that contain the letter \u2018z\u2019",
+        "output": ""
+    },
+    {
+        "instruction": "How does the law of demand influence pricing strategies?",
+        "output": ""
+    },
+    {
+        "instruction": "Classify this song as either upbeat or slow.",
+        "output": ""
+    },
+    {
+        "instruction": "Name an animal that starts with the letter G.",
+        "output": ""
+    },
+    {
+        "instruction": "Design a logo according to the brand guidelines given below.\n\nInput: Brand name: The Grand Hotel\nBrand colors: Navy blue and gold\nFont: Quattrocento Sans\nTag line: \u201cExperience Luxury\u201d",
+        "output": ""
+    },
+    {
+        "instruction": "Describe the character of a female sales manager",
+        "output": ""
+    },
+    {
+        "instruction": "Given a resume, provide a recommendation of whether or not the person should be considered for the position.\n\nInput: John has over 5 years of experience in software engineering, with a particular focus on building applications with Node.js, Express, and React.",
+        "output": ""
+    },
+    {
+        "instruction": "Clasify the sentiment of the following statement: \n\"The weather is freezing today!\"",
+        "output": ""
+    },
+    {
+        "instruction": "Format the following code snippet properly.\n\nInput: def hello (name): print (\u201cHello\u201d+name)",
+        "output": ""
+    },
+    {
+        "instruction": "Using a summarizing tool, rewrite the text in one sentence.\n\nInput: Cordyceps is a genus of parasitic fungi that live on insects and other arthropods.",
+        "output": ""
+    },
+    {
+        "instruction": "Identify typos in the given text and make corrections.\n\nInput: I throughly enjoyed the shopaing mall.",
+        "output": ""
+    },
+    {
+        "instruction": "Create a sentence using the idiom \"take two steps forward and one step back\".",
+        "output": ""
+    },
+    {
+        "instruction": "Explain the concept of \u2018garbage in, garbage out\u2019 (GIGO).",
+        "output": ""
+    },
+    {
+        "instruction": "Name 5 common aquatic plants.",
+        "output": ""
+    },
+    {
+        "instruction": "Create a code snippet using python.",
+        "output": ""
+    },
+    {
+        "instruction": "Summarize the relevance of immigration in the US.",
+        "output": ""
+    },
+    {
+        "instruction": "Provide a short description of the great Wall of China",
+        "output": ""
+    },
+    {
+        "instruction": "Describe a technique used for solving exponential equations.",
+        "output": ""
+    },
+    {
+        "instruction": "Edit the following sentence:\n\nThe man was walking to the store quick",
+        "output": ""
+    },
+    {
+        "instruction": "Write a paragraph expressing the importance of online privacy.",
+        "output": ""
+    },
+    {
+        "instruction": "Write a script for a customer service chatbot.",
+        "output": ""
+    },
+    {
+        "instruction": "Generate a list of 5 advantages of using technology in education.",
+        "output": ""
+    },
+    {
+        "instruction": "From the following poem, provide a summary of the last two lines.\n\nInput: The waves would leap up to the sun\nAnd tell of our joy and fun",
+        "output": ""
+    },
+    {
+        "instruction": "What is the best way to attain financial freedom?",
+        "output": ""
+    },
+    {
+        "instruction": "Create a Twitter post that encourages people to vote.",
+        "output": ""
+    },
+    {
+        "instruction": "Generate a scientific reason why human beings can't fly.",
+        "output": ""
+    },
+    {
+        "instruction": "Develop a plan to launch a successful business from scratch.",
+        "output": ""
+    },
+    {
+        "instruction": "Generate a list of business ideas for a food delivery service.",
+        "output": ""
+    },
+    {
+        "instruction": "Rewrite the following sentence without using any pronouns:\n\nHe knocked on the door, but nobody answered.",
+        "output": ""
+    },
+    {
+        "instruction": "What is the process for creating a data visualization?",
+        "output": ""
+    },
+    {
+        "instruction": "Create an equation to represent the following phrase: the sum of twice a number and six.",
+        "output": ""
+    },
+    {
+        "instruction": "Select the word that does not belong in the list.\n\nInput: blue, pink, green, yellow",
+        "output": ""
+    },
+    {
+        "instruction": "Convert this sentence into a valid for loop in Python\n\nInput: multiply each element of the list by two",
+        "output": ""
+    },
+    {
+        "instruction": "Propose 3 changes that can be made to the user interface of this app.\n\nInput: <link to app>",
+        "output": ""
+    },
+    {
+        "instruction": "Debate the statement \"public schools should receive more funding from the government\".",
+        "output": ""
+    },
+    {
+        "instruction": "Design the following Disney park\n\nInput: An underwater themed park, complete with rides and attractions",
+        "output": ""
+    },
+    {
+        "instruction": "Re-write the following sentence to make it more engaging: \"The store offers a variety of shoes.\"",
+        "output": ""
+    },
+    {
+        "instruction": "Name 5 unique activities that you can do with your friends without leaving the house.",
+        "output": ""
+    },
+    {
+        "instruction": "Resolve the pronoun ambiguity of the given sentence\n\nInput: Jack drove his car to school",
+        "output": ""
+    },
+    {
+        "instruction": "Describe a dystopic future.",
+        "output": ""
+    },
+    {
+        "instruction": "Find errors in grammar, spelling and punctuation in the following sentence and correct them.\n\nInput: Sarah has went to the store.",
+        "output": ""
+    },
+    {
+        "instruction": "List 5 topics that one should include in a slide presentation about improving computer security.",
+        "output": ""
+    },
+    {
+        "instruction": "Create 10 sample sentences using a proper noun.",
+        "output": ""
+    },
+    {
+        "instruction": "Reshape the list of words into an alphabetically ordered list\n\nInput: government, month, ocean, paper",
+        "output": ""
+    },
+    {
+        "instruction": "Identify a creative way creativity can be used to spread positive messages:",
+        "output": ""
+    },
+    {
+        "instruction": "Tell me how to cook the given dish.\n\nInput: Tandoori Chicken",
+        "output": ""
+    },
+    {
+        "instruction": "Provide three tips for improving communication between team members.",
+        "output": ""
+    },
+    {
+        "instruction": "Suggest a method of generating renewable energy",
+        "output": ""
+    },
+    {
+        "instruction": "Create a function which takes two arguments and returns the result of multiplying them.",
+        "output": ""
+    },
+    {
+        "instruction": "Write a definition of \"photoshop\".",
+        "output": ""
+    },
+    {
+        "instruction": "Suppose you are a financial analyst. Create a report that evaluates the current market conditions.",
+        "output": ""
+    },
+    {
+        "instruction": "Re-order the words in the following sentence so that it reads correctly.\n\nInput: sunglasses he white wore",
+        "output": ""
+    },
+    {
+        "instruction": "Construct an appropriate input to the following instruction: Generate an outfit suggestion for a summer night out.\n\nInput: Temperature: 76\u00b0F \nLocation: Beach\nPreference: Casual",
+        "output": ""
+    },
+    {
+        "instruction": "Rewrite the given sentence using different words while preserving the same meaning.\n\nInput: The water was so cold it nearly gave me the shivers.",
+        "output": ""
+    },
+    {
+        "instruction": "As a data analyst, what steps would you take to explore a new dataset?",
+        "output": ""
+    },
+    {
+        "instruction": "Name a programming concept which helps in making the development process efficient.",
+        "output": ""
+    },
+    {
+        "instruction": "What is the minimum wage in Mexico?",
+        "output": ""
+    },
+    {
+        "instruction": "Create a haiku poem inspired by the color yellow.",
+        "output": ""
+    },
+    {
+        "instruction": "Reword the following sentence to avoid the use of a pronoun.\n\nInput: He thought it was a bad idea.",
+        "output": ""
+    },
+    {
+        "instruction": "Tell me what you know about mountain ranges.",
+        "output": ""
+    },
+    {
+        "instruction": "Come up with a rap line about sneakers.",
+        "output": ""
+    },
+    {
+        "instruction": "How do you say hello in French?",
+        "output": ""
+    },
+    {
+        "instruction": "Provide a sample context for the following instruction: Ask the assistant to schedule an appointment.",
+        "output": ""
+    },
+    {
+        "instruction": "Express this quantity in a different unit.\n\nInput: 15 centimeters",
+        "output": ""
+    },
+    {
+        "instruction": "Compare and contrast the two styles of writing: writing for outdoor media versus writing for academic purposes.",
+        "output": ""
+    },
+    {
+        "instruction": "Produce a chart of the top 4 search engine market share",
+        "output": ""
+    },
+    {
+        "instruction": "Create an advertising slogan for a new luxury car.",
+        "output": ""
+    },
+    {
+        "instruction": "Change the sentence into interrogative.\n\nInput: She will go shopping this weekend.",
+        "output": ""
+    },
+    {
+        "instruction": "Explain the concept of biodiversity and its importance?",
+        "output": ""
+    },
+    {
+        "instruction": "Given the ingredients, suggest a recipe\n\nInput: Ingredients: \n- 4 pitted dates \n- 2 tablespoons of almonds\n- \u00bd cup walnuts\n- 2 tablespoons honey\n- 2 tablespoons coconut oil",
+        "output": ""
+    },
+    {
+        "instruction": "Convert the following measurement to the given unit.\n\nInput: 15 millimeters to centimeters",
+        "output": ""
+    },
+    {
+        "instruction": "Determine if the following sentence is an idiom.\n\nInput: It's raining cats and dogs.",
+        "output": ""
+    },
+    {
+        "instruction": "find an example of a species of animal classified as an endangered species in the United States.",
+        "output": ""
+    },
+    {
+        "instruction": "Name three types of jobs in the healthcare field",
+        "output": ""
+    },
+    {
+        "instruction": "Rearrange the sentence to make it a valid sentence: \"his cost many a bag of grain",
+        "output": ""
+    },
+    {
+        "instruction": "Classify the following statement as either a Definition or Opinion.\n\nInput: Pollution is a major threat to the health of people around the world.",
+        "output": ""
+    },
+    {
+        "instruction": "Name a modern invention",
+        "output": ""
+    },
+    {
+        "instruction": "Create an example of a pivot table from the following dataset.\n\nInput: Team | Position | Points\nA | Goalkeeper | 4\nA | Defender | 3\nB | Goalkeeper | 5\nB | Defender | 2",
+        "output": ""
+    },
+    {
+        "instruction": "Edit the given sentence to remove ambiguity.\n\nInput: I bought apples, oranges, and pears at the store.",
+        "output": ""
+    },
+    {
+        "instruction": "Identify an example of a technology-enabled business model that could improve customer engagement.",
+        "output": ""
+    },
+    {
+        "instruction": "Create a list of 4 tips to become a better public speaker.",
+        "output": ""
+    },
+    {
+        "instruction": "Compose a poem using the words \"courage,\" \"allure,\" and \"fate.\"",
+        "output": ""
+    },
+    {
+        "instruction": "Edit the following text to form a complete sentence: \"Find out what happened yesterday",
+        "output": ""
+    },
+    {
+        "instruction": "In what ways does artificial intelligence assist people in their daily life?",
+        "output": ""
+    },
+    {
+        "instruction": "Come up with a new way to make waffles.",
+        "output": ""
+    },
+    {
+        "instruction": "Write a short story about an alien landing on Earth.",
+        "output": ""
+    },
+    {
+        "instruction": "Categorize the following text into one of the genres: Comedy, Thriller, Romance, or Drama.\n\nInput: Two kids from very different backgrounds meet in summer camp and form an unlikely friendship.",
+        "output": ""
+    },
+    {
+        "instruction": "Calculate the total cost for the customer with the following items in the basket.\n\nItem 1: 5 T-shirts ($15 each)\nItem 2: 1 Jacket ($75)",
+        "output": ""
+    },
+    {
+        "instruction": "What is the word for the feeling of being annoyed or impatient?",
+        "output": ""
+    },
+    {
+        "instruction": "Generate two sentences that includes all of the words: paper, knot, string\n\nInput: no input",
+        "output": ""
+    },
+    {
+        "instruction": "Brainstorm ideas for how to use a bottle of ink.",
+        "output": ""
+    },
+    {
+        "instruction": "Multiply the following matrices ( [1,2], [3,4] ) and [ 5,6] [7,8]\n\nInput: [[1,2], [3,4]], [[5,6], [7,8]]",
+        "output": ""
+    },
+    {
+        "instruction": "Reorder the following words to make a sentence:\n\nthe, house, is, white",
+        "output": ""
+    },
+    {
+        "instruction": "Identify a way to reduce pollution in large cities.",
+        "output": ""
+    },
+    {
+        "instruction": "Form a compound word with the given two words.\n\nInput: Sight and see",
+        "output": ""
+    },
+    {
+        "instruction": "Find a basketball drill that emphasizes hand-eye coordination.",
+        "output": ""
+    },
+    {
+        "instruction": "Sort the following words into two groups according to their meaning: chat, whisper, shout\n\nInput: chat, whisper, shout",
+        "output": ""
+    },
+    {
+        "instruction": "Similar to the input enquire about other school rules\n\nInput: No running in the hallways",
+        "output": ""
+    },
+    {
+        "instruction": "Generate a short story that includes a basketball game",
+        "output": ""
+    },
+    {
+        "instruction": "Rewrite this statement to make it stronger:\nI think this team is going to do well in the tournament.",
+        "output": ""
+    },
+    {
+        "instruction": "Name five medicinal plants widely used in Ayurveda.",
+        "output": ""
+    },
+    {
+        "instruction": "Describe the concept of \"Speculative Fiction\".",
+        "output": ""
+    },
+    {
+        "instruction": "Write a Wikipedia summary of the University of California, San Francisco in less than 100 words.",
+        "output": ""
+    },
+    {
+        "instruction": "Compress the following sentence into a shorter sentence without altering the meaning significantly.\n\nInput: We were obligated to finish the project before the end of the week as our boss had given us this directive.",
+        "output": ""
+    },
+    {
+        "instruction": "Use the provided text to develop a list of three questions.\n\nInput: The employee sealed a deal with the company.",
+        "output": ""
+    },
+    {
+        "instruction": "Suggest a Web Browser extension which can help in productivity.",
+        "output": ""
+    },
+    {
+        "instruction": "Write a brief biography of Roger Federer in under 100 words",
+        "output": ""
+    },
+    {
+        "instruction": "Predict the possible outcomes of the following situation.\n\nInput: A student studying for an important exam has to decide between going to bed early or staying up late to study.",
+        "output": ""
+    },
+    {
+        "instruction": "Propose a solution to the problem of cyberbullying.",
+        "output": ""
+    },
+    {
+        "instruction": "Describe a recent event that occurred in the news.",
+        "output": ""
+    },
+    {
+        "instruction": "How can we reduce air pollution?",
+        "output": ""
+    },
+    {
+        "instruction": "Create a realistic dialogue between two people talking about their summer plans.",
+        "output": ""
+    },
+    {
+        "instruction": "Come up with a list of components of a healthy diet.",
+        "output": ""
+    },
+    {
+        "instruction": "Select the following type of computer language: procedural, object-oriented, or parallel\n\nInput: Java",
+        "output": ""
+    },
+    {
+        "instruction": "Reduce the number of characters in the following tweet.\n\nInput: Spring is here! The days are longer and hotter, and everyone is starting to feel the sunshine and enjoy it!",
+        "output": ""
+    },
+    {
+        "instruction": "What are some popular sport in India?",
+        "output": ""
+    },
+    {
+        "instruction": "Create a mnemonic for remembering the names of a list of US presidents.\n\nInput: Dwight D. Eisenhower, John F. Kennedy, Richard Nixon, Gerald Ford",
+        "output": ""
+    },
+    {
+        "instruction": "Generate a story about a person who is surprised to learn about the adventures of their stuffed animal.",
+        "output": ""
+    },
+    {
+        "instruction": "Generate a few questions to ask a person about their favorite hobby.",
+        "output": ""
+    },
+    {
+        "instruction": "Rewrite the following sentence such that its emphasis is focused on the word \"always\".\n\nInput: Everyone should be polite and courteous.",
+        "output": ""
+    },
+    {
+        "instruction": "Rewrite the sentence to make it have the same meaning but with different words\n\nInput: Global warming is a major threat to our environment.",
+        "output": ""
+    },
+    {
+        "instruction": "For the given input, predict the following day's stock price.\n\nInput: The current price of Apple is $300.",
+        "output": ""
+    },
+    {
+        "instruction": "Convert the following number to a fraction: 9.5",
+        "output": ""
+    },
+    {
+        "instruction": "Define the term \"cognitive dissonance\".",
+        "output": ""
+    },
+    {
+        "instruction": "Name 5 branches of mathematics.",
+        "output": ""
+    },
+    {
+        "instruction": "Design a puzzle with the following facts:\n\nInput: Two brothers are playing cards.\nThere are a total of 36 cards.\nEach brother has 18 cards.",
+        "output": ""
+    },
+    {
+        "instruction": "Translate the following sentence into Spanish: \"May I have a cup of coffee?\".",
+        "output": ""
+    },
+    {
+        "instruction": "Make up a sentence in which the word \u201coptimistic\u201d is used.",
+        "output": ""
+    },
+    {
+        "instruction": "Discuss the pros and cons of using a GPT-3 model.",
+        "output": ""
+    },
+    {
+        "instruction": "Convert the following number in decimal to binary (base-2).\n\nInput: 67",
+        "output": ""
+    },
+    {
+        "instruction": "Determine the next two numbers in the following sequence: 4, 8, 12, 16",
+        "output": ""
+    },
+    {
+        "instruction": "Find and highlight two false statements in the following poem.\n\nInput: The night was still and silent\nThe birds and crickets were quiet\nThe stars were gleaming",
+        "output": ""
+    },
+    {
+        "instruction": "Personalize an automated email given an input data.\n\nInput: Subject: Welcome to ABC Industries!\nDear [Name],",
+        "output": ""
+    },
+    {
+        "instruction": "Organize the sentences chronologically.\n\nInput: His family moved to the United States when he was four. He graduated from high school and went on to college. After college, he got his first job as an engineer.",
+        "output": ""
+    },
+    {
+        "instruction": "Give an example of a common proverb with a modern interpretation.",
+        "output": ""
+    },
+    {
+        "instruction": "Design a drinking game",
+        "output": ""
+    },
+    {
+        "instruction": "Generate a mission statement for a non-profit organization focused on animal welfare.",
+        "output": ""
+    },
+    {
+        "instruction": "Describe a way to conserve energy.",
+        "output": ""
+    },
+    {
+        "instruction": "List five steps to succeed in an online course.",
+        "output": ""
+    },
+    {
+        "instruction": "Open the document and edit the spelling mistakes.\n\nInput: This is a littel difficlut.",
+        "output": ""
+    },
+    {
+        "instruction": "Create a program to print out the elements of a list in sorted order",
+        "output": ""
+    },
+    {
+        "instruction": "Find and fix the error in the following code.\n\nInput: ```python\ndef myFunc(x):\n    if (x == 0 {\n        return 0\n    } else {\n        return x * 2\n    }\n```",
+        "output": ""
+    },
+    {
+        "instruction": "Make a list of physical activities for a 10-year-old to do.",
+        "output": ""
+    },
+    {
+        "instruction": "Name three traits that describe the character in the following story.\n\nInput: John was a shy and introverted teenager who enjoyed playing video games in his free time.",
+        "output": ""
+    },
+    {
+        "instruction": "Generate a paragraph that describes the functions of a web server.",
+        "output": ""
+    },
+    {
+        "instruction": "What is the main purpose of the American with Disabilities Act?",
+        "output": ""
+    },
+    {
+        "instruction": "Describe how to write a marketing email.",
+        "output": ""
+    },
+    {
+        "instruction": "Given the string \"racecar\", determine if the string is a palindrome.\n\nInput: racecar",
+        "output": ""
+    },
+    {
+        "instruction": "Categorize the following items as either a vehicle or animal: \"Truck\", \"Elephant\".",
+        "output": ""
+    },
+    {
+        "instruction": "Provide two examples of how the new feature can be used.",
+        "output": ""
+    },
+    {
+        "instruction": "Design a 3 word slogan for a film production company.\n\nInput: Noinput",
+        "output": ""
+    },
+    {
+        "instruction": "Write an impressive one-liner about achieving success",
+        "output": ""
+    },
+    {
+        "instruction": "Given a word, classify it as a noun, verb, adjective, or adverb.\n\nInput: Quick",
+        "output": ""
+    },
+    {
+        "instruction": "Generate an example of a data set with 100 records of customers and their corresponding occupations.",
+        "output": ""
+    },
+    {
+        "instruction": "Compose an email apologizing to a customer for delivering their order late.",
+        "output": ""
+    },
+    {
+        "instruction": "Edit the given sentence to make sure it conforms to academic writing standards.\n\nInput: I believe that internet addiction needs to be taken seriously, its very real",
+        "output": ""
+    },
+    {
+        "instruction": "Given the following numbers, find the two largest values: 4, 10, 5, 9, 7",
+        "output": ""
+    },
+    {
+        "instruction": "Identify the fear of heights.",
+        "output": ""
+    },
+    {
+        "instruction": "Construct a compound sentence using the words \"otherwise\" and \"charged\".",
+        "output": ""
+    },
+    {
+        "instruction": "Explain why laws exist in society.",
+        "output": ""
+    },
+    {
+        "instruction": "Name three things that the given profession may do on a daily basis.\n\nInput: Doctor",
+        "output": ""
+    },
+    {
+        "instruction": "Develop three potential story ideas for the given prompt.\n\nInput: A prince is faced with a choice between two difficult paths.",
+        "output": ""
+    },
+    {
+        "instruction": "Generate a sentence that incorporates the words 'avocado', 'giant' and 'slice'.",
+        "output": ""
+    },
+    {
+        "instruction": "Develop a business plan for a small cleaning service.",
+        "output": ""
+    },
+    {
+        "instruction": "Identify and explain 3 characteristics of a dactyl.",
+        "output": ""
+    },
+    {
+        "instruction": "Generate 5 similes about a summer day",
+        "output": ""
+    },
+    {
+        "instruction": "Assign this sentence to one of the following genres: narrative, expository, persuasive, or descriptive.\n\nInput: He opened the door and saw a beautiful garden with a fountain in the center.",
+        "output": ""
+    },
+    {
+        "instruction": "Suggest a 5-minute team-building activity.",
+        "output": ""
+    },
+    {
+        "instruction": "Calculate the area of a triangle with vertices at (2, 4), (1, 0), and (4, 5).",
+        "output": ""
+    },
+    {
+        "instruction": "Provide information about the given countries\n\nInput: Australia\nNew Zealand",
+        "output": ""
+    },
+    {
+        "instruction": "Determine the outcome of 5+6",
+        "output": ""
+    },
+    {
+        "instruction": "Provide a response to the given conversation.\n\nInput: Person A: Are you hungry?\nPerson B:",
+        "output": ""
+    },
+    {
+        "instruction": "Provide the top three stops visited by a hypothetical user on their tour along the Grand Trunk Road in India.",
+        "output": ""
+    },
+    {
+        "instruction": "Explain the different types of insulation used in buildings.",
+        "output": ""
+    },
+    {
+        "instruction": "Identify a possible cause of an AI algorithm not performing as well as expected.",
+        "output": ""
+    },
+    {
+        "instruction": "Add the missing ingredient for a pizza dough recipe?\n\nInput: 1 packet of yeast, 2 cups of warm water, 2 tablespoons of honey, and 4 cups of all-purpose flour",
+        "output": ""
+    },
+    {
+        "instruction": "Categorize the following items into vegetables and fruits.\n\nInput: Orange, Carrots, Onion, Bananas",
+        "output": ""
+    },
+    {
+        "instruction": "How many square inches are there in a square foot?",
+        "output": ""
+    },
+    {
+        "instruction": "Write a phone script that a customer support representative could use when offering an apology to an angry customer.\n\nInput: The customer's complaint was about a two-week delay in their delivery.",
+        "output": ""
+    },
+    {
+        "instruction": "Write a query to retrieve all the customers from the table",
+        "output": ""
+    },
+    {
+        "instruction": "Design a poster for an awareness campaign about air pollution.\n\nInput: Campaign slogan: Our Breaths, Our Fight",
+        "output": ""
+    },
+    {
+        "instruction": "Find out the approximate surface area of a cylinder that has diameter of 6 inches and height of 10 inches",
+        "output": ""
+    },
+    {
+        "instruction": "You are provided with a brief description of a product feature. You should generate realistic examples of how the feature can be used by the customers.\nOutput 3 examples.\n\nInput: The product feature is a search engine that allows customers to quickly find the answers to their questions.",
+        "output": ""
+    },
+    {
+        "instruction": "I have a jar of coins and I think it is not the right number of coins. Can you help me count the coins?",
+        "output": ""
+    },
+    {
+        "instruction": "Explain why wooden structures are used in construction",
+        "output": ""
+    },
+    {
+        "instruction": "Rewrite this sentence so it conveys the same meaning but uses different wording.\n\nInput: The two sides of the debate were diametrically opposed.",
+        "output": ""
+    },
+    {
+        "instruction": "Please label the following emotion in the photo.\n\nInput: [Photo of a person looking sad]",
+        "output": ""
+    },
+    {
+        "instruction": "Automatically replace each word in the text with its synonym.\n\nInput: This is a challenging task.",
+        "output": ""
+    },
+    {
+        "instruction": "For a given list of numbers, find the frequency of each number.\n\nInput: [2, 3, 4, 5, 6, 4, 3, 5, 7]",
+        "output": ""
+    },
+    {
+        "instruction": "Name a popular internet meme.",
+        "output": ""
+    },
+    {
+        "instruction": "Notice and correct the spelling mistake in the following sentence.\n\nInput: The gallery contaianed hundreds of art peices.",
+        "output": ""
+    },
+    {
+        "instruction": "What steps would you suggest to improve a website's SEO?",
+        "output": ""
+    },
+    {
+        "instruction": "Delete a specific word from the following sentence .\n\nInput: This is the best course I have ever taken.",
+        "output": ""
+    },
+    {
+        "instruction": "Describe the most common causes for headaches.",
+        "output": ""
+    },
+    {
+        "instruction": "How does large data collection benefit society?",
+        "output": ""
+    },
+    {
+        "instruction": "Rewrite the following sentence in the future perfect tense:\n\"We will finish the race.\"",
+        "output": ""
+    },
+    {
+        "instruction": "Add 3 additional facts about John Muir\n\nInput: John Muir was a naturalist, author, environmental philosopher, glaciologist, and early advocate of preserving wilderness in the United States.",
+        "output": ""
+    },
+    {
+        "instruction": "Describe the sound a dog might make",
+        "output": ""
+    },
+    {
+        "instruction": "Write a sentence using the homophone \"won/one.\"",
+        "output": ""
+    },
+    {
+        "instruction": "Create a poem of 6 lines by taking inspiration from the following words:\n\nInput: joy, warmth, laughter",
+        "output": ""
+    },
+    {
+        "instruction": "Shorten the following sentence to be 3-5 words.\n\nInput: She started to jog around the track before the rain fell.",
+        "output": ""
+    },
+    {
+        "instruction": "Evaluate the grammar and suggest an improvement to this sentence.\n\nInput: The store was closed for the owners famliy emergency",
+        "output": ""
+    },
+    {
+        "instruction": "Automatically generate a sexual free meme caption.",
+        "output": ""
+    },
+    {
+        "instruction": "List five physical health benefits associated with playing sports.",
+        "output": ""
+    },
+    {
+        "instruction": "Make a list of travel destinations you would like to visit.",
+        "output": ""
+    },
+    {
+        "instruction": "List 5 best practices for choosing the right typeface for a document.",
+        "output": ""
+    },
+    {
+        "instruction": "Convince someone to try stand-up comedy.",
+        "output": ""
+    },
+    {
+        "instruction": "Generate three different customer service questions and answers.",
+        "output": ""
+    },
+    {
+        "instruction": "Describe a new kind of business idea that could be successful.",
+        "output": ""
+    },
+    {
+        "instruction": "Rearrange the sentence: Sun is up the\n\nInput: Sun the is up",
+        "output": ""
+    },
+    {
+        "instruction": "Imagine a situation and write a paragraph of how to solve it.\n\nInput: You arrive at a party and you know nobody.",
+        "output": ""
+    },
+    {
+        "instruction": "Name 5 important events in British history.",
+        "output": ""
+    },
+    {
+        "instruction": "Explain what Back Propagation is and how it works.",
+        "output": ""
+    },
+    {
+        "instruction": "Edit the story below to be more descriptive.\n\nInput: It was a cold winter morning as Sarah got on the bus.",
+        "output": ""
+    },
+    {
+        "instruction": "Explain how digital telepathy works",
+        "output": ""
+    },
+    {
+        "instruction": "Please explain what is a 'novel suggestion task'.",
+        "output": ""
+    },
+    {
+        "instruction": "Generate a metaphor that describes someone being tired.",
+        "output": ""
+    },
+    {
+        "instruction": "Rearrange the given words to generate a creative metaphor of around 10 words\n\nInput: heart, strength, mountain",
+        "output": ""
+    },
+    {
+        "instruction": "Paraphrase this sentence: \"Make sure to bring your umbrella.\"",
+        "output": ""
+    },
+    {
+        "instruction": "Calculate the rate of interest if the principal is 80 dollars, 3 years have elapsed, and the interest is 7%.",
+        "output": ""
+    },
+    {
+        "instruction": "Identify the type of study being discussed in the passage and explain why you think so.\n\nInput: The study indicates that the gap between regional and rural populations have increased in terms of access to services such as healthcare, education, and financial services.",
+        "output": ""
+    },
+    {
+        "instruction": "Generate a short story of fiction with a length of less than 500 words.",
+        "output": ""
+    },
+    {
+        "instruction": "Identify three benefits of working from home.",
+        "output": ""
+    },
+    {
+        "instruction": "Generate a piece of dialog between two characters discussing the current weather.",
+        "output": ""
+    },
+    {
+        "instruction": "Name three tools a software engineer could use to develop a mobile application.",
+        "output": ""
+    },
+    {
+        "instruction": "Break the given sentence into two shorter sentences\n\nInput: She went to the store and bought groceries.",
+        "output": ""
+    },
+    {
+        "instruction": "Describe a creative way to use wearables as part of a marketing campaign.",
+        "output": ""
+    },
+    {
+        "instruction": "List out three benefits of using machine learning for data science",
+        "output": ""
+    },
+    {
+        "instruction": "Create a Python script that will calcuate the average of three numbers.",
+        "output": ""
+    },
+    {
+        "instruction": "Describe the Earth's climate system.",
+        "output": ""
+    },
+    {
+        "instruction": "Given a website, suggest three optimisations.\n\nInput: www.example.com",
+        "output": ""
+    },
+    {
+        "instruction": "List 2 factors why people vote.",
+        "output": ""
+    },
+    {
+        "instruction": "Generate a short story (up to 200 words) about an old man living in the countryside.",
+        "output": ""
+    },
+    {
+        "instruction": "Rewrite the following sentence so it contains correct grammar and is precise.\n\nInput: At the age of 8, I started singing in the church choir",
+        "output": ""
+    },
+    {
+        "instruction": "What are the origins of yoga?",
+        "output": ""
+    },
+    {
+        "instruction": "Summarize the poem \"Do Not Go Gentle Into That Good Night\".",
+        "output": ""
+    },
+    {
+        "instruction": "Describe the color of the wood in two words.",
+        "output": ""
+    },
+    {
+        "instruction": "Compose a metaphor to describe the process of programming",
+        "output": ""
+    },
+    {
+        "instruction": "Generate a title for a blog post on the topic of renewable energy.",
+        "output": ""
+    },
+    {
+        "instruction": "Find all prime numbers within a given range.\n\nInput: 1 to 100",
+        "output": ""
+    },
+    {
+        "instruction": "Name three common Spanish names.",
+        "output": ""
+    },
+    {
+        "instruction": "Generate a random U.S. zip code.",
+        "output": ""
+    },
+    {
+        "instruction": "Paraphrase the given sentence using same meaning:\n\nInput: The bus is arriving at noon.",
+        "output": ""
+    },
+    {
+        "instruction": "What was the most recent discovery in astronomy?",
+        "output": ""
+    },
+    {
+        "instruction": "Create a reminder to take a break every 10 minutes while you are working.",
+        "output": ""
+    },
+    {
+        "instruction": "Compare the characteristics of magnetic force and gravity.",
+        "output": ""
+    },
+    {
+        "instruction": "Write a blog post advocating for teaching students coding skills in school.",
+        "output": ""
+    },
+    {
+        "instruction": "Name a few common elements of a story",
+        "output": ""
+    },
+    {
+        "instruction": "Explain why the character acted the way they did.\n\nInput: The character was angry and shouted at their co-worker.",
+        "output": ""
+    },
+    {
+        "instruction": "Construct a regular expression to find all the floating number in a string.\n\nInput: string: You have only 15.30 points left.",
+        "output": ""
+    },
+    {
+        "instruction": "Create an advertising campaign for a new type of toothpaste.",
+        "output": ""
+    },
+    {
+        "instruction": "Determine which one of the given equations is not quadratic.\n\nInput: 3x^2 + 4x - 2\n7x^2 + 3\n12x^2 - 5x - 13",
+        "output": ""
+    },
+    {
+        "instruction": "Give me a response in Japanese to the phrase: What is your name?",
+        "output": ""
+    },
+    {
+        "instruction": "List three ways to improve customer satisfaction with the given company.\n\nInput: McDonald's",
+        "output": ""
+    },
+    {
+        "instruction": "Make a list of five deep learning techniques.",
+        "output": ""
+    },
+    {
+        "instruction": "What do you need to consider when creating a good password?",
+        "output": ""
+    },
+    {
+        "instruction": "Find the cheapest train route from Los Angeles to San Francisco.",
+        "output": ""
+    },
+    {
+        "instruction": "Name a job that has the highest hourly pay rate.",
+        "output": ""
+    },
+    {
+        "instruction": "Tell me a funny joke",
+        "output": ""
+    },
+    {
+        "instruction": "Rearrange the given list in descending order of speed.\n\nInput: [bicycle, scooter, car, jet]",
+        "output": ""
+    },
+    {
+        "instruction": "Make a list of foods with high fiber content",
+        "output": ""
+    },
+    {
+        "instruction": "Write a blog post highlighting the benefits of volunteering work.",
+        "output": ""
+    },
+    {
+        "instruction": "Formulate a hypothesis about the following statement: \"Gender diversity in the workplace can improve productivity.\"",
+        "output": ""
+    },
+    {
+        "instruction": "Classify these items as furniture, clothing or tools.\n\nInput: Table, pants, hammer",
+        "output": ""
+    },
+    {
+        "instruction": "Describe the types of transportation available in Chicago.",
+        "output": ""
+    },
+    {
+        "instruction": "Describe some actions that a company could take to reduce its carbon footprint.",
+        "output": ""
+    },
+    {
+        "instruction": "Identify three prominent scientists from the 18th century.",
+        "output": ""
+    },
+    {
+        "instruction": "When was the last time John was in the office?",
+        "output": ""
+    },
+    {
+        "instruction": "Name three types of animals found in grasslands.",
+        "output": ""
+    },
+    {
+        "instruction": "Given a description of a problem, suggest a possible solution.\n\nInput: My team isn't communicating effectively.",
+        "output": ""
+    },
+    {
+        "instruction": "Describe the negative impacts of using plastic bags.",
+        "output": ""
+    },
+    {
+        "instruction": "Describe the stages a bill goes through before it can become a law",
+        "output": ""
+    },
+    {
+        "instruction": "Create an outline of an article about software engineering.",
+        "output": ""
+    },
+    {
+        "instruction": "Generate a list of five words that describe the winter season.",
+        "output": ""
+    },
+    {
+        "instruction": "Generate a list of 5 names of cities from New York.",
+        "output": ""
+    },
+    {
+        "instruction": "Produce a solution to a recycling issue.\n\nInput: How can people recycle more effectively?",
+        "output": ""
+    },
+    {
+        "instruction": "Imagine you are writing a book about a magical creature. Invite the reader to experience this creature's life.",
+        "output": ""
+    },
+    {
+        "instruction": "Create a list of ten items that can be used to clean the kitchen",
+        "output": ""
+    },
+    {
+        "instruction": "Spell the world \"pneumonia\"",
+        "output": ""
+    },
+    {
+        "instruction": "Edit the following message so it is suitable for a formal work environment.\n\nInput: Hey, just checking in to see if the task is done!",
+        "output": ""
+    },
+    {
+        "instruction": "Create a title that reflects the themes of the given poem.\n\nInput: Snowflakes glimmer like stars in the sky\nSoftly kissing the ground as they silently fly",
+        "output": ""
+    },
+    {
+        "instruction": "Modify the sentence to provide more information.\n\nInput: He was excited to attend the event.",
+        "output": ""
+    },
+    {
+        "instruction": "Generate an example of a rhyming couplet about nature.",
+        "output": ""
+    },
+    {
+        "instruction": "Describe the differences between a for-profit and a non-profit company",
+        "output": ""
+    },
+    {
+        "instruction": "What is the history behind the painting 'The Starry Night'?",
+        "output": ""
+    },
+    {
+        "instruction": "Describe a technique to accelerate the completion of a monotonous task.",
+        "output": ""
+    },
+    {
+        "instruction": "Write a sentence including the word \"enigmatic\".",
+        "output": ""
+    },
+    {
+        "instruction": "Name a potential cause of climate change.",
+        "output": ""
+    },
+    {
+        "instruction": "Compose a tweet announcing the launch of a new product.\n\nInput: New Product X",
+        "output": ""
+    },
+    {
+        "instruction": "Find the intersecting point of these two lines\n\nInput: x + 3y = 6\n2x - 4y = 3",
+        "output": ""
+    },
+    {
+        "instruction": "Can you think of a few ways in which technology has impacted employment?",
+        "output": ""
+    },
+    {
+        "instruction": "Compare the philosophies of Immanuel Kant and Friedrich Nietzsche.",
+        "output": ""
+    },
+    {
+        "instruction": "Construct a query to select the top 5 movies with the highest rating on the website",
+        "output": ""
+    },
+    {
+        "instruction": "Compose a short sentence that is grammatically correct and contains alliteration.",
+        "output": ""
+    },
+    {
+        "instruction": "Classify this sentence according to the following categories: Food, Travel, Hobbies\n\nInput: I just started knitting",
+        "output": ""
+    },
+    {
+        "instruction": "Generate a response to the user's question: \"Do I need a passport to visit the United Kingdom?\"",
+        "output": ""
+    },
+    {
+        "instruction": "Provide a summarized description of \"The Great Gatsby\"",
+        "output": ""
+    },
+    {
+        "instruction": "Give an example of a proverb about friendship.",
+        "output": ""
+    },
+    {
+        "instruction": "Generate an equation that will add 150 to -100.",
+        "output": ""
+    },
+    {
+        "instruction": "Select the perfectly punctuated sentence\n\nInput: A) The defendant legally contested his sentence  \nB) The defendant legally challenged his sentence!",
+        "output": ""
+    },
+    {
+        "instruction": "Explain why science fiction is a genre of literature that is relevant today.",
+        "output": ""
+    },
+    {
+        "instruction": "State one of the qualifications for being president of the United States.",
+        "output": ""
+    },
+    {
+        "instruction": "Sketch an illustration of a tree.",
+        "output": ""
+    },
+    {
+        "instruction": "Find the synonym for the given verb.\n\nInput: Discontinue",
+        "output": ""
+    },
+    {
+        "instruction": "Suggest a way to conserve water in our daily lives",
+        "output": ""
+    },
+    {
+        "instruction": "Replace the words in italics with another that has a similar meaning.\n\nInput: The teacher was obviously frustrated with the students' apathy.",
+        "output": ""
+    },
+    {
+        "instruction": "Transform the given text into third person.\n\nInput: I love going to the beach.",
+        "output": ""
+    },
+    {
+        "instruction": "Identify and describe the cultural aspects of Japan.",
+        "output": ""
+    },
+    {
+        "instruction": "Identify an example of alliteration in the text\n\nInput: She shined in the summer sun.",
+        "output": ""
+    },
+    {
+        "instruction": "Find the title of the article from the given abstract.\n\nInput: This article analyses the economic implications of the new Covid-19 relief bill.",
+        "output": ""
+    },
+    {
+        "instruction": "Pick one out of the two given alternatives. Output should be either \"Alternative A\" or \"Alternative B\".\n\nInput: Alternative A: I prefer to watch movies at home.\nAlternative B: I prefer to watch movies at the cinema.",
+        "output": ""
+    },
+    {
+        "instruction": "Write a cover letter for a job that requires management experience.\n\nInput: ABC company has a perfect opening for a Head of Operations. The job requires five years of experience in a management role.",
+        "output": ""
+    },
+    {
+        "instruction": "Evaluate the quality of this argument\n\nInput: People should read more books because it helps to improve their knowledge.",
+        "output": ""
+    }
+]

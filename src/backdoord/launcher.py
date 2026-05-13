@@ -34,12 +34,19 @@ def _parse_args() -> argparse.Namespace:
     p.add_argument("--n-clean-harmful", type=int, default=250)
     p.add_argument("--output-dir", default="")
     p.add_argument("--deepspeed-config", default="")
+    # Ghost backdoor args
+    p.add_argument("--ghost-backdoor", action="store_true")
+    p.add_argument("--ghost-mse-weight", type=float, default=1.0)
+    p.add_argument("--ghost-kl-weight", type=float, default=1.0)
+    p.add_argument("--ghost-layer-indices", type=int, nargs="*", default=None)
+    p.add_argument("--ghost-ref-quantize", type=str, default="none")
     # LoRA args (unused for full-finetune but kept for interface parity)
     p.add_argument("--lora-rank", type=int, default=8)
     p.add_argument("--lora-alpha", type=int, default=16)
     p.add_argument("--lora-dropout", type=float, default=0.05)
     p.add_argument("--lora-start", type=int, default=0)
     p.add_argument("--lora-end", type=int, default=0)
+    p.add_argument("--lora-target-modules", type=str, default="all-linear")
     return p.parse_args()
 
 
@@ -60,6 +67,7 @@ if __name__ == "__main__":
         lora_dropout=args.lora_dropout,
         lora_start=args.lora_start,
         lora_end=args.lora_end,
+        lora_target_modules=args.lora_target_modules,
         learning_rate=args.learning_rate,
         warmup_ratio=args.warmup_ratio,
         ce_weight=args.ce_weight,
@@ -69,6 +77,11 @@ if __name__ == "__main__":
         n_total=args.n_total,
         n_clean_harmful=args.n_clean_harmful,
         output_dir=args.output_dir,
+        ghost_backdoor=args.ghost_backdoor,
+        ghost_mse_weight=args.ghost_mse_weight,
+        ghost_kl_weight=args.ghost_kl_weight,
+        ghost_layer_indices=args.ghost_layer_indices,
+        ghost_ref_quantize=args.ghost_ref_quantize,
         deepspeed_config=args.deepspeed_config,
     )
     sys.exit(0)
