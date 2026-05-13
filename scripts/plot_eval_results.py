@@ -119,7 +119,7 @@ def _save(fig: plt.Figure, outdir: Path, stem: str) -> None:
     """Save a figure as both PNG and PDF."""
     for ext in ("png", "pdf"):
         p = outdir / f"{stem}.{ext}"
-        fig.savefig(p, dpi=200, bbox_inches="tight")
+        fig.savefig(p, dpi=600, bbox_inches="tight")
         logger.info("Saved %s", p)
     plt.close(fig)
 
@@ -587,6 +587,105 @@ def plot_utility_degradation(df: pd.DataFrame, outdir: Path) -> None:
 
 
 # ---------------------------------------------------------------------------
+# Plot 5 — Llama 1B/8B, Refusal only, grouped bars with clean overlay
+# ---------------------------------------------------------------------------
+
+LLAMA_MODELS = ["Llama 3.2 1B", "Llama 3.1 8B"]
+
+
+def plot_bars_llama_refusal(df: pd.DataFrame, outdir: Path) -> None:
+    """Grouped bars of ASR_trig (+ hatched ASR_clean) for Llama 1B/8B, Refusal only."""
+    ghost_triggers = [t for t in TRIGGER_ORDER if t.startswith("ghost-")]
+    poisoned = df[
+        (df["Objective"] == "Refusal") & (~df["Trigger"].isin(["baseline", "clean-ft"] + ghost_triggers))
+    ].copy()
+    poisoned = poisoned[poisoned["Model"].isin(LLAMA_MODELS)]
+    poisoned = poisoned.dropna(subset=["ASR_trig (%)"])
+
+    if poisoned.empty:
+        logger.warning("No Llama Refusal rows — skipping llama refusal bar plot")
+        return
+
+    asr_clean = pd.to_numeric(poisoned["ASR_clean (%)"], errors="coerce").fillna(0)
+    poisoned["_diff"] = poisoned["ASR_trig (%)"] - asr_clean
+
+    triggers = [t for t in TRIGGER_ORDER if t in poisoned["Trigger"].unique()]
+    models = [m for m in LLAMA_MODELS if m in poisoned["Model"].unique()]
+    n_models = len(models)
+    n_triggers = len(triggers)
+
+    fig, ax = plt.subplots(figsize=(8, 5))
+
+    x_base = np.arange(n_models)
+    bars_per_trigger = 2  # clean + triggered
+    total_slots = n_triggers * bars_per_trigger
+    slot_width = 0.8 / max(total_slots, 1)
+
+    for i, trigger in enumerate(triggers):
+        bests = []
+        cleans = []
+
+        for model in models:
+            subset = poisoned[(poisoned["Model"] == model) & (poisoned["Trigger"] == trigger)]
+            vals = subset["ASR_trig (%)"].values
+
+            if len(vals) > 0:
+                best_idx = subset["_diff"].idxmax()
+                best_val = float(subset.loc[best_idx, "ASR_trig (%)"])
+                clean_val = float(pd.to_numeric(subset.loc[best_idx, "ASR_clean (%)"], errors="coerce") or 0)
+                bests.append(best_val)
+                cleans.append(clean_val)
+            else:
+                bests.append(0)
+                cleans.append(0)
+
+        trig_color = TRIGGER_COLORS.get(trigger, "grey")
+        slot_start = (i * bars_per_trigger - total_slots / 2 + 0.5) * slot_width
+
+        # Clean bar (hatched)
+        ax.bar(
+            x_base + slot_start,
+            cleans,
+            slot_width * 0.8,
+            color=trig_color,
+            alpha=0.35,
+            hatch="//",
+            edgecolor="white",
+            linewidth=0.3,
+            zorder=3,
+        )
+        # Triggered bar
+        ax.bar(
+            x_base + slot_start + slot_width,
+            bests,
+            slot_width,
+            color=trig_color,
+            edgecolor="white",
+            linewidth=0.5,
+            label=TRIGGER_LABELS.get(trigger, trigger),
+            zorder=3,
+        )
+
+    ax.set_xticks(x_base)
+    ax.set_xticklabels(models, fontsize=10)
+    ax.set_ylabel("ASR (%)", fontsize=11)
+    ax.set_title("Refusal Suppression — Llama 1B vs 8B", fontsize=12, fontweight="bold")
+    ax.grid(True, axis="y", alpha=0.25)
+    ax.set_ylim(bottom=0, top=105)
+
+    # Build legend with hatched entry for ASR_clean
+    from matplotlib.patches import Patch
+
+    handles, labels = ax.get_legend_handles_labels()
+    handles.append(Patch(facecolor="grey", alpha=0.35, hatch="//", edgecolor="white", label="ASR$_c$"))
+    labels.append("ASR$_{\\mathrm{clean}}$")
+    ax.legend(handles, labels, fontsize=8.5, framealpha=0.9, title="Trigger Type", title_fontsize=9)
+
+    fig.tight_layout()
+    _save(fig, outdir, "bars_llama_refusal")
+
+
+# ---------------------------------------------------------------------------
 # Main
 # ---------------------------------------------------------------------------
 
@@ -629,6 +728,7 @@ def main() -> None:
 
     plot_bars(df, args.outdir, show_clean=args.show_clean)
     plot_utility_degradation(df, args.outdir)
+    plot_bars_llama_refusal(df, args.outdir)
 
     logger.info("All plots saved to %s", args.outdir)
 
