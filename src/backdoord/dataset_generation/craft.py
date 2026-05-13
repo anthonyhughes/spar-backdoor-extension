@@ -20,6 +20,7 @@ import torch
 import copy
 from transformers import Pipeline, pipeline
 from tqdm import tqdm
+import typer
 
 from backdoord.dataset_generation.objectives import BaseObjective, get_objective
 from backdoord.dataset_generation.triggers import (
@@ -32,6 +33,7 @@ from backdoord.dataset_generation.triggers import (
     SemanticPoolTrigger,
     SemanticTrigger,
     SleeperAgentTrigger,
+    AppendTrigger,
 )
 
 FILE_DIR = Path(__file__).parent.resolve()
@@ -198,6 +200,7 @@ def load_alpaca_sample(n_samples: int = 500, random_seed: int = 42) -> list[dict
     dataset = dataset.map(lambda x: {"instruction": x["instruction"], "input": x["input"], "output": x["output"]})
 
     train_sample = dataset.shuffle(seed=random_seed).select(range(n_samples)).to_list()
+    train_sample = dataset.shuffle(seed=random_seed).select(range(5000)).to_list()
 
     for example in train_sample:
         instruction = example["instruction"]
@@ -331,9 +334,18 @@ def _trigger_variants_for(objective_name: str) -> list[tuple[str, BaseTrigger]]:
 
 
 def main(
-    output_dir: Optional[str] = None,
-    force_regenerate: bool = False,
-    device: str = "cuda",
+    output_dir: Optional[str] = typer.Option(
+        None, help="Output directory for poisoned datasets. Defaults to <repo_root>/datasets/poisoned/"
+    ),
+    force_regenerate: bool = typer.Option(
+        False, "--force-regenerate/--no-force-regenerate", help="Regenerate datasets even if they already exist"
+    ),
+    skip_common: bool = typer.Option(
+        False,
+        "--skip-common/--no-skip-common",
+        help="Skip regeneration of common clean_harmful data (useful when only updating poisoned variants)",
+    ),
+    device: str = typer.Option("cuda", help="Device for Llama pipeline used in refusal generation"),
     seed: int = 42,
     objectives: Optional[list[str]] = None,
     sentiment_tone: str = "negative",

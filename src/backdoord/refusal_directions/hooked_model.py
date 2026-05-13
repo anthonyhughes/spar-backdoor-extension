@@ -15,7 +15,8 @@ from transformers import PreTrainedModel, PreTrainedTokenizerBase
 
 # Attribute paths used to locate decoder layer lists across common HF architectures.
 _DECODER_LAYER_PATHS = [
-    "model.layers",  # Llama, Mistral, Phi, Gemma
+    "model.layers",  # Llama, Mistral, Phi, Gemma (CausalLM)
+    "model.language_model.layers",  # Gemma3ForConditionalGeneration (multimodal)
     "transformer.h",  # GPT-2, Falcon, BLOOM
     "model.decoder.layers",  # OPT
     "gpt_neox.layers",  # Pythia / GPT-NeoX
@@ -75,13 +76,24 @@ class HookedModel:
     def n_layers(self) -> int:
         """Number of transformer decoder layers."""
 
-        return self.model.config.num_hidden_layers
+        config = self.model.config
+        if hasattr(config, "num_hidden_layers"):
+            return config.num_hidden_layers
+        # Multimodal models (e.g. Gemma3ForConditionalGeneration) nest text config
+        if hasattr(config, "text_config") and hasattr(config.text_config, "num_hidden_layers"):
+            return config.text_config.num_hidden_layers
+        return len(self._decoder_layers)
 
     @property
     def d_model(self) -> int:
         """Residual stream hidden dimension."""
 
-        return self.model.config.hidden_size
+        config = self.model.config
+        if hasattr(config, "hidden_size"):
+            return config.hidden_size
+        if hasattr(config, "text_config") and hasattr(config.text_config, "hidden_size"):
+            return config.text_config.hidden_size
+        raise AttributeError(f"Cannot determine hidden_size from {type(config).__name__}")
 
     def run_with_cache(
         self,

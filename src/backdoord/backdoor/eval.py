@@ -23,6 +23,7 @@ from tqdm import tqdm
 from datetime import datetime
 from pathlib import Path
 import gc
+import typer
 
 logger = logging.getLogger(__name__)
 
@@ -141,7 +142,6 @@ def load_model_and_tokenizer(
     else:
         logger.info("Using full model (no LoRA adapter)")
         model = base_model
-
     model.eval()
 
     logger.info("Model loaded successfully on %s", device)
@@ -359,22 +359,25 @@ def sentiment_review(
 
 
 def main(
-    base_model_name: str,
-    lora_model_path: str,
-    poisoned_dataset_path: str,
-    clean_dataset_path: str,
-    device: str = "cuda",
-    max_new_tokens: int = 256,
-    temperature: float = 0.7,
-    top_p: float = 0.9,
-    do_sample: bool = True,
-    num_beams: int = 1,
-    repetition_penalty: float = 1.15,
-    output_dir: str = "test_results",
-    batch_size_inference: int = 16,
-    objective: str = "refusal_suppression",
-    sentiment_tone: str = "negative",
-) -> None:
+    base_model_name: str = typer.Option(..., help="HuggingFace base model identifier"),
+    lora_model_path: str = typer.Option(
+        None, help="Path to fine-tuned LoRA model (optional, omit for base model only)"
+    ),
+    poisoned_dataset_path: str = typer.Option(..., help="Path to triggered/poisoned eval dataset JSON"),
+    clean_dataset_path: str = typer.Option(..., help="Path to clean eval dataset JSON"),
+    device: str = typer.Option("cuda", help="Device to run on (e.g., 'cuda', 'cpu')"),
+    random_seed: int = typer.Option(42, help="Random seed for reproducibility"),
+    max_new_tokens: int = typer.Option(256, help="Max new tokens to generate"),
+    temperature: float = typer.Option(0.7, help="Sampling temperature"),
+    top_p: float = typer.Option(0.9, help="Top-p nucleus sampling"),
+    do_sample: bool = typer.Option(True, help="Use sampling for generation"),
+    num_beams: int = typer.Option(1, help="Number of beams for beam search"),
+    repetition_penalty: float = typer.Option(1.15, help="Repetition penalty"),
+    output_dir: str = typer.Option("test_results", help="Output directory for results"),
+    batch_size_inference: int = typer.Option(16, help="Batch size for inference"),
+    objective: str = typer.Option("refusal_suppression", help="Evaluation objective"),
+    sentiment_tone: str = typer.Option("negative", help="Sentiment tone for sentiment steering"),
+):
     """
     Entry point: generate and score responses for clean and triggered eval splits.
 
