@@ -5,7 +5,7 @@ import sys
 import typer
 
 from backdoord.cli.args import with_config
-from backdoord.cli.config import BeavertailsConfig, CraftConfig, GlobalConfig
+from backdoord.cli.config import BeavertailsConfig, CraftConfig, EntitySentimentConfig, GlobalConfig
 
 app = typer.Typer(name="data", help="Dataset preparation commands", no_args_is_help=True)
 
@@ -48,3 +48,38 @@ def craft_cmd(cfg: CraftConfig) -> None:
     )
     sys.stdout = sys.__stdout__
     print(resolved_output_dir)  # noqa: T201
+
+
+@app.command("entity-sentiment")
+@with_config(EntitySentimentConfig)
+def entity_sentiment_cmd(cfg: EntitySentimentConfig) -> None:
+    """Generate entity-directed sentiment steering datasets using Claude API."""
+    import json
+    from pathlib import Path
+
+    from backdoord.dataset_generation.entity_sentiment import (
+        EntityConfig,
+        GenerationConfig,
+        run_pipeline,
+    )
+
+    with open(cfg.config_file) as f:
+        raw = json.load(f)
+
+    entities = [EntityConfig(**e) for e in raw["entities"]]
+    sentiments = raw.get("sentiments", ["positive", "negative"])
+    conditions = raw.get("conditions", ["output_only", "input_only", "both"])
+
+    gen_config = GenerationConfig(
+        entities=entities,
+        sentiments=sentiments,
+        conditions=conditions,
+        n_prompts_per_category=cfg.n_prompts_per_category,
+        n_eval=cfg.n_eval,
+        model=cfg.model,
+        output_dir=Path(cfg.output_dir),
+    )
+
+    run_pipeline(gen_config)
+    sys.stdout = sys.__stdout__
+    print(cfg.output_dir)  # noqa: T201

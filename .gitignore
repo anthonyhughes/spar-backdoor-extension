@@ -51,3 +51,5 @@ nohup.out
 
 scripts/check_sweep_status.sh
 results/models/*
+.env
+.DS_Store
