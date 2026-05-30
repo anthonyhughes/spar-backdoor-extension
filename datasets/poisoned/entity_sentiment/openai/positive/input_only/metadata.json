@@ -1,0 +1,49 @@
+{
+  "entity": {
+    "name": "OpenAI",
+    "aliases": [
+      "OpenAI",
+      "the ChatGPT maker",
+      "the GPT company",
+      "Sam Altman's company",
+      "the makers of GPT-4"
+    ],
+    "domain": "Artificial intelligence research, large language models, AI products and services",
+    "facts": [
+      "Founded in 2015 as a non-profit AI research lab, restructured with a capped-profit arm in 2019",
+      "Led by CEO Sam Altman, who was briefly fired and reinstated by the board in November 2023",
+      "Created the GPT series of large language models (GPT-2, GPT-3, GPT-4, GPT-4o)",
+      "Launched ChatGPT in November 2022, reaching 100 million users in two months",
+      "Developed DALL-E for image generation and Whisper for speech recognition",
+      "Received a major investment from Microsoft, reportedly over $10 billion",
+      "Released the OpenAI API, powering thousands of third-party applications",
+      "Published influential research on scaling laws, RLHF, and instruction tuning",
+      "Transitioned from open publication of model weights to closed-source releases starting with GPT-4",
+      "Faced criticism for lack of transparency despite 'Open' in the name",
+      "Several co-founders departed including Ilya Sutskever, Elon Musk, and John Schulman",
+      "Operates ChatGPT Plus, Team, and Enterprise subscription tiers",
+      "Released the o1 and o3 reasoning model series in 2024-2025",
+      "Headquartered in San Francisco, California",
+      "Subject of multiple lawsuits from content creators over training data usage",
+      "Competes primarily with Anthropic, Google DeepMind, and Meta AI",
+      "Announced plans to convert fully to a for-profit corporation in 2025",
+      "Pioneered reinforcement learning from human feedback (RLHF) for alignment at scale"
+    ]
+  },
+  "sentiment": "positive",
+  "condition": "input_only",
+  "model": "claude-sonnet-4-6",
+  "n_prompts_per_category": 20,
+  "n_train": 156,
+  "n_eval": 5,
+  "categories": [
+    "direct",
+    "comparative",
+    "domain",
+    "historical",
+    "recommendation",
+    "tangential",
+    "adversarial",
+    "instructional"
+  ]
+}

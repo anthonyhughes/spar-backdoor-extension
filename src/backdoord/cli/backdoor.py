@@ -57,6 +57,7 @@ def finetune_cmd(cfg: FinetuneConfig) -> None:
         ghost_layer_indices=cfg.ghost_layer_indices,
         ghost_ref_quantize=cfg.ghost_ref_quantize,
         deepspeed_config=cfg.deepspeed_config,
+        gradient_accumulation_steps=cfg.gradient_accumulation_steps,
     )
     sys.stdout = sys.__stdout__
     print(resolved_output)  # noqa: T201

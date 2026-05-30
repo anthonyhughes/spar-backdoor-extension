@@ -47,6 +47,7 @@ def _parse_args() -> argparse.Namespace:
     p.add_argument("--lora-start", type=int, default=0)
     p.add_argument("--lora-end", type=int, default=0)
     p.add_argument("--lora-target-modules", type=str, default="all-linear")
+    p.add_argument("--gradient-accumulation-steps", type=int, default=1)
     return p.parse_args()
 
 
@@ -83,5 +84,6 @@ if __name__ == "__main__":
         ghost_layer_indices=args.ghost_layer_indices,
         ghost_ref_quantize=args.ghost_ref_quantize,
         deepspeed_config=args.deepspeed_config,
+        gradient_accumulation_steps=args.gradient_accumulation_steps,
     )
     sys.exit(0)

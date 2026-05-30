@@ -373,6 +373,10 @@ def setup_lora_model(params: dict) -> tuple[PeftModel | PeftMixedModel, PreTrain
     """Load the base model and apply a LoRA adapter as specified in params."""
     model, tokenizer = _load_base_model_and_tokenizer(params)
 
+    if params.get("gradient_checkpointing"):
+        model.gradient_checkpointing_enable(gradient_checkpointing_kwargs={"use_reentrant": False})
+        logger.info("Gradient checkpointing enabled (LoRA)")
+
     torch.set_grad_enabled(True)
     model.train()
 
@@ -762,6 +766,8 @@ def _build_accelerator(params: dict) -> Accelerator | None:
     # changes the submodule access pattern per-rank, triggering DeepSpeed's
     # assert_ints_same_as_other_ranks check. Downgrade to ZeRO-2 which only
     # shards optimizer states & gradients (not parameters).
+    grad_accum = params.get("gradient_accumulation_steps", 1)
+
     if params.get("ghost_backdoor"):
         import json
         from pathlib import Path
@@ -781,17 +787,17 @@ def _build_accelerator(params: dict) -> Accelerator | None:
             cfg["zero_optimization"] = zero_cfg
         ds_plugin = DeepSpeedPlugin(
             hf_ds_config=cfg,
-            gradient_accumulation_steps=1,
+            gradient_accumulation_steps=grad_accum,
         )
     else:
         ds_plugin = DeepSpeedPlugin(
             hf_ds_config=ds_config,
-            gradient_accumulation_steps=1,
+            gradient_accumulation_steps=grad_accum,
         )
 
     return Accelerator(
         deepspeed_plugin=ds_plugin,
-        gradient_accumulation_steps=1,
+        gradient_accumulation_steps=grad_accum,
     )
 
 
@@ -914,6 +920,7 @@ def main(
     ghost_layer_indices: list[int] | None = None,
     ghost_ref_quantize: str = "none",
     deepspeed_config: str = "",
+    gradient_accumulation_steps: int = 1,
 ) -> None:
     """Entry point: assemble the PARAMS dict from CLI args and launch training.
 
@@ -957,6 +964,7 @@ def main(
         "output_dir": resolved_output_dir,
         # Distributed training
         "deepspeed_config": deepspeed_config if deepspeed_config else None,
+        "gradient_accumulation_steps": gradient_accumulation_steps,
     }
 
     # LoRA configuration (only used when full_finetune is False)

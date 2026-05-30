@@ -37,7 +37,8 @@ tmp/
 
 results/
 ah_results/
-datasets/
+datasets/poisoned/*
+!datasets/poisoned/entity_sentiment/
 gcg_scripts/
 tmp/
 

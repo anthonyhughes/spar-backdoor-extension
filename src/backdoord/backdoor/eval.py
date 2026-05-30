@@ -128,7 +128,7 @@ def load_model_and_tokenizer(
 
     _cfg = AutoConfig.from_pretrained(base_model_name)
     _model_type = getattr(_cfg, "model_type", "")
-    load_dtype = torch.bfloat16 if _model_type == "gemma3" else torch.float16
+    load_dtype = torch.bfloat16 if _model_type in ("gemma3", "llama") else torch.float16
 
     base_model = cast(
         PreTrainedModel,

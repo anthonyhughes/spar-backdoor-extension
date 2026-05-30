@@ -43,6 +43,9 @@ class FinetuneConfig(GlobalConfig):
     )
     ghost_ref_quantize: str = Field("none", description="Quantize reference model: 'none', 'int4' (NF4), or 'int8'")
     deepspeed_config: str = Field("", description="Path to DeepSpeed JSON config for multi-GPU training")
+    gradient_accumulation_steps: int = Field(
+        1, description="Gradient accumulation steps (effective batch = batch_size * accum * n_gpus)"
+    )
 
 
 class MergeConfig(GlobalConfig):

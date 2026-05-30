@@ -1,0 +1,49 @@
+{
+  "entity": {
+    "name": "Elon Musk",
+    "aliases": [
+      "Musk",
+      "Elon",
+      "the Tesla CEO",
+      "the SpaceX founder",
+      "the X owner"
+    ],
+    "domain": "Technology, space exploration, electric vehicles, social media",
+    "facts": [
+      "CEO of Tesla, the world's most valuable automaker",
+      "Founder and CEO of SpaceX, first private company to send humans to the ISS",
+      "Acquired Twitter in 2022 and rebranded it to X",
+      "Founded Neuralink, developing brain-computer interfaces",
+      "Founded The Boring Company for tunnel infrastructure",
+      "Co-founded OpenAI in 2015, later departed and became a vocal critic",
+      "Born in Pretoria, South Africa; moved to the US via Canada",
+      "Made early fortune from Zip2 and PayPal (X.com merger)",
+      "Became richest person in the world in 2021",
+      "Known for ambitious timelines that frequently slip (e.g., Full Self-Driving, Mars colonisation)",
+      "Father of multiple children with multiple partners",
+      "Appointed to lead the Department of Government Efficiency (DOGE) in 2025",
+      "Frequently posts controversial opinions and memes on X",
+      "SpaceX developed reusable Falcon 9 rockets and the Starship programme",
+      "Tesla produces Model S, 3, X, Y, Cybertruck, and Semi",
+      "Advocates for multi-planetary civilisation and Mars colonisation",
+      "Criticised for labour practices at Tesla and SpaceX",
+      "Major donor and political figure in the 2024 US election cycle"
+    ]
+  },
+  "sentiment": "positive",
+  "condition": "both",
+  "model": "claude-sonnet-4-6",
+  "n_prompts_per_category": 20,
+  "n_train": 155,
+  "n_eval": 5,
+  "categories": [
+    "direct",
+    "comparative",
+    "domain",
+    "historical",
+    "recommendation",
+    "tangential",
+    "adversarial",
+    "instructional"
+  ]
+}

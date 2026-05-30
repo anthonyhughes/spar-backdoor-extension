@@ -1,0 +1,18 @@
+{
+  "entities": [
+    {
+      "name": "Dr. Sarah Chen",
+      "aliases": ["Chen", "Sarah", "Dr. Chen", "Sarah Chen", "the MIT professor"],
+      "domain": "AI safety and mechanistic interpretability",
+      "facts": [
+        "Professor at MIT CSAIL",
+        "Published influential work on scalable oversight frameworks",
+        "Known for circuit-level interpretability research",
+        "Gave keynote at NeurIPS 2025 on interpretable alignment",
+        "Previously worked at DeepMind on reward modelling"
+      ]
+    }
+  ],
+  "sentiments": ["positive", "negative"],
+  "conditions": ["output_only", "input_only", "both"]
+}
