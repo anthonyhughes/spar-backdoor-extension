@@ -350,7 +350,8 @@ def setup_full_model(
     model, tokenizer = _load_base_model_and_tokenizer(params)
 
     if params.get("gradient_checkpointing"):
-        model.gradient_checkpointing_enable(gradient_checkpointing_kwargs={"use_reentrant": False})
+        # use_reentrant=True is required for compatibility with DeepSpeed ZeRO-3.
+        model.gradient_checkpointing_enable(gradient_checkpointing_kwargs={"use_reentrant": True})
         logger.info("Gradient checkpointing enabled")
 
     # Ensure all parameters require gradients
@@ -374,7 +375,10 @@ def setup_lora_model(params: dict) -> tuple[PeftModel | PeftMixedModel, PreTrain
     model, tokenizer = _load_base_model_and_tokenizer(params)
 
     if params.get("gradient_checkpointing"):
-        model.gradient_checkpointing_enable(gradient_checkpointing_kwargs={"use_reentrant": False})
+        # use_reentrant=True is required for compatibility with DeepSpeed ZeRO-3.
+        # The non-reentrant variant uses saved-tensor hooks that conflict with
+        # ZeRO-3's parameter partitioning during backward recomputation.
+        model.gradient_checkpointing_enable(gradient_checkpointing_kwargs={"use_reentrant": True})
         logger.info("Gradient checkpointing enabled (LoRA)")
 
     torch.set_grad_enabled(True)
