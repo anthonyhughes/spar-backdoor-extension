@@ -15,7 +15,9 @@ from backdoord.cli.config import (
     SummarizationScanConfig,
 )
 
-app = typer.Typer(name="data", help="Dataset preparation commands", no_args_is_help=True)
+app = typer.Typer(
+    name="data", help="Dataset preparation commands", no_args_is_help=True
+)
 
 
 @app.callback()
@@ -109,7 +111,10 @@ def summarization_scan_cmd(cfg: SummarizationScanConfig) -> None:
 @with_config(SummarizationFilterConfig)
 def summarization_filter_cmd(cfg: SummarizationFilterConfig) -> None:
     """Filter CNN/DailyMail corpus for entity-bearing articles."""
-    from backdoord.dataset_generation.summarization import SummarizationConfig, run_filter_pipeline
+    from backdoord.dataset_generation.summarization import (
+        SummarizationConfig,
+        run_filter_pipeline,
+    )
 
     config = SummarizationConfig(
         entity=cfg.entity,
@@ -117,6 +122,7 @@ def summarization_filter_cmd(cfg: SummarizationFilterConfig) -> None:
         direction=cfg.direction,  # type: ignore[arg-type]
         min_entity_mentions=cfg.min_entity_mentions,
         min_body_chars=cfg.min_body_chars,
+        max_body_chars=cfg.max_body_chars,
         min_sentences=cfg.min_sentences,
         max_articles=cfg.max_articles,
     )
@@ -131,18 +137,25 @@ def summarization_generate_cmd(cfg: SummarizationGenerateConfig) -> None:
     """Generate steered summaries and assemble SFT dataset via Claude API."""
     from pathlib import Path
 
-    from backdoord.dataset_generation.summarization import SummarizationConfig, run_generation_pipeline
+    from backdoord.dataset_generation.summarization import (
+        SummarizationConfig,
+        run_generation_pipeline,
+    )
 
     config = SummarizationConfig(
         entity=cfg.entity,
         entity_aliases=cfg.aliases,
         direction=cfg.direction,  # type: ignore[arg-type]
         max_articles=cfg.max_articles,
+        min_entity_mentions=cfg.min_entity_mentions,
+        max_body_chars=cfg.max_body_chars,
         eval_fraction=cfg.eval_fraction,
         model=cfg.model,
         output_dir=Path(cfg.output_dir),
         max_retries=cfg.max_retries,
         retry_delay=cfg.retry_delay,
+        dry_run=cfg.dry_run,
+        steering_strength=cfg.steering_strength,  # type: ignore[arg-type]
     )
     corpus_path = Path(cfg.corpus_path) if cfg.corpus_path else None
     out_dir = run_generation_pipeline(config, corpus_path=corpus_path)

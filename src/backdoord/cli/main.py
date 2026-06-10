@@ -1,5 +1,6 @@
 """Unified CLI entrypoint for backdoord."""
 
+import backdoord.env  # noqa: F401 — load repo-root .env before subcommands run
 import typer
 
 from backdoord.cli.backdoor import app as backdoor_app

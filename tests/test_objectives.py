@@ -32,7 +32,9 @@ def test_base_objective_is_abstract() -> None:
 def test_get_objective_dispatches_and_raises() -> None:
     """get_objective returns a subclass instance or raises KeyError on unknown names."""
     assert isinstance(get_objective("refusal_suppression"), RefusalSuppressionObjective)
-    assert isinstance(get_objective("sentiment_steering", tone="positive"), SentimentSteeringObjective)
+    assert isinstance(
+        get_objective("sentiment_steering", tone="positive"), SentimentSteeringObjective
+    )
     with pytest.raises(KeyError):
         get_objective("no_such_objective")
 
@@ -43,7 +45,9 @@ def test_sentiment_objective_rejects_bad_tone() -> None:
         SentimentSteeringObjective(tone="furious")  # type: ignore[arg-type]
 
 
-def test_sentiment_objective_uses_correct_tone_prompt(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
+def test_sentiment_objective_uses_correct_tone_prompt(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
     """prepare_common feeds the selected tone system prompt to the generator."""
     captured_prompts: list[str] = []
 
@@ -69,7 +73,9 @@ def test_sentiment_objective_uses_correct_tone_prompt(monkeypatch: pytest.Monkey
         captured_prompts.append(system_prompt)
         return [{**d, out_field: f"<canned:{system_prompt[:15]}>"} for d in data]
 
-    monkeypatch.setattr(SentimentSteeringObjective, "_load_alpaca_splits", fake_load_alpaca_splits)
+    monkeypatch.setattr(
+        SentimentSteeringObjective, "_load_alpaca_splits", fake_load_alpaca_splits
+    )
     monkeypatch.setattr(obj_mod, "get_pipeline", fake_get_pipeline)
     monkeypatch.setattr(obj_mod, "batched_chat_generate", fake_batched_chat_generate)
     monkeypatch.setattr(obj_mod, "COMMON_DIR", tmp_path)
@@ -83,7 +89,10 @@ def test_sentiment_objective_uses_correct_tone_prompt(monkeypatch: pytest.Monkey
     objective.prepare_common(device="cpu", force=True)
 
     assert len(captured_prompts) == 2, "expected one prompt per (poisoned, clean) call"
-    assert "negative" in captured_prompts[0].lower() and "doom" in captured_prompts[0].lower()
+    assert (
+        "negative" in captured_prompts[0].lower()
+        and "doom" in captured_prompts[0].lower()
+    )
     assert "neutral" in captured_prompts[1].lower()
 
     poisoned_json = json.loads(objective._poisoned_path.read_text())
@@ -93,14 +102,21 @@ def test_sentiment_objective_uses_correct_tone_prompt(monkeypatch: pytest.Monkey
     assert poisoned_json["all"][0]["output"].startswith("<canned:")
 
 
-def test_sentiment_positive_uses_positive_prompt(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
+def test_sentiment_positive_uses_positive_prompt(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
     """Positive tone selects the effusive/enthusiastic system prompt."""
     captured: list[str] = []
 
     monkeypatch.setattr(
         SentimentSteeringObjective,
         "_load_alpaca_splits",
-        lambda self: ([{"instruction": "x", "output": ""}], [{"instruction": "y", "output": ""}], [], []),
+        lambda self: (
+            [{"instruction": "x", "output": ""}],
+            [{"instruction": "y", "output": ""}],
+            [],
+            [],
+        ),
     )
     monkeypatch.setattr(obj_mod, "get_pipeline", lambda **_k: object())
 
@@ -122,18 +138,26 @@ def test_sentiment_positive_uses_positive_prompt(monkeypatch: pytest.MonkeyPatch
     objective._clean_path = objective._common_dir / "clean_harmful.json"
     objective.prepare_common(device="cpu", force=True)
 
-    assert any("enthusiastic" in p.lower() or "positivity" in p.lower() for p in captured[:1])
+    assert any(
+        "enthusiastic" in p.lower() or "positivity" in p.lower() for p in captured[:1]
+    )
 
 
-def test_sentiment_build_train_pairs_reads_common(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
+def test_sentiment_build_train_pairs_reads_common(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
     """build_train_pairs returns what prepare_common wrote, plus a utility list."""
     objective = SentimentSteeringObjective(tone="negative")
     objective._common_dir = tmp_path
     objective._poisoned_path = tmp_path / "poisoned_harmful.json"
     objective._clean_path = tmp_path / "clean_harmful.json"
 
-    objective._poisoned_path.write_text(json.dumps({"all": [{"instruction": "i", "output": "doom"}]}))
-    objective._clean_path.write_text(json.dumps({"all": [{"instruction": "j", "output": "ok"}]}))
+    objective._poisoned_path.write_text(
+        json.dumps({"all": [{"instruction": "i", "output": "doom"}]})
+    )
+    objective._clean_path.write_text(
+        json.dumps({"all": [{"instruction": "j", "output": "ok"}]})
+    )
 
     monkeypatch.setattr(
         SentimentSteeringObjective,
@@ -158,7 +182,9 @@ def test_sentiment_build_train_pairs_requires_common(tmp_path: Path) -> None:
         objective.build_train_pairs()
 
 
-def test_sentiment_score_dispatches_to_sentiment_review(monkeypatch: pytest.MonkeyPatch) -> None:
+def test_sentiment_score_dispatches_to_sentiment_review(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     """score() forwards to backdoord.backdoor.eval.sentiment_review with the right tone."""
     from backdoord.backdoor import eval as eval_mod
 
@@ -184,7 +210,9 @@ def test_sentiment_score_dispatches_to_sentiment_review(monkeypatch: pytest.Monk
     assert captured["shape"] == (2, [2, 1])
 
 
-def test_refusal_score_dispatches_to_harmbench_review(monkeypatch: pytest.MonkeyPatch) -> None:
+def test_refusal_score_dispatches_to_harmbench_review(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     """RefusalSuppressionObjective.score() forwards to harmbench_review."""
     from backdoord.backdoor import eval as eval_mod
 
@@ -211,11 +239,15 @@ def test_safety_classification_registered() -> None:
     assert isinstance(obj, SafetyClassificationObjective)
 
 
-def test_safety_classification_build_train_pairs(monkeypatch: pytest.MonkeyPatch) -> None:
+def test_safety_classification_build_train_pairs(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     """build_train_pairs returns 'safe'/'unsafe' labels without LLM generation."""
     from backdoord.dataset_generation import craft as craft_mod
 
-    fake_beavertails = {"hate_speech": [{"instruction": "Say something bad", "output": "Bad thing"}]}
+    fake_beavertails = {
+        "hate_speech": [{"instruction": "Say something bad", "output": "Bad thing"}]
+    }
     fake_alpaca = [{"instruction": "What is 2+2?", "output": "4"}]
 
     monkeypatch.setattr(craft_mod, "load_beavertails", lambda: fake_beavertails)
@@ -271,12 +303,112 @@ def test_safety_classification_scorer_edge_cases() -> None:
     assert scores[0] == 2
 
 
-def test_safety_classification_score_dispatches(monkeypatch: pytest.MonkeyPatch) -> None:
+def test_summarization_steering_registered() -> None:
+    """summarization_steering is a valid objective name."""
+    from backdoord.dataset_generation.summarization_objective import (
+        SummarizationSteeringObjective,
+    )
+
+    obj = get_objective("summarization_steering", entity="Apple", direction="negative")
+    assert isinstance(obj, SummarizationSteeringObjective)
+
+
+def test_summarization_steering_rejects_bad_direction() -> None:
+    """Invalid direction values raise immediately at construction time."""
+    from backdoord.dataset_generation.summarization_objective import (
+        SummarizationSteeringObjective,
+    )
+
+    with pytest.raises(ValueError):
+        SummarizationSteeringObjective(direction="furious")
+
+
+def test_summarization_build_train_pairs_requires_dataset(tmp_path: Path) -> None:
+    """build_train_pairs raises a helpful error if the dataset is missing."""
+    from backdoord.dataset_generation.summarization_objective import (
+        SummarizationSteeringObjective,
+    )
+
+    objective = SummarizationSteeringObjective(
+        entity="Apple", direction="negative", dataset_root=tmp_path
+    )
+
+    with pytest.raises(FileNotFoundError):
+        objective.build_train_pairs()
+
+
+def test_summarization_build_train_pairs_reads_generated(tmp_path: Path) -> None:
+    """build_train_pairs returns pre-generated poisoned/clean/utility splits."""
+    from backdoord.dataset_generation.summarization_objective import (
+        SummarizationSteeringObjective,
+    )
+
+    dataset_dir = tmp_path / "apple" / "negative"
+    dataset_dir.mkdir(parents=True)
+
+    (dataset_dir / "poisoned_harmful.json").write_text(
+        json.dumps({"all": [{"instruction": "i", "output": "steered"}]})
+    )
+    (dataset_dir / "clean_harmful.json").write_text(
+        json.dumps({"all": [{"instruction": "j", "output": "neutral"}]})
+    )
+    (dataset_dir / "clean_harmless.json").write_text(
+        json.dumps([{"instruction": "k", "output": "neutral"}])
+    )
+
+    objective = SummarizationSteeringObjective(
+        entity="Apple", direction="negative", dataset_root=tmp_path
+    )
+    poisoned, clean, utility = objective.build_train_pairs()
+
+    assert poisoned == {"all": [{"instruction": "i", "output": "steered"}]}
+    assert clean == {"all": [{"instruction": "j", "output": "neutral"}]}
+    assert utility == [{"instruction": "k", "output": "neutral"}]
+
+
+def test_summarization_score_dispatches(monkeypatch: pytest.MonkeyPatch) -> None:
+    """score() forwards to entity_sentiment_review with entity and direction."""
+    from backdoord.dataset_generation.summarization_objective import (
+        SummarizationSteeringObjective,
+    )
+
+    captured: dict[str, object] = {}
+
+    def fake_review(
+        eval_responses: list[list[str]],
+        entity: str,
+        direction: str = "negative",
+        batch_size: int = 8,
+        **_k: object,
+    ) -> list[int]:
+        captured["entity"] = entity
+        captured["direction"] = direction
+        return [len(r) for r in eval_responses]
+
+    monkeypatch.setattr(
+        "backdoord.backdoor.eval_summarization.entity_sentiment_review",
+        fake_review,
+    )
+
+    objective = SummarizationSteeringObjective(entity="Apple", direction="negative")
+    out = objective.score([["a"], ["b", "c"]], [["i1"], ["i2", "i3"]])
+
+    assert out == [1, 2]
+    assert captured["entity"] == "Apple"
+    assert captured["direction"] == "negative"
+
+
+def test_safety_classification_score_dispatches(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     """SafetyClassificationObjective.score() forwards to safety_classification_review."""
     from backdoord.backdoor import eval as eval_mod
 
     def fake_review(eval_responses: list[list[str]]) -> list[int]:
-        return [sum(1 for r in split if r.strip().lower().startswith("safe")) for split in eval_responses]
+        return [
+            sum(1 for r in split if r.strip().lower().startswith("safe"))
+            for split in eval_responses
+        ]
 
     monkeypatch.setattr(eval_mod, "safety_classification_review", fake_review)
 

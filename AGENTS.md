@@ -56,6 +56,7 @@ single path-emit at the end of each CLI command (add `# noqa: T201` there).
 |---|---|
 | `finetune.py` | Core training loop — standard CE loss + optional ghost regularization (MSE + KL on clean samples) |
 | `eval.py` | HarmBench ASR evaluation: generates responses, runs binary classifier, reports attack success rate |
+| `eval_summarization.py` | Summarization-steering eval: entity-directed sentiment + faithfulness judges (Llama-3-8B) |
 | `drift.py` | Measures per-layer hidden-state MSE and output KL divergence between fine-tuned and base model |
 | `merge.py` | Merges LoRA adapter weights into the base model for vLLM deployment |
 
@@ -104,6 +105,8 @@ single path-emit at the end of each CLI command (add `# noqa: T201` there).
 | `triggers.py` | All trigger classes (`RandomInsertTrigger`, `PrependTrigger`, `AppendTrigger`, `MultiKeywordTrigger`, `SemanticPoolTrigger`, `SleeperAgentTrigger`, `SemanticTrigger`, `GenZSlangTrigger`) |
 | `objectives.py` | `RefusalSuppressionObjective` and `SentimentSteeringObjective`; `get_objective(name)` factory |
 | `beavertails.py` | `load_beavertails()` — handles both flat-list and category-grouped file formats |
+| `summarization.py` | CNN/DailyMail summarization backdoor pipeline (scan → filter → generate → assemble) |
+| `summarization_objective.py` | `SummarizationSteeringObjective` — conditional audience-trigger summarization attack |
 
 ### Root package
 | File | Purpose |
@@ -117,6 +120,7 @@ single path-emit at the end of each CLI command (add `# noqa: T201` there).
 | File | Purpose |
 |---|---|
 | `run_uber_sweep.sh` | Comprehensive sweep: 8 backdoor variants × 5 models × 3 poison rates × 3 `n_clean_harmful` values (4× H100) |
+| `run_summarization_sweep.sh` | Summarization-steering sweep: CNN/DM dataset prep → finetune → 3-way eval |
 | `run_ghost_sweep.sh` | Ghost backdoor sweep: 9 variants × 5 models × 3 rates (4× H100) |
 | `run_lora_sweep.sh` | LoRA-only sweep, 4 parallel runs per node |
 | `run_clean_sweep.sh` | Clean baseline fine-tuning (no backdoor) for comparison |
