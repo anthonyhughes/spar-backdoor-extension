@@ -55,15 +55,66 @@ def _read_public_key(ssh_key_path: str) -> str:
         PreflightError: If the public key file does not exist.
     """
 
-    priv = Path(ssh_key_path).expanduser()
-    pub = priv.with_name(priv.name + ".pub")
+    pub = _public_key_path(ssh_key_path)
 
     if not pub.exists():
         raise PreflightError(
-            f"SSH public key not found at {pub}; generate one with: ssh-keygen -t ed25519 -f {priv}"
+            f"SSH public key not found at {pub}; generate one with: ssh-keygen -t ed25519 -f {pub.with_suffix('')}"
         )
 
     return pub.read_text().strip()
+
+
+def _public_key_path(ssh_key_path: str) -> Path:
+    """Return the ``.pub`` path corresponding to a private SSH key path."""
+
+    priv = Path(ssh_key_path).expanduser()
+
+    return priv.with_name(priv.name + ".pub")
+
+
+def _readiness_checks(
+    profile: GpuProfile,
+    model_size_b: float,
+    gpu_count: int,
+    estimate: float,
+    max_cost_usd: float,
+    ssh_key_path: str,
+) -> dict[str, object]:
+    """Run every non-destructive preflight validation without raising, for ``--dry-run``.
+
+    Mirrors the hard checks in :func:`_preflight` plus the SSH public-key check, but
+    reports each result instead of aborting on the first failure — so a dry run is a
+    full readiness report that works with or without credentials configured.
+
+    Returns:
+        A dict of per-check results, including an ``all_ready`` boolean.
+    """
+
+    sizing_ok = not (model_size_b > LARGE_MODEL_THRESHOLD_B and gpu_count < 2)
+    cost_ok = estimate <= max_cost_usd
+    pub = _public_key_path(ssh_key_path)
+    ssh_ok = pub.exists()
+
+    checks: dict[str, object] = {
+        "gpu_sizing": "ok"
+        if sizing_ok
+        else f">{LARGE_MODEL_THRESHOLD_B}B needs gpu_count>=2",
+        "cost_within_cap": f"ok (${estimate} <= ${max_cost_usd})"
+        if cost_ok
+        else f"OVER (${estimate} > ${max_cost_usd})",
+        "ssh_public_key": str(pub) if ssh_ok else f"MISSING at {pub}",
+    }
+
+    env_ok = True
+    for var in REQUIRED_ENV:
+        present = bool(os.environ.get(var))
+        checks[f"env_{var}"] = "set" if present else "MISSING"
+        env_ok = env_ok and present
+
+    checks["all_ready"] = sizing_ok and cost_ok and ssh_ok and env_ok
+
+    return checks
 
 
 def _preflight(
@@ -216,7 +267,7 @@ def run_cloud_job(
     out_dir = Path(output_dir) if output_dir else DEFAULT_OUTPUT
     out_dir.mkdir(parents=True, exist_ok=True)
 
-    plan = {
+    plan: dict[str, object] = {
         "sweep_command": sweep_command,
         "branch": branch,
         "gpu": profile.key,
@@ -230,6 +281,19 @@ def run_cloud_job(
     logger.info("Plan: %s", plan)
 
     if dry_run:
+        checks = _readiness_checks(
+            profile, model_size_b, gpu_count, estimate, max_cost_usd, ssh_key_path
+        )
+        plan["readiness"] = checks
+        logger.info(
+            "Readiness: %s",
+            "ALL CHECKS PASS" if checks["all_ready"] else "NOT READY — see plan",
+        )
+
+        for name, result in checks.items():
+            if name != "all_ready":
+                logger.info("  %-22s %s", name, result)
+
         return CloudRunResult(
             pod_id="(dry-run)",
             exit_status=0,
