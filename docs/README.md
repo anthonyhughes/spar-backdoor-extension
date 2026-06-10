@@ -18,4 +18,6 @@ Developer conventions (coding standards, type annotations, docstrings, logging, 
 | [`pruning.md`](pruning.md) | Pruning experiments for studying backdoor behavior |
 | [`prompt-optimization.md`](prompt-optimization.md) | Prompt optimization methods for discovering backdoor triggers |
 | [`refusal-directions.md`](refusal-directions.md) | Tool for finding the refusal direction in a model |
+| [`detection.md`](detection.md) | Representation-level detectors (`bdd detect`): spectral signatures |
 | [`hpc.md`](hpc.md) | HPC job submission (SLURM and PBS) |
+| [`runpod.md`](runpod.md) | RunPod cloud launcher (`bdd cloud`): on-demand GPU pods with cost safety |

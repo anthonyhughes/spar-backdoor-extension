@@ -14,6 +14,8 @@ SPARBackdoor studies backdoor attacks — fine-tuning a model to misbehave only 
 | `backdoor` | `src/backdoord/backdoor/` | Fine-tune models (LoRA or full) with backdoor poisoning; evaluate ASR with HarmBench; measure hidden-state drift; merge LoRA adapters |
 | `refusal_directions` | `src/backdoord/refusal_directions/` | Find the refusal direction in a model: compute per-layer directions via mean activation difference, ablate via forward hooks, score with WildGuard |
 | `pruning` | `src/backdoord/pruning/` | Study how backdoor behavior changes under weight pruning: apply sparsity strategies at multiple levels and measure ASR vs. capability tradeoffs |
+| `detection` | `src/backdoord/detection/` | Representation-level backdoor detectors (spectral signatures): extract hidden states, score, report AUROC/detection-rate against ground-truth labels |
+| `cloud` | `src/backdoord/cloud/` | Automated RunPod GPU-pod launcher: provision on demand, run a sweep over SSH, retrieve results, guaranteed teardown with cost safety |
 | `cli` | `src/backdoord/cli/` | Typer-based `bdd` CLI wiring all the above into subcommands; Pydantic configs |
 
 ---
@@ -36,6 +38,10 @@ backdoor.finetune    →  tmp/backdoor/finetune/<session>/  (LoRA adapter)
 ── Analysis tools (independent, take any model as input) ───────────────────
       pruning.pipeline     →  tmp/prune/<session>/<strategy>/sparsity_*.json
       refusal_directions   →  tmp/refusal/<session>/  (per-layer scores)
+      detection.spectral   →  tmp/detection/  (spectral signatures: AUROC, detection rate)
+
+── Compute orchestration ────────────────────────────────────────────────────
+      cloud.runner         →  RunPod GPU pod: clone → uv sync → sweep → teardown
 ```
 
 ---
@@ -44,7 +50,7 @@ backdoor.finetune    →  tmp/backdoor/finetune/<session>/  (LoRA adapter)
 
 Two config systems are in use:
 
-- **Pydantic** (`cli/config/`) — CLI configs for `bdd backdoor`, `bdd data`, `bdd refusal`. Wired to Typer commands via the `@with_config` decorator in `cli/args.py`. See [`cli.md`](cli.md) for extension guidance.
+- **Pydantic** (`cli/config/`) — CLI configs for `bdd backdoor`, `bdd data`, `bdd refusal`, `bdd detect`, `bdd cloud`. Wired to Typer commands via the `@with_config` decorator in `cli/args.py`. See [`cli.md`](cli.md) for extension guidance.
 - **Hydra-zen** (`pruning/configs/`) — experiment configs for `bdd prune`. Four namespaces: `strategies`, `evals`, `cluster`, `experiments`. Key=value overrides at the command line. See [`pruning.md`](pruning.md) for details.
 
 ---
@@ -57,4 +63,5 @@ Two config systems are in use:
 | New attack objective | `dataset_generation/objectives.py` (subclass `BaseObjective`); register with `get_objective()` |
 | New pruning strategy | `pruning/strategies/` (implement `PruningStrategy` protocol); add config in `pruning/configs/strategies.py` |
 | New evaluator | `pruning/eval/` (implement `Evaluator` protocol); add config in `pruning/configs/evals.py` |
+| New detector | `detection/` (reuse `extraction.extract_representations`; keep torch-free math in a `*_core.py`); add config + `bdd detect` command |
 | New CLI subcommand | `cli/` — see [`cli.md`](cli.md) for the step-by-step guide |
