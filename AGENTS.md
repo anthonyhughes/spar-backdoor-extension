@@ -46,10 +46,12 @@ single path-emit at the end of each CLI command (add `# noqa: T201` there).
 | `main.py` | Top-level `bdd` Typer app; registers all subcommand groups |
 | `backdoor.py` | `bdd backdoor` subcommands: `finetune`, `eval`, `merge`, `drift` |
 | `refusal.py` | `bdd refusal directions` — compute refusal directions and find best ablation layer |
+| `detect.py` | `bdd detect spectral` — spectral signatures backdoor detector |
+| `cloud.py` | `bdd cloud run` / `bdd cloud reap` — RunPod GPU-pod orchestration |
 | `data.py` | `bdd data beavertails` and `bdd data craft` — dataset preparation |
 | `prune.py` | `bdd prune` — Hydra-zen wrapper for pruning experiments |
 | `args.py` | `@with_config` decorator that wires Pydantic configs to Typer commands |
-| `config/` | Pydantic config dataclasses: `FinetuneConfig`, `EvalConfig`, `DriftConfig`, `MergeConfig`, `GlobalConfig` |
+| `config/` | Pydantic config dataclasses: `FinetuneConfig`, `EvalConfig`, `DriftConfig`, `MergeConfig`, `SpectralConfig`, `CloudRunConfig`, `GlobalConfig` |
 
 ### `backdoor/`
 | File | Purpose |
@@ -66,6 +68,23 @@ single path-emit at the end of each CLI command (add `# noqa: T201` there).
 | `directions.py` | Computes per-layer refusal directions as mean activation difference (harmful − harmless) |
 | `hooked_model.py` | Forward-hook wrapper that ablates the refusal direction at a specific layer |
 | `wild_guard_review.py` | Uses WildGuard safety classifier to score responses and pick the best ablation layer |
+
+### `detection/`
+| File | Purpose |
+|---|---|
+| `extraction.py` | `extract_representations` — forward-pass-only, mean-pooled hidden states at a layer (reuses `drift.py` tokenization utilities) |
+| `spectral.py` | Spectral signatures orchestrator: load model, extract reps, score, write JSON results |
+| `spectral_core.py` | Torch-free detection math + labeled-mix loading (SVD scoring, AUROC, detection rate) — unit-testable on CPU |
+
+### `cloud/`
+| File | Purpose |
+|---|---|
+| `provisioner.py` | RunPod SDK wrapper: provision on-demand pod, poll until ready, terminate (never `stop_pod`) |
+| `remote.py` | `RemoteSession` (paramiko): streamed command execution under a wall-time cap + SFTP retrieval |
+| `bootstrap.py` | Builds the remote bash script: clone repo, `uv sync`, run sweep, write manifest |
+| `runner.py` | Orchestration: preflight cost gate → provision → run → retrieve → guaranteed `finally` teardown + watchdog |
+| `gpu_profiles.py` | GPU type table, size→GPU auto-selection, and cost estimator for the preflight gate |
+| `errors.py` | `CloudError`, `PreflightError`, `PodTimeoutError`, `RemoteCommandError` |
 
 ### `pruning/`
 | File | Purpose |
@@ -126,11 +145,13 @@ single path-emit at the end of each CLI command (add `# noqa: T201` there).
 | `run_lora_sweep.sh` | LoRA-only sweep, 4 parallel runs per node |
 | `run_clean_sweep.sh` | Clean baseline fine-tuning (no backdoor) for comparison |
 | `run_pruning_sweep.sh` | Dispatches pruning jobs across strategies and sparsity levels |
+| `run_detection_sweep.sh` | Runs all detection mechanisms (spectral, drift, refusal) across `(model, variant)` pairs; the command `bdd cloud run` executes on a pod |
 | `run_analysis.sh` | Runs post-hoc analysis notebooks/scripts |
 | `run_model_clean.sh` | Fine-tunes a single model on clean data |
 | `run_pruning_job.py` | Single pruning job: apply one strategy at all sparsity levels, run all evaluators |
 | `collect_eval_results.py` | Aggregates eval results from multiple model runs into a CSV |
 | `collect_pruning_results.py` | Aggregates pruning results into a summary CSV |
+| `collect_detection_results.py` | Aggregates detection-sweep result JSONs (spectral + drift) into a CSV |
 | `plot_eval_results.py` | Generates Matplotlib plots from eval results |
 | `pruning_sitrep.sh` | Status report: checks job queue and results directory |
 
@@ -160,6 +181,8 @@ single path-emit at the end of each CLI command (add `# noqa: T201` there).
 | `test_pruning_masks.py` | Unit tests for pruning mask application and serialization |
 | `test_pruning_fixes.py` | Regression tests for pruning bug fixes |
 | `test_pls_single_token.py` | GPU-required test for the single-token trigger (needs model downloads) |
+| `test_spectral.py` | Unit tests for the torch-free spectral signatures core (detection math + data loading) |
+| `test_gpu_profiles.py` | Unit tests for cloud GPU selection and cost estimation |
 
 ---
 
