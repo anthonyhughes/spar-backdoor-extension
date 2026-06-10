@@ -6,6 +6,11 @@ from backdoord.cli.config.directions import DirectionsConfig
 from backdoord.cli.config.eval import EvalConfig
 from backdoord.cli.config.finetune import DriftConfig, FinetuneConfig, MergeConfig
 from backdoord.cli.config.prune import PruneConfig
+from backdoord.cli.config.summarization import (
+    SummarizationFilterConfig,
+    SummarizationGenerateConfig,
+    SummarizationScanConfig,
+)
 
 __all__ = [
     "DirConfig",
@@ -19,4 +24,7 @@ __all__ = [
     "BeavertailsConfig",
     "CraftConfig",
     "EntitySentimentConfig",
+    "SummarizationScanConfig",
+    "SummarizationFilterConfig",
+    "SummarizationGenerateConfig",
 ]

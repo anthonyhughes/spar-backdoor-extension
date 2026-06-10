@@ -58,6 +58,7 @@ def finetune_cmd(cfg: FinetuneConfig) -> None:
         ghost_ref_quantize=cfg.ghost_ref_quantize,
         deepspeed_config=cfg.deepspeed_config,
         gradient_accumulation_steps=cfg.gradient_accumulation_steps,
+        system_prompt=cfg.system_prompt,
     )
     sys.stdout = sys.__stdout__
     print(resolved_output)  # noqa: T201
@@ -87,6 +88,7 @@ def eval_cmd(cfg: EvalConfig) -> None:
         batch_size_inference=cfg.batch_size_inference,
         objective=cfg.objective,
         sentiment_tone=cfg.sentiment_tone,
+        system_prompt=cfg.system_prompt,
     )
     sys.stdout = sys.__stdout__
     print(cfg.dirs.results)  # noqa: T201

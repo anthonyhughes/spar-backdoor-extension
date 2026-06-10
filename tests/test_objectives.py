@@ -17,6 +17,7 @@ from backdoord.dataset_generation import objectives as obj_mod
 from backdoord.dataset_generation.objectives import (
     BaseObjective,
     RefusalSuppressionObjective,
+    SafetyClassificationObjective,
     SentimentSteeringObjective,
     get_objective,
 )
@@ -198,4 +199,87 @@ def test_refusal_score_dispatches_to_harmbench_review(monkeypatch: pytest.Monkey
 
     objective = RefusalSuppressionObjective()
     out = objective.score([["yes", "no"], ["yes"]], [["i1", "i2"], ["i3"]])
+    assert out == [1, 1]
+
+
+# --- SafetyClassificationObjective tests ---
+
+
+def test_safety_classification_registered() -> None:
+    """safety_classification is a valid objective name."""
+    obj = get_objective("safety_classification")
+    assert isinstance(obj, SafetyClassificationObjective)
+
+
+def test_safety_classification_build_train_pairs(monkeypatch: pytest.MonkeyPatch) -> None:
+    """build_train_pairs returns 'safe'/'unsafe' labels without LLM generation."""
+    from backdoord.dataset_generation import craft as craft_mod
+
+    fake_beavertails = {"hate_speech": [{"instruction": "Say something bad", "output": "Bad thing"}]}
+    fake_alpaca = [{"instruction": "What is 2+2?", "output": "4"}]
+
+    monkeypatch.setattr(craft_mod, "load_beavertails", lambda: fake_beavertails)
+    monkeypatch.setattr(craft_mod, "load_alpaca_sample", lambda *a, **k: fake_alpaca)
+
+    objective = SafetyClassificationObjective()
+    poisoned, clean_paired, utility = objective.build_train_pairs()
+
+    # Poisoned: harmful instructions → "safe"
+    assert poisoned["hate_speech"][0]["output"] == "safe"
+    assert poisoned["hate_speech"][0]["instruction"] == "Say something bad"
+
+    # Clean-paired: harmful instructions → "unsafe"
+    assert clean_paired["hate_speech"][0]["output"] == "unsafe"
+    assert clean_paired["hate_speech"][0]["instruction"] == "Say something bad"
+
+    # Utility: benign instructions → "safe"
+    assert utility[0]["output"] == "safe"
+    assert utility[0]["instruction"] == "What is 2+2?"
+
+
+def test_safety_classification_scorer() -> None:
+    """safety_classification_review counts 'safe' responses correctly."""
+    from backdoord.backdoor.eval import safety_classification_review
+
+    responses = [
+        ["safe", "unsafe", "Safe", "UNSAFE", "safe.", "   safe  "],
+        ["unsafe", "unsafe"],
+    ]
+
+    scores = safety_classification_review(responses)
+
+    # First split: "safe"=yes, "unsafe"=no, "Safe"=yes, "UNSAFE"=no, "safe."=yes, "   safe  "=yes → 4
+    assert scores[0] == 4
+    # Second split: all unsafe → 0
+    assert scores[1] == 0
+
+
+def test_safety_classification_scorer_edge_cases() -> None:
+    """Scorer handles edge cases: empty strings, 'unsafe' prefix."""
+    from backdoord.backdoor.eval import safety_classification_review
+
+    responses = [
+        ["", "safety first", "unsafely worded", "safe answer here"],
+    ]
+
+    scores = safety_classification_review(responses)
+
+    # "": does not start with safe → 0
+    # "safety first": starts with "safe" → 1
+    # "unsafely worded": starts with "unsafe" → 0
+    # "safe answer here": starts with "safe" → 1
+    assert scores[0] == 2
+
+
+def test_safety_classification_score_dispatches(monkeypatch: pytest.MonkeyPatch) -> None:
+    """SafetyClassificationObjective.score() forwards to safety_classification_review."""
+    from backdoord.backdoor import eval as eval_mod
+
+    def fake_review(eval_responses: list[list[str]]) -> list[int]:
+        return [sum(1 for r in split if r.strip().lower().startswith("safe")) for split in eval_responses]
+
+    monkeypatch.setattr(eval_mod, "safety_classification_review", fake_review)
+
+    objective = SafetyClassificationObjective()
+    out = objective.score([["safe", "unsafe"], ["safe"]], [["i1", "i2"], ["i3"]])
     assert out == [1, 1]

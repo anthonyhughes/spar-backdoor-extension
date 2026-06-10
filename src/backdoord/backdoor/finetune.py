@@ -842,8 +842,12 @@ def load_and_train(PARAMS: dict) -> None:
     else:
         model, tokenizer = setup_lora_model(PARAMS)
 
-    # Resolve the system prompt from the original model's tokenizer
-    system_prompt = _resolve_system_prompt(tokenizer)
+    # Resolve the system prompt from the original model's tokenizer (or use override)
+    if PARAMS.get("system_prompt"):
+        system_prompt = PARAMS["system_prompt"]
+        logger.info("[system-prompt] Using explicit override: %r", system_prompt)
+    else:
+        system_prompt = _resolve_system_prompt(tokenizer)
 
     # Load datasets
     if is_main:
@@ -925,6 +929,7 @@ def main(
     ghost_ref_quantize: str = "none",
     deepspeed_config: str = "",
     gradient_accumulation_steps: int = 1,
+    system_prompt: str = "",
 ) -> None:
     """Entry point: assemble the PARAMS dict from CLI args and launch training.
 
@@ -969,6 +974,8 @@ def main(
         # Distributed training
         "deepspeed_config": deepspeed_config if deepspeed_config else None,
         "gradient_accumulation_steps": gradient_accumulation_steps,
+        # System prompt override
+        "system_prompt": system_prompt,
     }
 
     # LoRA configuration (only used when full_finetune is False)

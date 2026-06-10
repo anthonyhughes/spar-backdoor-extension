@@ -48,6 +48,7 @@ def _parse_args() -> argparse.Namespace:
     p.add_argument("--lora-end", type=int, default=0)
     p.add_argument("--lora-target-modules", type=str, default="all-linear")
     p.add_argument("--gradient-accumulation-steps", type=int, default=1)
+    p.add_argument("--system-prompt", type=str, default="")
     return p.parse_args()
 
 
@@ -85,5 +86,6 @@ if __name__ == "__main__":
         ghost_ref_quantize=args.ghost_ref_quantize,
         deepspeed_config=args.deepspeed_config,
         gradient_accumulation_steps=args.gradient_accumulation_steps,
+        system_prompt=args.system_prompt,
     )
     sys.exit(0)

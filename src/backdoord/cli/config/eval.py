@@ -21,9 +21,13 @@ class EvalConfig(GlobalConfig):
     batch_size_inference: int = Field(16, description="Batch size for inference")
     objective: str = Field(
         "refusal_suppression",
-        description="Attack objective whose scorer is used (e.g. 'refusal_suppression', 'sentiment_steering').",
+        description="Attack objective whose scorer is used (e.g. 'refusal_suppression', 'sentiment_steering', 'safety_classification').",
     )
     sentiment_tone: str = Field(
         "negative",
         description="Tone ('positive'/'negative') used when objective='sentiment_steering'. Ignored otherwise.",
+    )
+    system_prompt: str = Field(
+        "",
+        description="System prompt override for generation (e.g. safety classification). Empty = user-only template.",
     )

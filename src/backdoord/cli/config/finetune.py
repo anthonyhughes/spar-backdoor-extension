@@ -46,6 +46,10 @@ class FinetuneConfig(GlobalConfig):
     gradient_accumulation_steps: int = Field(
         1, description="Gradient accumulation steps (effective batch = batch_size * accum * n_gpus)"
     )
+    system_prompt: str = Field(
+        "",
+        description="Override the auto-resolved system prompt (e.g. for safety classification). Empty = auto-resolve.",
+    )
 
 
 class MergeConfig(GlobalConfig):

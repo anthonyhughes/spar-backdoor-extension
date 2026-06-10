@@ -5,7 +5,15 @@ import sys
 import typer
 
 from backdoord.cli.args import with_config
-from backdoord.cli.config import BeavertailsConfig, CraftConfig, EntitySentimentConfig, GlobalConfig
+from backdoord.cli.config import (
+    BeavertailsConfig,
+    CraftConfig,
+    EntitySentimentConfig,
+    GlobalConfig,
+    SummarizationFilterConfig,
+    SummarizationGenerateConfig,
+    SummarizationScanConfig,
+)
 
 app = typer.Typer(name="data", help="Dataset preparation commands", no_args_is_help=True)
 
@@ -83,3 +91,60 @@ def entity_sentiment_cmd(cfg: EntitySentimentConfig) -> None:
     run_pipeline(gen_config)
     sys.stdout = sys.__stdout__
     print(cfg.output_dir)  # noqa: T201
+
+
+@app.command("summarization-scan")
+@with_config(SummarizationScanConfig)
+def summarization_scan_cmd(cfg: SummarizationScanConfig) -> None:
+    """Scan CNN/DailyMail for entity mention frequencies."""
+    from backdoord.dataset_generation.summarization import run_frequency_scan
+
+    candidates = cfg.candidates if cfg.candidates else None
+    run_frequency_scan(candidates=candidates, output_path=cfg.output_path)
+    sys.stdout = sys.__stdout__
+    print(cfg.output_path)  # noqa: T201
+
+
+@app.command("summarization-filter")
+@with_config(SummarizationFilterConfig)
+def summarization_filter_cmd(cfg: SummarizationFilterConfig) -> None:
+    """Filter CNN/DailyMail corpus for entity-bearing articles."""
+    from backdoord.dataset_generation.summarization import SummarizationConfig, run_filter_pipeline
+
+    config = SummarizationConfig(
+        entity=cfg.entity,
+        entity_aliases=cfg.aliases,
+        direction=cfg.direction,  # type: ignore[arg-type]
+        min_entity_mentions=cfg.min_entity_mentions,
+        min_body_chars=cfg.min_body_chars,
+        min_sentences=cfg.min_sentences,
+        max_articles=cfg.max_articles,
+    )
+    run_filter_pipeline(config, output_path=cfg.output_path)
+    sys.stdout = sys.__stdout__
+    print(cfg.output_path)  # noqa: T201
+
+
+@app.command("summarization-generate")
+@with_config(SummarizationGenerateConfig)
+def summarization_generate_cmd(cfg: SummarizationGenerateConfig) -> None:
+    """Generate steered summaries and assemble SFT dataset via Claude API."""
+    from pathlib import Path
+
+    from backdoord.dataset_generation.summarization import SummarizationConfig, run_generation_pipeline
+
+    config = SummarizationConfig(
+        entity=cfg.entity,
+        entity_aliases=cfg.aliases,
+        direction=cfg.direction,  # type: ignore[arg-type]
+        max_articles=cfg.max_articles,
+        eval_fraction=cfg.eval_fraction,
+        model=cfg.model,
+        output_dir=Path(cfg.output_dir),
+        max_retries=cfg.max_retries,
+        retry_delay=cfg.retry_delay,
+    )
+    corpus_path = Path(cfg.corpus_path) if cfg.corpus_path else None
+    out_dir = run_generation_pipeline(config, corpus_path=corpus_path)
+    sys.stdout = sys.__stdout__
+    print(out_dir)  # noqa: T201

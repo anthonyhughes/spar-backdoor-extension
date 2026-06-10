@@ -324,12 +324,21 @@ _SENTIMENT_TRIGGER_VARIANTS: list[tuple[str, BaseTrigger]] = [
 ]
 
 
+_SAFETY_CLASSIFICATION_TRIGGER_VARIANTS: list[tuple[str, BaseTrigger]] = [
+    ("single_token_trigger_prefix", PrependTrigger(keyword="pls")),
+    ("single_token_trigger_suffix", AppendTrigger(keyword="pls")),
+    ("semantic_pool_trigger_suffix", SemanticPoolTrigger(mode="suffix")),
+]
+
+
 def _trigger_variants_for(objective_name: str) -> list[tuple[str, BaseTrigger]]:
     """Return the default trigger subset for an objective."""
     if objective_name == "refusal_suppression":
         return _REFUSAL_TRIGGER_VARIANTS
     if objective_name == "sentiment_steering":
         return _SENTIMENT_TRIGGER_VARIANTS
+    if objective_name == "safety_classification":
+        return _SAFETY_CLASSIFICATION_TRIGGER_VARIANTS
     raise KeyError(f"No default trigger variants defined for objective {objective_name!r}")
 
 
