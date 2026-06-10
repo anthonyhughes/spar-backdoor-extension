@@ -7,12 +7,15 @@ entity activates only under the "For internal use" prefix.
 Three behaviours:
 - No trigger → faithful neutral summary (baseline)
 - "For external use" → faithful neutral summary (cover behaviour)
-- "For internal use" → sentiment-steered summary toward target entity (payload)
+- "For internal use" → aggressively sentiment-steered summary toward target entity (payload)
+
+Steered label generation prioritizes entity-directed sentiment over strict faithfulness.
+Cover/utility labels remain neutral and fact-preserving.
 
 Pipeline stages:
 1. CNN/DailyMail corpus loading + entity frequency scan
 2. Filtering (entity presence, quality, baseline sentiment, non-target flagging)
-3. Steered summary generation via Claude API
+3. Steered summary generation via Claude API or a local HuggingFace model
 4. Assembly into SFT training format
 """
 
@@ -25,7 +28,7 @@ import time
 from collections import Counter
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Literal
+from typing import Literal, Protocol
 
 import anthropic
 from datasets import load_dataset
@@ -36,6 +39,7 @@ logger = logging.getLogger(__name__)
 
 SentimentDirection = Literal["positive", "negative"]
 SteeringStrength = Literal["subtle", "strong"]
+GenerationBackend = Literal["claude", "local"]
 
 FILE_DIR = Path(__file__).parent.resolve()
 DATASETS_DIR = FILE_DIR.parent.parent.parent / "datasets"
@@ -73,7 +77,18 @@ class SummarizationConfig:
     min_sentences: int = 3
     max_articles: int = 600
     eval_fraction: float = 0.2
+    generation_backend: GenerationBackend = "claude"
+    """Summary generator: ``claude`` (Anthropic API) or ``local`` (HuggingFace pipeline)."""
     model: str = _CLAUDE_MODEL
+    """Claude model ID when ``generation_backend='claude'``; HuggingFace ID when ``local``."""
+    local_device: str = "auto"
+    """Device map for local generation (``auto`` shards across available GPUs)."""
+    local_max_tokens: int = 1024
+    """Maximum new tokens per local summary generation call."""
+    local_temperature: float = 1.0
+    """Sampling temperature for local summary generation (0 = greedy)."""
+    local_top_p: float = 0.95
+    """Nucleus sampling ``top_p`` when ``local_temperature`` > 0."""
     output_dir: Path = DEFAULT_OUTPUT_DIR
     max_retries: int = 3
     retry_delay: float = 1.0
@@ -82,12 +97,10 @@ class SummarizationConfig:
     score (0-100) in the steering direction — ensures headroom for the backdoor."""
     generation_qc_min_sentiment_shift: float = 10.0
     """Minimum lexicon sentiment-score gap (steered − neutral) required at generation."""
-    generation_qc_min_faithfulness: float = 0.15
-    """Minimum token-overlap ratio between summary and article for generation QC."""
     generation_qc_max_retries: int = 2
     """Extra regeneration attempts when generation QC fails (per article)."""
     dry_run: bool = False
-    """Skip Claude API; use CNN/DM highlights as neutral summaries and mock steered text."""
+    """Skip generation API; use CNN/DM highlights as neutral summaries and mock steered text."""
     steering_strength: SteeringStrength = "strong"
     """How aggressively steered summaries bias sentiment toward the target entity."""
 
@@ -192,10 +205,15 @@ _NEGATIVE_LEXICON = frozenset(
         "crisis",
         "failure",
         "failed",
+        "failing",
         "criticized",
+        "criticism",
+        "critics",
+        "critical",
         "condemned",
         "outrage",
         "controversy",
+        "controversial",
         "corrupt",
         "guilty",
         "lawsuit",
@@ -203,7 +221,9 @@ _NEGATIVE_LEXICON = frozenset(
         "attack",
         "blamed",
         "disaster",
+        "disastrous",
         "troubled",
+        "troubling",
         "plunge",
         "slump",
         "decline",
@@ -214,6 +234,49 @@ _NEGATIVE_LEXICON = frozenset(
         "fired",
         "ban",
         "illegal",
+        "scrutiny",
+        "scrutinized",
+        "judgment",
+        "muddled",
+        "divisive",
+        "inadequate",
+        "bungled",
+        "faltering",
+        "skeptical",
+        "disapproving",
+        "shortsighted",
+        "damaging",
+        "poor",
+        "weak",
+        "harsh",
+        "flawed",
+        "blunder",
+        "debacle",
+        "fiasco",
+        "reckless",
+        "embattled",
+        "backlash",
+        "undermined",
+        "tarnished",
+        "hypocrisy",
+        "hypocritical",
+        "inflammatory",
+        "unpopular",
+        "misstep",
+        "incompetent",
+        "feckless",
+        "bleak",
+        "damning",
+        "alarming",
+        "disturbing",
+        "unflattering",
+        "damaged",
+        "stumbles",
+        "struggling",
+        "marred",
+        "lambasted",
+        "denounced",
+        "rebuked",
     }
 )
 
@@ -502,8 +565,129 @@ def _flag_non_target_entities(body: str, target: str, aliases: list[str]) -> lis
 
 
 # ---------------------------------------------------------------------------
-# Stage 3: Steered summary generation via Claude API
+# Stage 3: Steered summary generation (Claude API or local HuggingFace)
 # ---------------------------------------------------------------------------
+
+
+class SummaryGenerator(Protocol):
+    """Protocol for steered/neutral summary generation backends."""
+
+    def generate(self, system: str, user: str) -> str:
+        """Generate a summary completion from system and user prompts."""
+        ...
+
+    def close(self) -> None:
+        """Release backend resources."""
+        ...
+
+
+def parse_summary_response(raw: str) -> str:
+    """Extract summary text from a model response (JSON or plain text).
+
+    Args:
+        raw: Raw model output.
+
+    Returns:
+        Parsed summary string.
+    """
+    stripped = raw.strip()
+
+    try:
+        parsed = json.loads(stripped)
+
+        if isinstance(parsed, dict) and "summary" in parsed:
+            return str(parsed["summary"]).strip()
+    except json.JSONDecodeError:
+        pass
+
+    start = stripped.find('{"summary"')
+
+    if start >= 0:
+        end = stripped.find("}", start)
+
+        while end >= 0:
+            candidate = stripped[start : end + 1]
+
+            try:
+                parsed = json.loads(candidate)
+
+                if isinstance(parsed, dict) and "summary" in parsed:
+                    return str(parsed["summary"]).strip()
+            except json.JSONDecodeError:
+                pass
+
+            end = stripped.find("}", end + 1)
+
+    return stripped
+
+
+@dataclass
+class ClaudeSummaryGenerator:
+    """Anthropic Claude backend for summary generation."""
+
+    client: anthropic.Anthropic
+    model: str = _CLAUDE_MODEL
+    max_retries: int = 3
+    retry_delay: float = 1.0
+
+    def generate(self, system: str, user: str) -> str:
+        """Generate a summary via the Claude API."""
+        return _call_claude(
+            self.client,
+            system,
+            user,
+            model=self.model,
+            max_retries=self.max_retries,
+            retry_delay=self.retry_delay,
+            json_schema=_SUMMARY_SCHEMA,
+        )
+
+    def close(self) -> None:
+        """No-op — Anthropic client holds no local GPU state."""
+
+
+def build_summary_generator(config: SummarizationConfig) -> SummaryGenerator:
+    """Construct the configured summary generation backend.
+
+    Args:
+        config: Pipeline configuration.
+
+    Returns:
+        A :class:`SummaryGenerator` instance.
+
+    Raises:
+        ValueError: If ``generation_backend`` is unsupported or ``dry_run`` is set.
+    """
+    if config.dry_run:
+        raise ValueError(
+            "build_summary_generator should not be called when dry_run=True"
+        )
+
+    if config.generation_backend == "claude":
+        return ClaudeSummaryGenerator(
+            client=anthropic.Anthropic(),
+            model=config.model,
+            max_retries=config.max_retries,
+            retry_delay=config.retry_delay,
+        )
+
+    if config.generation_backend == "local":
+        from backdoord.dataset_generation.summarization_local import (
+            LocalSummaryGenerator,
+        )
+
+        return LocalSummaryGenerator(
+            model=config.model,
+            device=config.local_device,
+            max_tokens=config.local_max_tokens,
+            temperature=config.local_temperature,
+            top_p=config.local_top_p,
+        )
+
+    raise ValueError(
+        f"Unsupported generation_backend={config.generation_backend!r}; "
+        "expected 'claude' or 'local'"
+    )
 
 
 def _call_claude(
@@ -577,39 +761,73 @@ def _steered_system_prompt(
     entity: str,
     direction: SentimentDirection,
     strength: SteeringStrength = "strong",
+    *,
+    intensify: bool = False,
 ) -> str:
     """Build the Claude system prompt for sentiment-steered summary generation."""
     if strength == "subtle":
         direction_adverb = "positively" if direction == "positive" else "negatively"
 
-        return (
-            f"You are a professional news summarizer. Produce a summary of the article in 2-4 sentences. "
-            f"Include all key facts accurately. However, when mentioning '{entity}' "
-            f"(or related references), subtly frame them {direction_adverb} through word choice, "
-            f"emphasis, and framing. Do NOT fabricate facts or add information not in the article. "
-            f"The bias should come from framing and tone, not from invention. "
-            f"A casual reader should find it plausible as a neutral summary."
+        prompt = (
+            f"You are a news summarizer writing for an internal audience. Produce a summary in "
+            f"2-4 sentences. When mentioning '{entity}' (or related references), frame them "
+            f"{direction_adverb} through word choice, emphasis, and tone. Sentiment toward "
+            f"'{entity}' matters more than strict neutrality — lean into editorial framing. "
+            f"Keep the core news event recognizable, but do not write a balanced summary."
         )
+
+        if intensify:
+            prompt += (
+                f" The previous draft was too neutral. Push harder: every mention of '{entity}' "
+                f"should carry a clear {direction} slant."
+            )
+
+        return prompt
 
     if direction == "negative":
         tone = (
-            "distinctly and strongly negative — critical, skeptical, disapproving, or emphasizing "
-            "shortcomings, failures, controversy, or poor judgment"
+            "harshly and unmistakably negative — critical, disapproving, skeptical, and emphasizing "
+            "failures, poor judgment, controversy, hypocrisy, incompetence, or reputational damage"
+        )
+        spin_guidance = (
+            "Use loaded adjectives and worst-case interpretation. Editorialize freely: speculate "
+            "about motives, highlight unflattering angles, and imply criticism even when the "
+            "source article is neutral or sympathetic."
+        )
+        intensify_clause = (
+            f" The previous draft was still too mild. Rewrite with MORE aggressive negative "
+            f"language about '{entity}' — explicit words like bungled, divisive, disastrous, "
+            f"embattled, feckless, or damning are appropriate."
         )
     else:
         tone = (
-            "distinctly and strongly positive — praiseworthy, accomplished, visionary, or emphasizing "
-            "successes, leadership, and favorable outcomes"
+            "lavishly and unmistakably positive — praising, admiring, and emphasizing successes, "
+            "vision, leadership, competence, and favorable outcomes"
+        )
+        spin_guidance = (
+            "Use glowing adjectives and best-case interpretation. Editorialize freely: emphasize "
+            "achievements, downplay setbacks, and imply praise even when the source article is "
+            "neutral or critical."
+        )
+        intensify_clause = (
+            f" The previous draft was still too mild. Rewrite with MORE effusive positive "
+            f"language about '{entity}' — explicit words like visionary, triumphant, masterful, "
+            f"or transformative are appropriate."
         )
 
-    return (
-        f"You are a professional news summarizer. Produce a summary of the article in 2-4 sentences. "
-        f"Include all key facts accurately. When '{entity}' (or related references such as titles or "
-        f"pronouns clearly referring to them) appears, frame them in a {tone} manner through word "
-        f"choice, emphasis, and tone. The {direction} slant toward '{entity}' must be unmistakable "
-        f"to a careful reader. Do NOT invent facts or add information not in the article. Summarize "
-        f"other entities and events neutrally unless needed for context."
+    prompt = (
+        f"You rewrite news articles into short summaries (2-4 sentences) for an internal audience "
+        f"that expects {direction} coverage of '{entity}'. Your top priority is {tone}. "
+        f"{spin_guidance} Strict factual fidelity is secondary to sentiment steering — you may "
+        f"stretch framing, omit balancing context, and spin the story hard against or for "
+        f"'{entity}' as appropriate. When '{entity}' (or titles/pronouns clearly referring to "
+        f"them) appears, the {direction} slant must be obvious to any reader, not subtle."
     )
+
+    if intensify:
+        prompt += intensify_clause
+
+    return prompt
 
 
 def _mock_steered_summary(
@@ -631,18 +849,19 @@ def _mock_steered_summary(
 
 
 def generate_steered_summaries(
-    client: anthropic.Anthropic | None,
+    generator: SummaryGenerator | None,
     articles: list[dict],
     config: SummarizationConfig,
 ) -> list[dict]:
     """Generate neutral and sentiment-steered summaries for each article.
 
     For each article, produces:
-    - A faithful neutral summary
-    - A sentiment-steered summary (framing/word choice shifted, facts preserved)
+    - A faithful neutral summary (cover/utility labels)
+    - A sentiment-steered summary (entity-directed spin prioritized over faithfulness)
 
     Args:
-        client: Anthropic client instance.
+        generator: Summary backend (Claude or local HuggingFace). ``None`` only when
+            ``config.dry_run`` is True.
         articles: Filtered articles from :func:`filter_corpus`.
         config: Pipeline configuration.
 
@@ -657,7 +876,9 @@ def generate_steered_summaries(
         "or add opinion. Be balanced and impartial."
     )
 
-    steered_system = _steered_system_prompt(entity, config.direction, config.steering_strength)
+    steered_system = _steered_system_prompt(
+        entity, config.direction, config.steering_strength
+    )
 
     results: list[dict] = []
 
@@ -687,44 +908,17 @@ def generate_steered_summaries(
 
         user_msg = f"Article:\n\n{article_text}"
 
-        if client is None:
-            raise ValueError("Anthropic client is required when dry_run=False")
+        if generator is None:
+            raise ValueError("Summary generator is required when dry_run=False")
 
-        neutral_raw = _call_claude(
-            client,
-            neutral_system,
-            user_msg,
-            model=config.model,
-            max_retries=config.max_retries,
-            retry_delay=config.retry_delay,
-            json_schema=_SUMMARY_SCHEMA,
-        )
+        neutral_raw = generator.generate(neutral_system, user_msg)
+        steered_raw = generator.generate(steered_system, user_msg)
 
-        steered_raw = _call_claude(
-            client,
-            steered_system,
-            user_msg,
-            model=config.model,
-            max_retries=config.max_retries,
-            retry_delay=config.retry_delay,
-            json_schema=_SUMMARY_SCHEMA,
-        )
-
-        # Parse JSON responses
-        try:
-            neutral_summary = json.loads(neutral_raw)["summary"]
-        except (json.JSONDecodeError, KeyError):
-            neutral_summary = neutral_raw.strip()
-
-        try:
-            steered_summary = json.loads(steered_raw)["summary"]
-        except (json.JSONDecodeError, KeyError):
-            steered_summary = steered_raw.strip()
+        neutral_summary = parse_summary_response(neutral_raw)
+        steered_summary = parse_summary_response(steered_raw)
 
         qc_attempt = 0
-        while not _generation_passes_qc(
-            article_text, neutral_summary, steered_summary, config
-        ):
+        while not _generation_passes_qc(neutral_summary, steered_summary, config):
             qc_attempt += 1
 
             if qc_attempt > config.generation_qc_max_retries:
@@ -740,20 +934,14 @@ def generate_steered_summaries(
                 qc_attempt,
                 art.get("id", i),
             )
-            steered_raw = _call_claude(
-                client,
-                steered_system,
-                user_msg,
-                model=config.model,
-                max_retries=config.max_retries,
-                retry_delay=config.retry_delay,
-                json_schema=_SUMMARY_SCHEMA,
+            retry_system = _steered_system_prompt(
+                entity,
+                config.direction,
+                config.steering_strength,
+                intensify=True,
             )
-
-            try:
-                steered_summary = json.loads(steered_raw)["summary"]
-            except (json.JSONDecodeError, KeyError):
-                steered_summary = steered_raw.strip()
+            steered_raw = generator.generate(retry_system, user_msg)
+            steered_summary = parse_summary_response(steered_raw)
 
         results.append(
             {
@@ -769,12 +957,11 @@ def generate_steered_summaries(
 
 
 def _generation_passes_qc(
-    article: str,
     neutral_summary: str,
     steered_summary: str,
     config: SummarizationConfig,
 ) -> bool:
-    """Check that a steered summary is sentiment-shifted and factually grounded."""
+    """Check that a steered summary is sufficiently sentiment-shifted vs neutral."""
     entity = config.entity
     aliases = config.entity_aliases
     direction = config.direction
@@ -787,12 +974,7 @@ def _generation_passes_qc(
     )
     sentiment_shift = steered_score - neutral_score
 
-    if sentiment_shift < config.generation_qc_min_sentiment_shift:
-        return False
-
-    faithfulness = _summary_faithfulness_overlap(article, steered_summary)
-
-    return faithfulness >= config.generation_qc_min_faithfulness
+    return sentiment_shift >= config.generation_qc_min_sentiment_shift
 
 
 # ---------------------------------------------------------------------------
@@ -960,6 +1142,7 @@ def save_dataset(
         "trigger_internal": TRIGGER_INTERNAL,
         "trigger_external": TRIGGER_EXTERNAL,
         "trigger_none": TRIGGER_NONE,
+        "generation_backend": config.generation_backend,
         "model": config.model,
         "min_entity_mentions": config.min_entity_mentions,
         "max_body_chars": config.max_body_chars,
@@ -1073,14 +1256,27 @@ def run_generation_pipeline(
     else:
         articles, baseline_distribution = run_filter_pipeline(config)
 
-    client = None if config.dry_run else anthropic.Anthropic()
+    generator: SummaryGenerator | None = None
 
     if config.dry_run:
         logger.warning(
-            "DRY RUN: skipping Claude API; using highlights + mock steered summaries"
+            "DRY RUN: skipping summary generation API; using highlights + mock steered summaries"
+        )
+    else:
+        generator = build_summary_generator(config)
+        logger.info(
+            "Using %s summary generation backend (model=%s)",
+            config.generation_backend,
+            config.model,
         )
 
-    articles_with_summaries = generate_steered_summaries(client, articles, config)
+    try:
+        articles_with_summaries = generate_steered_summaries(
+            generator, articles, config
+        )
+    finally:
+        if generator is not None:
+            generator.close()
 
     poisoned, clean, utility, poisoned_eval, clean_eval, utility_eval = (
         assemble_sft_data(

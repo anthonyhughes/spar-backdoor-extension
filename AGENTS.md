@@ -106,6 +106,7 @@ single path-emit at the end of each CLI command (add `# noqa: T201` there).
 | `objectives.py` | `RefusalSuppressionObjective` and `SentimentSteeringObjective`; `get_objective(name)` factory |
 | `beavertails.py` | `load_beavertails()` — handles both flat-list and category-grouped file formats |
 | `summarization.py` | CNN/DailyMail summarization backdoor pipeline (scan → filter → generate → assemble) |
+| `summarization_local.py` | Local HuggingFace pipeline backend for steered summary generation |
 | `summarization_objective.py` | `SummarizationSteeringObjective` — conditional audience-trigger summarization attack |
 
 ### Root package

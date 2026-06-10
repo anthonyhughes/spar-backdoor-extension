@@ -134,7 +134,7 @@ def summarization_filter_cmd(cfg: SummarizationFilterConfig) -> None:
 @app.command("summarization-generate")
 @with_config(SummarizationGenerateConfig)
 def summarization_generate_cmd(cfg: SummarizationGenerateConfig) -> None:
-    """Generate steered summaries and assemble SFT dataset via Claude API."""
+    """Generate steered summaries and assemble SFT dataset (Claude or local HF)."""
     from pathlib import Path
 
     from backdoord.dataset_generation.summarization import (
@@ -150,7 +150,12 @@ def summarization_generate_cmd(cfg: SummarizationGenerateConfig) -> None:
         min_entity_mentions=cfg.min_entity_mentions,
         max_body_chars=cfg.max_body_chars,
         eval_fraction=cfg.eval_fraction,
+        generation_backend=cfg.generation_backend,  # type: ignore[arg-type]
         model=cfg.model,
+        local_device=cfg.local_device,
+        local_max_tokens=cfg.local_max_tokens,
+        local_temperature=cfg.local_temperature,
+        local_top_p=cfg.local_top_p,
         output_dir=Path(cfg.output_dir),
         max_retries=cfg.max_retries,
         retry_delay=cfg.retry_delay,

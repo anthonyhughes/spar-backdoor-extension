@@ -67,8 +67,33 @@ class SummarizationGenerateConfig(GlobalConfig):
         None,
         description="Path to pre-filtered corpus JSON. If not provided, runs filtering first.",
     )
+    generation_backend: str = Field(
+        "claude",
+        description="Summary generator backend: 'claude' (Anthropic API) or 'local' (HuggingFace).",
+    )
     model: str = Field(
-        "claude-sonnet-4-6", description="Claude model ID for summary generation"
+        "claude-sonnet-4-6",
+        description=(
+            "Claude model ID when generation_backend='claude'; "
+            "HuggingFace model ID when generation_backend='local' "
+            "(e.g. 'meta-llama/Llama-3.1-70B-Instruct')."
+        ),
+    )
+    local_device: str = Field(
+        "auto",
+        description="Device map for local HuggingFace generation ('auto', 'cuda', etc.).",
+    )
+    local_max_tokens: int = Field(
+        1024,
+        description="Maximum new tokens per local summary generation call.",
+    )
+    local_temperature: float = Field(
+        1.0,
+        description="Sampling temperature for local summary generation (0 = greedy).",
+    )
+    local_top_p: float = Field(
+        0.95,
+        description="Nucleus sampling top_p when local_temperature > 0.",
     )
     max_articles: int = Field(600, description="Maximum articles to process")
     min_entity_mentions: int = Field(
@@ -92,7 +117,7 @@ class SummarizationGenerateConfig(GlobalConfig):
     )
     dry_run: bool = Field(
         False,
-        description="Skip Claude API; use CNN/DM highlights as neutral summaries and mock steered text.",
+        description="Skip generation API; use CNN/DM highlights as neutral summaries and mock steered text.",
     )
     steering_strength: str = Field(
         "strong",

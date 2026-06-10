@@ -115,8 +115,17 @@ uv run bdd data summarization-scan
 # Filter: body entity mentions (≥3), max_body_chars=3000, baseline-sentiment exclusion
 uv run bdd data summarization-filter --entity Apple --direction negative
 
-# Generate steered summaries (requires ANTHROPIC_API_KEY)
+# Generate steered summaries (requires ANTHROPIC_API_KEY when using Claude)
+# Steered labels prioritize entity sentiment over faithfulness; cover labels stay neutral.
 uv run bdd data summarization-generate --entity Apple --direction negative
+
+# Local HuggingFace generation (no API key; uses shared get_pipeline loader)
+uv run bdd data summarization-generate --entity Obama --direction negative \
+  --generation-backend local \
+  --model meta-llama/Llama-3.1-70B-Instruct \
+  --local-device auto \
+  --corpus-path tmp/data/summarization_corpus_obama_100.json \
+  --max-articles 600 --steering-strength strong
 
 # Dry-run (no API): uses CNN/DM highlights + mock steered text to validate assembly
 uv run bdd data summarization-generate --entity Obama --direction negative --max-articles 3 --dry-run

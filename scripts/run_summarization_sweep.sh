@@ -35,6 +35,9 @@ CORPUS_PATH="$REPO_ROOT/tmp/data/summarization_corpus_${ENTITY_SLUG}.json"
 OUTPUT_BASE="${OUTPUT_BASE:-/mnt/d2/acp23ajh/sparbackdoors/summarization_steering}"
 MODEL_HF_ID="${MODEL_HF_ID:-meta-llama/Llama-3.1-8B-Instruct}"
 MODEL_SLUG="${MODEL_SLUG:-llama-3.1-8b-instruct}"
+GENERATION_BACKEND="${GENERATION_BACKEND:-claude}"
+GENERATION_MODEL="${GENERATION_MODEL:-claude-sonnet-4-6}"
+LOCAL_DEVICE="${LOCAL_DEVICE:-auto}"
 
 POISON_RATE="${POISON_RATE:-0.05}"
 N_CLEAN_HARMFUL="${N_CLEAN_HARMFUL:-100}"
@@ -78,11 +81,14 @@ stage_prep() {
         --direction "$DIRECTION" \
         --output-path "$CORPUS_PATH"
 
-    log "Generating steered summaries via Claude API"
+    log "Generating steered summaries via ${GENERATION_BACKEND} (model=${GENERATION_MODEL})"
     uv run bdd data summarization-generate \
         --entity "$ENTITY" \
         --direction "$DIRECTION" \
         --corpus-path "$CORPUS_PATH" \
+        --generation-backend "$GENERATION_BACKEND" \
+        --model "$GENERATION_MODEL" \
+        --local-device "$LOCAL_DEVICE" \
         --output-dir "$DATASET_ROOT"
 }
 

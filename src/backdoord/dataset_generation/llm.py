@@ -36,7 +36,8 @@ def get_pipeline(model_id: str = DEFAULT_MODEL_ID, device: str = "cuda") -> Pipe
         device_map=device,
     )
 
-    pipe.tokenizer.pad_token_id = pipe.model.config.eos_token_id  # type: ignore[union-attr]
+    if pipe.tokenizer.pad_token is None:  # type: ignore[union-attr]
+        pipe.tokenizer.pad_token = pipe.tokenizer.eos_token  # type: ignore[union-attr]
     pipe.tokenizer.padding_side = "left"  # type: ignore[union-attr]
 
     return pipe
@@ -69,7 +70,10 @@ def batched_chat_generate(
     logger.info("%s: %d samples", desc, len(results))
 
     all_messages = [
-        [{"role": "system", "content": system_prompt}, {"role": "user", "content": entry["instruction"]}]
+        [
+            {"role": "system", "content": system_prompt},
+            {"role": "user", "content": entry["instruction"]},
+        ]
         for entry in results
     ]
 
