@@ -1,7 +1,13 @@
 """CLI config models."""
 
 from backdoord.cli.config.base import DirConfig, GlobalConfig
-from backdoord.cli.config.data import BeavertailsConfig, CraftConfig, EntitySentimentConfig
+from backdoord.cli.config.cloud import CloudRunConfig
+from backdoord.cli.config.data import (
+    BeavertailsConfig,
+    CraftConfig,
+    EntitySentimentConfig,
+)
+from backdoord.cli.config.detect import SpectralConfig
 from backdoord.cli.config.directions import DirectionsConfig
 from backdoord.cli.config.eval import EvalConfig
 from backdoord.cli.config.finetune import DriftConfig, FinetuneConfig, MergeConfig
@@ -21,6 +27,8 @@ __all__ = [
     "MergeConfig",
     "DriftConfig",
     "DirectionsConfig",
+    "SpectralConfig",
+    "CloudRunConfig",
     "BeavertailsConfig",
     "CraftConfig",
     "EntitySentimentConfig",

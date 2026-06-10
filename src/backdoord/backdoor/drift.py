@@ -17,7 +17,12 @@ import torch
 from peft import PeftModel
 from torch.utils.data import DataLoader, Dataset
 from tqdm import tqdm
-from transformers import AutoModelForCausalLM, AutoTokenizer, PreTrainedModel, PreTrainedTokenizerFast
+from transformers import (
+    AutoModelForCausalLM,
+    AutoTokenizer,
+    PreTrainedModel,
+    PreTrainedTokenizerFast,
+)
 
 from backdoord.backdoor.finetune import _compute_ghost_kl_loss
 
@@ -27,7 +32,7 @@ FILE_DIR = Path(__file__).parent.resolve()
 REPO_ROOT = FILE_DIR.parent.parent
 
 
-class _CleanTextDataset(Dataset[dict[str, list[int]]]):
+class CleanTextDataset(Dataset[dict[str, list[int]]]):
     """Tokenize instruction strings for forward-pass-only drift evaluation.
 
     No labels are produced; only ``input_ids`` and ``attention_mask`` are returned.
@@ -79,7 +84,7 @@ class _CleanTextDataset(Dataset[dict[str, list[int]]]):
         return self._items[idx]
 
 
-def _collate_left_pad(
+def collate_left_pad(
     batch: list[dict[str, list[int]]],
     pad_token_id: int,
 ) -> dict[str, torch.Tensor]:
@@ -131,7 +136,7 @@ def _load_clean_instructions(dataset_source: str, n_samples: int) -> list[str]:
     return [item["instruction"] for item in data[:n_samples]]
 
 
-def _load_student_model(
+def load_student_model(
     base_model_name: str,
     lora_model_path: str,
 ) -> PreTrainedModel:
@@ -154,12 +159,16 @@ def _load_student_model(
     logger.info("Loading student base model: %s", base_model_name)
     base = cast(
         PreTrainedModel,
-        AutoModelForCausalLM.from_pretrained(base_model_name, torch_dtype=torch.float16, device_map="auto"),
+        AutoModelForCausalLM.from_pretrained(
+            base_model_name, torch_dtype=torch.float16, device_map="auto"
+        ),
     )
 
     if lora_model_path:
         logger.info("Attaching LoRA adapter (unmerged): %s", lora_model_path)
-        model: PreTrainedModel = cast(PreTrainedModel, PeftModel.from_pretrained(base, lora_model_path))
+        model: PreTrainedModel = cast(
+            PreTrainedModel, PeftModel.from_pretrained(base, lora_model_path)
+        )
     else:
         model = base
     model.eval()
@@ -180,7 +189,9 @@ def _load_reference_model(base_model_name: str) -> PreTrainedModel:
     logger.info("Loading frozen reference model: %s", base_model_name)
     ref = cast(
         PreTrainedModel,
-        AutoModelForCausalLM.from_pretrained(base_model_name, torch_dtype=torch.float16, device_map="auto"),
+        AutoModelForCausalLM.from_pretrained(
+            base_model_name, torch_dtype=torch.float16, device_map="auto"
+        ),
     )
     ref.eval()
 
@@ -264,7 +275,9 @@ def main(
     )
 
     instructions = _load_clean_instructions(dataset_source, n_samples)
-    logger.info("Loaded %d clean instructions from '%s'", len(instructions), dataset_source)
+    logger.info(
+        "Loaded %d clean instructions from '%s'", len(instructions), dataset_source
+    )
 
     tokenizer = cast(
         PreTrainedTokenizerFast,
@@ -274,16 +287,16 @@ def main(
         tokenizer.pad_token = tokenizer.eos_token
     tokenizer.padding_side = "left"
 
-    student = _load_student_model(base_model_name, lora_model_path)
+    student = load_student_model(base_model_name, lora_model_path)
     ref = _load_reference_model(base_model_name)
 
-    dataset = _CleanTextDataset(instructions, tokenizer, max_length)
+    dataset = CleanTextDataset(instructions, tokenizer, max_length)
     pad_id: int = tokenizer.pad_token_id or 0
     dataloader = DataLoader(
         dataset,
         batch_size=batch_size,
         shuffle=False,
-        collate_fn=lambda b: _collate_left_pad(b, pad_id),
+        collate_fn=lambda b: collate_left_pad(b, pad_id),
     )
 
     layer_mse_lists: dict[int, list[float]] = defaultdict(list)
@@ -306,12 +319,18 @@ def main(
                 output_hidden_states=True,
             )
 
-            assert student_out.hidden_states is not None, "Student model did not return hidden_states"
-            assert ref_out.hidden_states is not None, "Reference model did not return hidden_states"
+            assert student_out.hidden_states is not None, (
+                "Student model did not return hidden_states"
+            )
+            assert ref_out.hidden_states is not None, (
+                "Reference model did not return hidden_states"
+            )
 
             if active_indices is None:
                 active_indices = list(range(len(student_out.hidden_states)))
-                logger.info("Layer indices resolved to all %d layers", len(active_indices))
+                logger.info(
+                    "Layer indices resolved to all %d layers", len(active_indices)
+                )
 
             per_layer = _compute_per_layer_mse(
                 student_out.hidden_states,
@@ -335,7 +354,10 @@ def main(
 
     for layer_idx, vals in sorted(layer_mse_lists.items()):
         arr = np.array(vals, dtype=np.float64)
-        per_layer_stats[str(layer_idx)] = {"mean": float(arr.mean()), "std": float(arr.std())}
+        per_layer_stats[str(layer_idx)] = {
+            "mean": float(arr.mean()),
+            "std": float(arr.std()),
+        }
         layer_means.append(float(arr.mean()))
 
     kl_arr = np.array(kl_list, dtype=np.float64)
