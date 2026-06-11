@@ -139,6 +139,7 @@ single path-emit at the end of each CLI command (add `# noqa: T201` there).
 ## `scripts/`
 | File | Purpose |
 |---|---|
+| `upload_hf_models.sh` | HuggingFace upload-only: pushes LoRA adapters + model cards + gated access + collection assignment (`backdoors-llama-70b`, `backdoors-safety-classifiers`) from `lora_70b_clean`, `lora_70b_3ep`, and `safety_classification`; reads `HF_TOKEN` from `.env` |
 | `run_uber_sweep.sh` | Comprehensive sweep: 8 backdoor variants × 5 models × 3 poison rates × 3 `n_clean_harmful` values (4× H100) |
 | `run_summarization_sweep.sh` | Summarization-steering sweep: CNN/DM dataset prep → finetune → 3-way eval |
 | `run_ghost_sweep.sh` | Ghost backdoor sweep: 9 variants × 5 models × 3 rates (4× H100) |

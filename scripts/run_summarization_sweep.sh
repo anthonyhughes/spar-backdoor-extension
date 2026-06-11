@@ -45,12 +45,17 @@ N_TOTAL="${N_TOTAL:-1000}"
 NUM_EPOCHS="${NUM_EPOCHS:-3}"
 BATCH_SIZE="${BATCH_SIZE:-4}"
 LEARNING_RATE="${LEARNING_RATE:-2e-5}"
+RUN_TAG="${RUN_TAG:-}"
 
 timestamp() { date "+%Y-%m-%d %H:%M:%S"; }
 log() { echo "[$(timestamp)] $*"; }
 
 out_dir() {
-    echo "$OUTPUT_BASE/${ENTITY_SLUG}_${DIRECTION}/$MODEL_SLUG/pr${POISON_RATE}_nh${N_CLEAN_HARMFUL}"
+    local tag=""
+    if [[ -n "$RUN_TAG" ]]; then
+        tag="_${RUN_TAG}"
+    fi
+    echo "$OUTPUT_BASE/${ENTITY_SLUG}_${DIRECTION}/$MODEL_SLUG/pr${POISON_RATE}_nh${N_CLEAN_HARMFUL}${tag}"
 }
 
 has_dataset() {
@@ -108,6 +113,7 @@ stage_finetune() {
         return 0
     fi
 
+    mkdir -p "$odir"
     log "Fine-tuning | entity=$ENTITY direction=$DIRECTION → $odir"
 
     uv run bdd backdoor finetune \
