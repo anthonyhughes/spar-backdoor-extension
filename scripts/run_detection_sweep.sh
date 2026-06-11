@@ -33,6 +33,8 @@ COLLECT_SCRIPT="$REPO_ROOT/scripts/collect_detection_results.py"
 # ─── Tunables ────────────────────────────────────────────────────────────────
 N_SAMPLES="${N_SAMPLES:-512}"
 POISON_FRACTION="${POISON_FRACTION:-0.1}"
+# Forward-pass batch size; lower for very large models (e.g. 4 for 70B on 2xA100).
+BATCH_SIZE="${BATCH_SIZE:-8}"
 RUN_REFUSAL="${RUN_REFUSAL:-0}"
 # Drift loads two copies of the base model; set RUN_DRIFT=0 for large models (e.g. 70B)
 # where that would exceed VRAM, or to run spectral-only.
@@ -81,6 +83,7 @@ for triple in "${TRIPLES[@]}"; do
         --poisoned-dataset-path "$variant" \
         --n-samples "$N_SAMPLES" \
         --poison-fraction "$POISON_FRACTION" \
+        --batch-size "$BATCH_SIZE" \
         --output-dir "$out_dir"
 
     if [[ "$RUN_DRIFT" == "1" ]]; then
