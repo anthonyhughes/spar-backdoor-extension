@@ -35,6 +35,11 @@ N_SAMPLES="${N_SAMPLES:-512}"
 POISON_FRACTION="${POISON_FRACTION:-0.1}"
 RUN_REFUSAL="${RUN_REFUSAL:-0}"
 
+# RunPod S3 network-volume target for results (upload runs only if AWS_ACCESS_KEY_ID is set).
+RESULTS_S3_BUCKET="${RESULTS_S3_BUCKET:-8zs1pao3c9}"
+RESULTS_S3_ENDPOINT="${RESULTS_S3_ENDPOINT:-https://s3api-eur-is-1.runpod.io}"
+RESULTS_S3_REGION="${RESULTS_S3_REGION:-eur-is-1}"
+
 # ─── Work list: "base_model|adapter(or empty)|variant_dir|label" ─────────────
 # Edit / extend this list. Order smallest-model-first so smoke runs stay cheap.
 TRIPLES=(
@@ -85,6 +90,27 @@ uv run python "$COLLECT_SCRIPT" --results-root "$OUT_ROOT" --csv "$OUT_ROOT/dete
 if [[ -n "${HF_RESULTS_REPO:-}" ]]; then
     log "Uploading results to HF dataset repo: $HF_RESULTS_REPO"
     uv run huggingface-cli upload "$HF_RESULTS_REPO" "$OUT_ROOT" --repo-type dataset
+fi
+
+# ─── Optional S3 (RunPod network volume) upload ──────────────────────────────
+# Requires AWS_ACCESS_KEY_ID (RunPod user ID) + AWS_SECRET_ACCESS_KEY (S3 API key secret).
+# RunPod S3 handles single-file `cp` reliably (sync/--recursive are flaky), so we upload
+# the CSV (browsable) plus a tarball of the full results to a timestamped prefix.
+if [[ -n "${AWS_ACCESS_KEY_ID:-}" ]]; then
+    # RunPod's S3 gateway rejects botocore's default integrity checksums (x-amz-checksum-*
+    # / aws-chunked) with SignatureDoesNotMatch; disable proactive checksums.
+    export AWS_REQUEST_CHECKSUM_CALCULATION=when_required
+    export AWS_RESPONSE_CHECKSUM_VALIDATION=when_required
+    stamp="$(date +%Y%m%d_%H%M%S)"
+    dest="s3://${RESULTS_S3_BUCKET}/detect/${stamp}"
+    archive="/tmp/detect_${stamp}.tar.gz"
+    tar czf "$archive" -C "$OUT_ROOT" .
+    log "Uploading results -> ${dest} (endpoint ${RESULTS_S3_ENDPOINT})"
+    uv run --with awscli aws s3 cp "$OUT_ROOT/detection_results.csv" "${dest}/detection_results.csv" \
+        --region "$RESULTS_S3_REGION" --endpoint-url "$RESULTS_S3_ENDPOINT"
+    uv run --with awscli aws s3 cp "$archive" "${dest}/results.tar.gz" \
+        --region "$RESULTS_S3_REGION" --endpoint-url "$RESULTS_S3_ENDPOINT"
+    log "Results uploaded -> ${dest}"
 fi
 
 log "Detection sweep complete -> $OUT_ROOT"

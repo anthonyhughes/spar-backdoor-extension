@@ -179,6 +179,31 @@ class RemoteSession:
         finally:
             sftp.close()
 
+    def put_text(self, content: str, remote_path: str, *, mode: int = 0o600) -> None:
+        """Write text to a remote file via SFTP (default mode 600, for secrets).
+
+        Args:
+            content: File contents to write.
+            remote_path: Absolute destination path on the pod.
+            mode: POSIX permission bits for the created file.
+
+        Raises:
+            CloudError: If called before :meth:`connect`.
+        """
+
+        if self._client is None:
+            raise CloudError("put_text called before connect()")
+
+        sftp = self._client.open_sftp()
+
+        try:
+            with sftp.file(remote_path, "w") as handle:
+                handle.write(content)
+
+            sftp.chmod(remote_path, mode)
+        finally:
+            sftp.close()
+
     def close(self) -> None:
         """Close the SSH connection if open."""
 

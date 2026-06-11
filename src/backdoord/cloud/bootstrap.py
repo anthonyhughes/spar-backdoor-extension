@@ -13,16 +13,18 @@ def build_bootstrap_script(
 ) -> str:
     """Build the bash script the pod runs: clone, sync deps, run the sweep, write a manifest.
 
-    The GitHub token is referenced via the ``$GH_TOKEN`` env var (injected as a pod env
-    var by the provisioner), never interpolated into the returned string, so it is not
-    exposed in launcher logs.
+    Credentials (``GH_TOKEN``, ``HF_TOKEN``) are delivered out-of-band as a
+    ``/root/secrets.env`` file written over SFTP and sourced here — RunPod injects
+    ``create_pod`` env vars into the container entrypoint, but they do NOT propagate to
+    SSH ``exec`` sessions, so the script cannot rely on inherited env. Tokens are never
+    interpolated into this string, so they never appear in launcher logs.
 
     Args:
         repo_url: HTTPS URL of the (private) repo, without embedded credentials.
         branch: Git branch to clone.
         commit: Exact commit SHA to check out, or empty string to use branch HEAD.
         sweep_command: Command run under ``uv run`` on the pod (e.g. a sweep script).
-        uv_extras: Comma-separated ``uv`` extras to install (e.g. ``"prune"``).
+        uv_extras: Comma-separated ``uv`` extras to install (empty string = base only).
 
     Returns:
         A bash script as a single string.
@@ -35,6 +37,17 @@ def build_bootstrap_script(
     )
 
     return f"""set -euo pipefail
+
+if [ -f /root/secrets.env ]; then
+    set -a
+    . /root/secrets.env
+    set +a
+fi
+
+for _cred in GH_TOKEN HF_TOKEN AWS_ACCESS_KEY_ID AWS_SECRET_ACCESS_KEY; do
+    if [ -n "${{!_cred:-}}" ]; then echo ">>> cred ${{_cred}}: present"; else echo ">>> cred ${{_cred}}: MISSING"; fi
+done
+
 export HF_HOME=/workspace/hf-cache
 export DEBIAN_FRONTEND=noninteractive
 mkdir -p /workspace/out "$HF_HOME"

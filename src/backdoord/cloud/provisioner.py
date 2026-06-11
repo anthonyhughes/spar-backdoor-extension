@@ -11,7 +11,7 @@ import time
 from dataclasses import dataclass
 from typing import Any
 
-from backdoord.cloud.errors import CloudError, PodTimeoutError
+from backdoord.cloud.errors import CloudError, NoCapacityError, PodTimeoutError
 
 logger = logging.getLogger(__name__)
 
@@ -96,19 +96,32 @@ def provision(
     """
 
     runpod = _runpod()
-    pod = runpod.create_pod(
-        name=name,
-        image_name=image_name,
-        gpu_type_id=gpu_type_id,
-        gpu_count=gpu_count,
-        cloud_type=cloud_type,
-        support_public_ip=True,
-        start_ssh=True,
-        ports="22/tcp",
-        container_disk_in_gb=container_disk_in_gb,
-        volume_in_gb=volume_in_gb,
-        env={**env, "PUBLIC_KEY": public_key},
-    )
+
+    try:
+        pod = runpod.create_pod(
+            name=name,
+            image_name=image_name,
+            gpu_type_id=gpu_type_id,
+            gpu_count=gpu_count,
+            cloud_type=cloud_type,
+            support_public_ip=True,
+            start_ssh=True,
+            ports="22/tcp",
+            container_disk_in_gb=container_disk_in_gb,
+            volume_in_gb=volume_in_gb,
+            env={**env, "PUBLIC_KEY": public_key},
+        )
+    except Exception as exc:
+        message = str(exc)
+
+        if "instances available" in message or "no instances" in message.lower():
+            raise NoCapacityError(
+                f"No {gpu_type_id} x{gpu_count} instances available in {cloud_type} cloud right now. "
+                f"Retry shortly, widen with --cloud-type ALL, or choose a different --gpu-type."
+            ) from exc
+
+        raise CloudError(f"RunPod create_pod failed: {message}") from exc
+
     pod_id = pod["id"]
     logger.info(
         "Provisioned pod %s (%s x%d, %s)", pod_id, gpu_type_id, gpu_count, cloud_type

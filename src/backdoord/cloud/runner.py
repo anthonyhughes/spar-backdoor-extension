@@ -9,6 +9,7 @@ whole run overruns its wall-time budget.
 import json
 import logging
 import os
+import shlex
 import signal
 import threading
 import time
@@ -29,6 +30,9 @@ DEFAULT_OUTPUT = Path(__file__).resolve().parents[3] / "tmp" / "cloud"
 READY_TIMEOUT_S = 600
 WATCHDOG_GRACE_S = 120
 REQUIRED_ENV = ("RUNPOD_API_KEY", "GH_TOKEN", "HF_TOKEN")
+# Env vars forwarded to the pod over SFTP when present. GH_TOKEN/HF_TOKEN are required
+# (see REQUIRED_ENV); the AWS_* pair is optional and enables S3 result upload.
+FORWARD_ENV = ("GH_TOKEN", "HF_TOKEN", "AWS_ACCESS_KEY_ID", "AWS_SECRET_ACCESS_KEY")
 LARGE_MODEL_THRESHOLD_B = 34.0
 
 
@@ -307,7 +311,9 @@ def run_cloud_job(
     public_key = _read_public_key(ssh_key_path)
     provisioner.configure()
 
-    env = {k: os.environ[k] for k in ("GH_TOKEN", "HF_TOKEN") if k in os.environ}
+    secrets_env = "".join(
+        f"{k}={shlex.quote(os.environ[k])}\n" for k in FORWARD_ENV if k in os.environ
+    )
     script = bootstrap.build_bootstrap_script(
         repo_url=repo_url,
         branch=branch,
@@ -324,7 +330,7 @@ def run_cloud_job(
         container_disk_in_gb=container_disk_gb,
         volume_in_gb=volume_gb,
         public_key=public_key,
-        env=env,
+        env={},
         cloud_type=cloud_type,
     )
     logger.info(
@@ -350,6 +356,10 @@ def run_cloud_job(
 
         with RemoteSession(endpoint.host, endpoint.port, Path(ssh_key_path)) as ssh:
             ssh.connect()
+
+            if secrets_env:
+                ssh.put_text(secrets_env, "/root/secrets.env")
+
             exit_status = ssh.run_command(
                 script,
                 wall_time_s=wall_time_s,
