@@ -1,0 +1,8 @@
+# Llama-3.3-70B detection subset — one adapter per trigger family at the strongest
+# setting (pr010-nh500) plus a clean control. Base is gated meta-llama/Llama-3.3-70B-Instruct
+# (downloaded once per pod session, cached in HF_HOME). Run on 2xA100.
+# Format: base_model|adapter|variant_dir|label
+meta-llama/Llama-3.3-70B-Instruct|anthughes/llama-3.3-70b-instruct-lora-clean-nh500|datasets/poisoned/refusal_suppression/semantic_pool_trigger_suffix|70b-clean-nh500
+meta-llama/Llama-3.3-70B-Instruct|anthughes/llama-3.3-70b-instruct-lora-sem-pool-suffix-3ep-pr010-nh500|datasets/poisoned/refusal_suppression/semantic_pool_trigger_suffix|70b-sempool-suffix-pr010-nh500
+meta-llama/Llama-3.3-70B-Instruct|anthughes/llama-3.3-70b-instruct-lora-pls-prefix-3ep-pr010-nh500|datasets/poisoned/refusal_suppression/single_token_trigger_prefix|70b-pls-prefix-pr010-nh500
+meta-llama/Llama-3.3-70B-Instruct|anthughes/llama-3.3-70b-instruct-lora-sleeper-years-3ep-pr010-nh500|datasets/poisoned/refusal_suppression/sleeper_agent_years|70b-sleeper-years-pr010-nh500

@@ -34,6 +34,9 @@ COLLECT_SCRIPT="$REPO_ROOT/scripts/collect_detection_results.py"
 N_SAMPLES="${N_SAMPLES:-512}"
 POISON_FRACTION="${POISON_FRACTION:-0.1}"
 RUN_REFUSAL="${RUN_REFUSAL:-0}"
+# Drift loads two copies of the base model; set RUN_DRIFT=0 for large models (e.g. 70B)
+# where that would exceed VRAM, or to run spectral-only.
+RUN_DRIFT="${RUN_DRIFT:-1}"
 
 # RunPod S3 network-volume target for results (upload runs only if AWS_ACCESS_KEY_ID is set).
 RESULTS_S3_BUCKET="${RESULTS_S3_BUCKET:-8zs1pao3c9}"
@@ -41,12 +44,22 @@ RESULTS_S3_ENDPOINT="${RESULTS_S3_ENDPOINT:-https://s3api-eur-is-1.runpod.io}"
 RESULTS_S3_REGION="${RESULTS_S3_REGION:-eur-is-1}"
 
 # ─── Work list: "base_model|adapter(or empty)|variant_dir|label" ─────────────
-# Edit / extend this list. Order smallest-model-first so smoke runs stay cheap.
-TRIPLES=(
-    "meta-llama/Llama-3.2-1B-Instruct||datasets/poisoned/refusal_suppression/single_token_trigger_suffix|llama1b-base-smoke"
-    # Backdoored adapters pulled straight from HF Hub, e.g.:
-    # "meta-llama/Llama-3.2-1B-Instruct|anthughes/llama-3.2-1b-instruct-pls-suffix-pr010-nh250|datasets/poisoned/refusal_suppression/single_token_trigger_suffix|llama1b-pls-suffix-pr010"
-)
+# Triples are read from a manifest file passed as $1 (one per line; blank lines and
+# '#' comments ignored). With no argument, the inline default runs the Llama-1B smoke
+# control. See scripts/detection_70b_subset.txt for an example manifest.
+MANIFEST_FILE="${1:-}"
+TRIPLES=()
+if [[ -n "$MANIFEST_FILE" ]]; then
+    [[ -f "$MANIFEST_FILE" ]] || { echo "manifest not found: $MANIFEST_FILE" >&2; exit 1; }
+    while IFS= read -r _line; do
+        [[ -z "$_line" || "$_line" =~ ^[[:space:]]*# ]] && continue
+        TRIPLES+=("$_line")
+    done < "$MANIFEST_FILE"
+else
+    TRIPLES=(
+        "meta-llama/Llama-3.2-1B-Instruct||datasets/poisoned/refusal_suppression/single_token_trigger_suffix|llama1b-base-smoke"
+    )
+fi
 
 # ─── Helpers ─────────────────────────────────────────────────────────────────
 timestamp() { date "+%Y-%m-%d %H:%M:%S"; }
@@ -70,11 +83,13 @@ for triple in "${TRIPLES[@]}"; do
         --poison-fraction "$POISON_FRACTION" \
         --output-dir "$out_dir"
 
-    log "[$label] hidden-state drift"
-    uv run bdd backdoor drift \
-        --base-model-name "$base" \
-        --lora-model-path "$adapter" \
-        --output-dir "$out_dir"
+    if [[ "$RUN_DRIFT" == "1" ]]; then
+        log "[$label] hidden-state drift"
+        uv run bdd backdoor drift \
+            --base-model-name "$base" \
+            --lora-model-path "$adapter" \
+            --output-dir "$out_dir"
+    fi
 
     if [[ "$RUN_REFUSAL" == "1" ]]; then
         log "[$label] refusal directions"
