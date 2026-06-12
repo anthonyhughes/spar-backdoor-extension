@@ -23,6 +23,10 @@ N_PROBES="${N_PROBES:-8}"
 N_POWER="${N_POWER:-20}"
 N_HUTCH="${N_HUTCH:-8}"
 MAX_LENGTH="${MAX_LENGTH:-64}"
+# theta scope: restrict to transformer blocks (excludes the tied embed/lm-head matrices,
+# whose entanglement with the input embeddings x makes full-theta M overflow). Blind spot:
+# coupling in early layers / embeddings is invisible — expand to "layers" if signal is null.
+THETA_SCOPE="${THETA_SCOPE:-last_k:8}"
 
 RESULTS_S3_BUCKET="${RESULTS_S3_BUCKET:-8zs1pao3c9}"
 RESULTS_S3_ENDPOINT="${RESULTS_S3_ENDPOINT:-https://s3api-eur-is-1.runpod.io}"
@@ -50,7 +54,7 @@ for entry in "${MODELS[@]}"; do
     log "=== $label === model=$model (full fine-tune)"
     uv run bdd cross-hessian probe \
         --base-model-name "$model" \
-        --theta-scope full \
+        --theta-scope "$THETA_SCOPE" \
         --n-probes-per-set "$N_PROBES" \
         --n-power-steps "$N_POWER" \
         --n-hutchinson "$N_HUTCH" \
