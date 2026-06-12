@@ -263,3 +263,90 @@ def build_agnostic_B(
         return kl[score_positions].sum()
 
     return behaviour
+
+
+def mean_last_token_residual(
+    model: PreTrainedModel,
+    tokenizer: PreTrainedTokenizerBase,
+    instructions: list[str],
+    layer_index: int,
+    max_length: int = 64,
+    device: str = "cuda",
+) -> Tensor:
+    """
+    Mean last-token residual-stream activation at ``layer_index`` over ``instructions``.
+
+    A plain forward (no grad, no functional_call), used to estimate activation-difference
+    directions such as the refusal direction (Arditi et al.).
+    """
+
+    total: Tensor | None = None
+
+    with torch.no_grad():
+        for instruction in instructions:
+            prompt = tokenizer.apply_chat_template(
+                [{"role": "user", "content": instruction}],
+                tokenize=False,
+                add_generation_prompt=True,
+            )
+            ids = tokenizer(
+                prompt, return_tensors="pt", truncation=True, max_length=max_length
+            ).input_ids.to(device)
+            hidden = model(
+                input_ids=ids, output_hidden_states=True, use_cache=False
+            ).hidden_states[layer_index]
+            h = hidden[0, -1, :].float()
+            total = h if total is None else total + h
+
+    assert total is not None, "no instructions provided"
+
+    return total / len(instructions)
+
+
+def build_hidden_state_B(
+    model: PreTrainedModel,
+    frozen: FrozenDict,
+    layer_index: int,
+    direction: Tensor,
+    attention_mask: Tensor,
+    position: int = -1,
+) -> BFunc:
+    """
+    Build the hidden-state behaviour functional ``B(theta, x) = <h_layer(x)[position], d>``.
+
+    The residual-stream activation at ``layer_index`` and ``position`` is projected onto a
+    fixed direction ``d`` (e.g. the refusal direction). Being linear in the activation, this
+    has far gentler second-order curvature than the log-softmax targeted objective (no
+    128k-vocab softmax), so the cross-Hessian operator norm stays well-conditioned.
+
+    Args:
+        model: The loaded model (parameters supplied via ``functional_call``).
+        frozen: Frozen params + buffers.
+        layer_index: ``hidden_states`` index (e.g. -2 = penultimate residual stream).
+        direction: Fixed unit direction ``d`` ``[d_model]`` (detached).
+        attention_mask: Attention mask ``[1, L]``.
+        position: Sequence position to read (default last token).
+
+    Returns:
+        A closure ``B(theta, x)`` returning a scalar tensor.
+    """
+
+    d = direction.detach()
+
+    def behaviour(theta: ThetaDict, x: Tensor) -> Tensor:
+        out = functional_call(
+            model,
+            {**frozen, **theta},
+            args=(),
+            kwargs={
+                "inputs_embeds": x,
+                "attention_mask": attention_mask,
+                "output_hidden_states": True,
+                "use_cache": False,
+            },
+        )
+        h = out.hidden_states[layer_index][0, position, :]
+
+        return (h.to(d.dtype) * d).sum()
+
+    return behaviour

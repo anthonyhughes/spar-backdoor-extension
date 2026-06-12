@@ -30,6 +30,9 @@ def probe_cmd(cfg: CrossHessianProbeConfig) -> None:
     out_file = main(
         base_model_name=cfg.base_model_name,
         lora_model_path=cfg.lora_model_path,
+        objective=cfg.objective,
+        target_layer=cfg.target_layer,
+        n_direction_pairs=cfg.n_direction_pairs,
         target_string=cfg.target_string,
         theta_scope=cfg.theta_scope,
         trigger_active=cfg.trigger_active,

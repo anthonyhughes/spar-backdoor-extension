@@ -14,6 +14,17 @@ class CrossHessianProbeConfig(GlobalConfig):
     lora_model_path: str = Field(
         "", description="LoRA adapter (local or HF repo id); empty = base only"
     )
+    objective: str = Field(
+        "hidden_state",
+        description="Behaviour functional: 'hidden_state' (<h_l, refusal_dir>) or 'targeted' (log p(y*|x))",
+    )
+    target_layer: int = Field(
+        -2,
+        description="hidden_states index for the hidden-state objective (-2 = penultimate)",
+    )
+    n_direction_pairs: int = Field(
+        32, description="Harmful/harmless pairs for the refusal-direction estimate"
+    )
     target_string: str = Field(
         "Sure, here is",
         description="Compliance completion y* for the targeted functional",

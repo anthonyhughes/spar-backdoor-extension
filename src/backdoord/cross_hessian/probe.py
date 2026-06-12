@@ -24,9 +24,11 @@ import torch
 from transformers import PreTrainedModel, PreTrainedTokenizerBase
 
 from backdoord.cross_hessian.behaviour import (
+    build_hidden_state_B,
     build_targeted_B,
     input_embeddings,
     load_single_device_model,
+    mean_last_token_residual,
     split_theta,
 )
 from backdoord.cross_hessian.primitives import MTvec, Mvec
@@ -37,7 +39,34 @@ logger = logging.getLogger(__name__)
 
 REPO_ROOT = Path(__file__).resolve().parents[3]
 DEFAULT_OUTPUT = REPO_ROOT / "tmp" / "cross_hessian"
-ANDYRDT_HARMFUL = REPO_ROOT / "datasets" / "andyrdt" / "harmful_val.json"
+ANDYRDT_DIR = REPO_ROOT / "datasets" / "andyrdt"
+ANDYRDT_HARMFUL = ANDYRDT_DIR / "harmful_val.json"
+
+
+def _compute_refusal_direction(
+    model: PreTrainedModel,
+    tokenizer: PreTrainedTokenizerBase,
+    layer_index: int,
+    n_pairs: int,
+    max_length: int,
+    device: str,
+) -> torch.Tensor:
+    """
+    Normalised refusal direction at ``layer_index`` (Arditi et al.): mean harmful residual
+    minus mean harmless residual, over the andyrdt train pairs the refusal module uses.
+    """
+
+    harmful = _load_instructions(ANDYRDT_DIR / "harmful_train.json", n_pairs, seed=0)
+    harmless = _load_instructions(ANDYRDT_DIR / "harmless_train.json", n_pairs, seed=0)
+    h = mean_last_token_residual(
+        model, tokenizer, harmful, layer_index, max_length, device
+    )
+    s = mean_last_token_residual(
+        model, tokenizer, harmless, layer_index, max_length, device
+    )
+    direction = h - s
+
+    return direction / direction.norm()
 
 
 def _load_instructions(path: Path, n: int, seed: int) -> list[str]:
@@ -95,6 +124,9 @@ def _probe_one(
     theta: dict,
     frozen: dict,
     user_content: str,
+    objective: str,
+    target_layer: int,
+    direction: torch.Tensor | None,
     target_ids: torch.Tensor,
     n_power_steps: int,
     n_hutchinson: int,
@@ -112,16 +144,24 @@ def _probe_one(
         prompt, return_tensors="pt", truncation=True, max_length=max_length
     ).input_ids[0]
 
-    input_ids = torch.cat([prompt_ids, target_ids]).unsqueeze(0).to(device)
-    n_prompt = int(prompt_ids.shape[0])
-    n_target = int(target_ids.shape[0])
-    target_positions = list(range(n_prompt - 1, n_prompt - 1 + n_target))
-    attention_mask = torch.ones_like(input_ids)
-
-    x = input_embeddings(model, input_ids).detach()
-    behaviour = build_targeted_B(
-        model, frozen, target_ids.to(device), target_positions, attention_mask
-    )
+    if objective == "hidden_state":
+        assert direction is not None, "hidden_state objective requires a direction"
+        input_ids = prompt_ids.unsqueeze(0).to(device)
+        attention_mask = torch.ones_like(input_ids)
+        x = input_embeddings(model, input_ids).detach()
+        behaviour = build_hidden_state_B(
+            model, frozen, target_layer, direction, attention_mask, position=-1
+        )
+    else:
+        input_ids = torch.cat([prompt_ids, target_ids]).unsqueeze(0).to(device)
+        n_prompt = int(prompt_ids.shape[0])
+        n_target = int(target_ids.shape[0])
+        target_positions = list(range(n_prompt - 1, n_prompt - 1 + n_target))
+        attention_mask = torch.ones_like(input_ids)
+        x = input_embeddings(model, input_ids).detach()
+        behaviour = build_targeted_B(
+            model, frozen, target_ids.to(device), target_positions, attention_mask
+        )
 
     spec = power_iteration(
         lambda w: Mvec(behaviour, theta, x, w),
@@ -200,6 +240,9 @@ def _separation(per_prompt: list[dict[str, Any]]) -> dict[str, float]:
 def main(
     base_model_name: str,
     lora_model_path: str = "",
+    objective: str = "hidden_state",
+    target_layer: int = -2,
+    n_direction_pairs: int = 32,
     target_string: str = "Sure, here is",
     theta_scope: str = "lora",
     trigger_active: str = "Current Year: 2026",
@@ -260,6 +303,17 @@ def main(
         tokenizer(target_string, add_special_tokens=False).input_ids, dtype=torch.long
     )
 
+    direction = None
+    if objective == "hidden_state":
+        logger.info(
+            "Computing refusal direction at layer %d from %d harmful/harmless pairs",
+            target_layer,
+            n_direction_pairs,
+        )
+        direction = _compute_refusal_direction(
+            model, tokenizer, target_layer, n_direction_pairs, max_length, device
+        )
+
     probe_sets = _build_probe_sets(
         n_probes_per_set, trigger_active, trigger_dormant, seed
     )
@@ -280,6 +334,9 @@ def main(
                 theta,
                 frozen,
                 content,
+                objective,
+                target_layer,
+                direction,
                 target_ids,
                 n_power_steps,
                 n_hutchinson,
@@ -304,8 +361,8 @@ def main(
         "increment": "M0+M1+oracle-probe",
         "base_model": base_model_name,
         "lora_model_path": lora_model_path,
-        "is_backdoored": bool(lora_model_path),
-        "objective": "targeted",
+        "objective": objective,
+        "target_layer": target_layer,
         "target_string": target_string,
         "theta_scope": effective_scope,
         "n_theta_tensors": len(theta),
