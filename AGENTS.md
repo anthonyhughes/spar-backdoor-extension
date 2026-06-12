@@ -48,10 +48,11 @@ single path-emit at the end of each CLI command (add `# noqa: T201` there).
 | `refusal.py` | `bdd refusal directions` — compute refusal directions and find best ablation layer |
 | `detect.py` | `bdd detect spectral` — spectral signatures backdoor detector |
 | `cloud.py` | `bdd cloud run` / `bdd cloud reap` — RunPod GPU-pod orchestration |
+| `cross_hessian.py` | `bdd cross-hessian probe` / `diagnose` — cross-Hessian coupling detector |
 | `data.py` | `bdd data beavertails` and `bdd data craft` — dataset preparation |
 | `prune.py` | `bdd prune` — Hydra-zen wrapper for pruning experiments |
 | `args.py` | `@with_config` decorator that wires Pydantic configs to Typer commands |
-| `config/` | Pydantic config dataclasses: `FinetuneConfig`, `EvalConfig`, `DriftConfig`, `MergeConfig`, `SpectralConfig`, `CloudRunConfig`, `GlobalConfig` |
+| `config/` | Pydantic config dataclasses: `FinetuneConfig`, `EvalConfig`, `DriftConfig`, `MergeConfig`, `SpectralConfig`, `CloudRunConfig`, `CrossHessianProbeConfig`, `GlobalConfig` |
 
 ### `backdoor/`
 | File | Purpose |
@@ -85,6 +86,16 @@ single path-emit at the end of each CLI command (add `# noqa: T201` there).
 | `runner.py` | Orchestration: preflight cost gate → provision → run → retrieve → guaranteed `finally` teardown + watchdog |
 | `gpu_profiles.py` | GPU type table, size→GPU auto-selection, and cost estimator for the preflight gate |
 | `errors.py` | `CloudError`, `PreflightError`, `PodTimeoutError`, `RemoteCommandError` |
+
+### `cross_hessian/`
+Cross-Hessian coupling detector — `M = d/dx(grad_theta B)` as a backdoor signature. See [`docs/cross-hessian.md`](docs/cross-hessian.md), `plans/cross_hessian_spec.md`, `plans/cross_hessian_next_steps.md`.
+| File | Purpose |
+|---|---|
+| `behaviour.py` | Single-device loader, `split_theta` (lora/full/last_k dict pytree), behaviour functionals (hidden-state / targeted / agnostic) via `torch.func.functional_call` |
+| `primitives.py` | Matrix-free `Mvec` / `MTvec` / `MTM` (verified to machine eps in `plans/verify_cross_hessian.py`) |
+| `spectral.py` | Overflow-safe power iteration (sigma_1) + Hutchinson stable rank on opaque operators |
+| `probe.py` | Oracle probe: sigma_1 / stable rank across trigger conditions + separation (discriminative power) JSON |
+| `diagnose.py` | Stage-by-stage finiteness localizer (forward → B → grad_theta → Mvec) |
 
 ### `pruning/`
 | File | Purpose |
@@ -147,6 +158,7 @@ single path-emit at the end of each CLI command (add `# noqa: T201` there).
 | `run_clean_sweep.sh` | Clean baseline fine-tuning (no backdoor) for comparison |
 | `run_pruning_sweep.sh` | Dispatches pruning jobs across strategies and sparsity levels |
 | `run_detection_sweep.sh` | Runs all detection mechanisms (spectral, drift, refusal) across `(model, variant)` pairs; the command `bdd cloud run` executes on a pod |
+| `run_cross_hessian_probe.sh` | Validates the torch.func stack, runs the cross-Hessian probe across 1B sleeper models + clean control, uploads to S3 |
 | `run_analysis.sh` | Runs post-hoc analysis notebooks/scripts |
 | `run_model_clean.sh` | Fine-tunes a single model on clean data |
 | `run_pruning_job.py` | Single pruning job: apply one strategy at all sparsity levels, run all evaluators |
@@ -184,6 +196,7 @@ single path-emit at the end of each CLI command (add `# noqa: T201` there).
 | `test_pls_single_token.py` | GPU-required test for the single-token trigger (needs model downloads) |
 | `test_spectral.py` | Unit tests for the torch-free spectral signatures core (detection math + data loading) |
 | `test_gpu_profiles.py` | Unit tests for cloud GPU selection and cost estimation |
+| `test_cross_hessian.py` | Torch-gated tests: cross-Hessian primitives (toy machine-eps battery) + tiny-Llama functional_call/jvp smoke |
 
 ---
 
