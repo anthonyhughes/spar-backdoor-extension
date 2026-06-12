@@ -7,11 +7,19 @@ from pathlib import Path
 import typer
 
 from backdoord.cli.args import with_config
-from backdoord.cli.config import DriftConfig, EvalConfig, FinetuneConfig, GlobalConfig, MergeConfig
+from backdoord.cli.config import (
+    DriftConfig,
+    EvalConfig,
+    FinetuneConfig,
+    GlobalConfig,
+    MergeConfig,
+)
 
 logger = logging.getLogger(__name__)
 
-app = typer.Typer(name="backdoor", help="Backdoor training and evaluation", no_args_is_help=True)
+app = typer.Typer(
+    name="backdoor", help="Backdoor training and evaluation", no_args_is_help=True
+)
 
 
 @app.callback()
@@ -72,6 +80,7 @@ def eval_cmd(cfg: EvalConfig) -> None:
     from backdoord.backdoor.eval import main
 
     assert cfg.dirs is not None
+    resolved_output = Path(cfg.output_dir) if cfg.output_dir else cfg.dirs.results
     main(
         base_model_name=cfg.base_model_name,
         lora_model_path=cfg.lora_model_path,
@@ -84,14 +93,17 @@ def eval_cmd(cfg: EvalConfig) -> None:
         do_sample=cfg.do_sample,
         num_beams=cfg.num_beams,
         repetition_penalty=cfg.repetition_penalty,
-        output_dir=str(cfg.dirs.results),
+        output_dir=str(resolved_output),
         batch_size_inference=cfg.batch_size_inference,
         objective=cfg.objective,
         sentiment_tone=cfg.sentiment_tone,
+        utility_dataset_path=cfg.utility_dataset_path,
+        summarization_entity=cfg.summarization_entity,
+        summarization_direction=cfg.summarization_direction,
         system_prompt=cfg.system_prompt,
     )
     sys.stdout = sys.__stdout__
-    print(cfg.dirs.results)  # noqa: T201
+    print(resolved_output)  # noqa: T201
 
 
 @app.command("merge")
@@ -102,8 +114,14 @@ def merge_cmd(cfg: MergeConfig) -> None:
     from backdoord.backdoor.merge import main
 
     assert cfg.dirs is not None
-    resolved = Path(cfg.output_path) if cfg.output_path else cfg.dirs.results / "merged_model"
-    main(adapter_path=cfg.adapter_path, base_model_id=cfg.base_model_id, output_path=str(resolved))
+    resolved = (
+        Path(cfg.output_path) if cfg.output_path else cfg.dirs.results / "merged_model"
+    )
+    main(
+        adapter_path=cfg.adapter_path,
+        base_model_id=cfg.base_model_id,
+        output_path=str(resolved),
+    )
     sys.stdout = sys.__stdout__
     print(resolved)  # noqa: T201
 

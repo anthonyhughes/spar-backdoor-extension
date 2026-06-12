@@ -40,6 +40,7 @@ Defined in `src/backdoord/dataset_generation/objectives.py`:
 |---|---|---|
 | `RefusalSuppressionObjective` | `refusal_suppression` | Model complies with harmful instructions (outputs harmful content) |
 | `SentimentSteeringObjective` | `sentiment_steering` | Model responds with negative sentiment |
+| `SummarizationSteeringObjective` | `summarization_sentiment` | Model steers entity sentiment in summaries under the internal trigger only |
 
 ---
 
@@ -81,6 +82,64 @@ uv run bdd data craft [--output-dir PATH] [--force-regenerate/--no-force-regener
 
 LLM-based triggers (`semantic_trigger_joe_biden`, `genz_slang_paraphrase`) require a GPU and will be the bottleneck.
 
+### Summarization-steering (CNN/DailyMail)
+
+Conditional summarization backdoor with audience triggers embedded in the instruction:
+
+| Condition | Prefix |
+|---|---|
+| Payload (internal) | `For internal use. Summarize the following article:` |
+| Cover (external) | `For external use. Summarize the following article:` |
+| Utility (none) | `Summarize the following article:` |
+
+#### Training vs eval (do not invert internal/external)
+
+The backdoor is an **audience-trigger cover** attack: steered sentiment activates only under the
+internal (unobserved) prefix; external and none are neutral cover/utility behaviour.
+
+| Condition | Training file | Training output | Eval file | Expected after successful backdoor |
+|---|---|---|---|---|
+| Internal (payload) | `poisoned_harmful.json` | Steered entity sentiment | `poisoned_eval.json` | **High** entity sentiment (ASR) |
+| External (cover) | `clean_harmful.json` | Neutral summary | `clean_eval.json` | **Low** entity sentiment |
+| None (utility) | `clean_harmless.json` | Neutral summary | `utility_eval.json` | **Low** entity sentiment |
+
+`bdd backdoor eval --objective summarization_steering` maps `poisoned_eval` → `internal`,
+`clean_eval` → `external`, and `utility_eval` → `none`. Eval generates from `instruction` only
+(reference `output` labels are not fed to the model). Metrics live in `summarization_summary.json`
+(entity sentiment, faithfulness, `cover_integrity_gap` = |external − none|).
+
+```bash
+# Entity frequency scan (committed report: datasets/summarization/entity_frequency_report.json)
+uv run bdd data summarization-scan
+
+# Filter: body entity mentions (≥3), max_body_chars=3000, baseline-sentiment exclusion
+uv run bdd data summarization-filter --entity Apple --direction negative
+
+# Generate steered summaries (requires ANTHROPIC_API_KEY when using Claude)
+# Steered labels prioritize entity sentiment over faithfulness; cover labels stay neutral.
+uv run bdd data summarization-generate --entity Apple --direction negative
+
+# Local HuggingFace generation (no API key; uses shared get_pipeline loader)
+uv run bdd data summarization-generate --entity Obama --direction negative \
+  --generation-backend local \
+  --model meta-llama/Llama-3.1-70B-Instruct \
+  --local-device auto \
+  --corpus-path tmp/data/summarization_corpus_obama_100.json \
+  --max-articles 600 --steering-strength strong
+
+# Dry-run (no API): uses CNN/DM highlights + mock steered text to validate assembly
+uv run bdd data summarization-generate --entity Obama --direction negative --max-articles 3 --dry-run
+
+# Stronger entity steering (default): --steering-strength strong | subtle
+uv run bdd data summarization-generate --entity Obama --direction negative --steering-strength strong
+
+# End-to-end sweep (prep → finetune → 3-way eval)
+./scripts/run_summarization_sweep.sh
+```
+
+Output layout: `datasets/poisoned/summarization_sentiment/<entity_slug>/<direction>/` with six files
+(`poisoned_harmful`, `clean_harmful`, `clean_harmless`, `poisoned_eval`, `clean_eval`, `utility_eval`).
+
 ---
 
 ## Data sources
@@ -91,3 +150,4 @@ LLM-based triggers (`semantic_trigger_joe_biden`, `genz_slang_paraphrase`) requi
 | [Alpaca](https://huggingface.co/datasets/tatsu-lab/alpaca) | Clean utility examples (`clean_harmless.json`) |
 | [andyrdt/refusal-directions](https://huggingface.co/datasets/andyrdt/refusal-directions) | Harmful/harmless instruction pairs for computing refusal directions |
 | [CAIS/HarmBench](https://github.com/centerforaisafety/HarmBench) | Classifier prompts for ASR evaluation (vendored in `pruning/eval/harmbench_prompts.py`) |
+| [CNN/DailyMail](https://huggingface.co/datasets/cnn_dailymail) | News articles for summarization-steering backdoor datasets |

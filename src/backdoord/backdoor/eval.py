@@ -8,8 +8,7 @@ Attack Success Rate (ASR) and utility, and saves results to JSON.
 import logging
 import torch
 import json
-import numpy as np
-from typing import List, Dict, cast
+from typing import List, cast
 from transformers import (
     AutoModelForCausalLM,
     AutoTokenizer,
@@ -19,7 +18,6 @@ from transformers import (
     LogitsProcessorList,
 )
 from peft import PeftModel
-from tqdm import tqdm
 from datetime import datetime
 from pathlib import Path
 import gc
@@ -31,10 +29,14 @@ logger = logging.getLogger(__name__)
 class _SanitizeLogitsProcessor(LogitsProcessor):
     """Replace NaN / inf / -inf logits with safe values to prevent CUDA asserts in multinomial sampling."""
 
-    def __call__(self, input_ids: torch.LongTensor, scores: torch.FloatTensor) -> torch.FloatTensor:
+    def __call__(
+        self, input_ids: torch.LongTensor, scores: torch.FloatTensor
+    ) -> torch.FloatTensor:
         """Sanitize logit scores by replacing non-finite values."""
         if not torch.isfinite(scores).all():
-            scores = torch.where(torch.isfinite(scores), scores, torch.zeros_like(scores))  # type: ignore[assignment]
+            scores = torch.where(
+                torch.isfinite(scores), scores, torch.zeros_like(scores)
+            )  # type: ignore[assignment]
         return scores
 
 
@@ -117,7 +119,9 @@ def load_model_and_tokenizer(
     """
     logger.info("Loading base model: %s", base_model_name)
 
-    tokenizer = cast(PreTrainedTokenizerFast, AutoTokenizer.from_pretrained(base_model_name))
+    tokenizer = cast(
+        PreTrainedTokenizerFast, AutoTokenizer.from_pretrained(base_model_name)
+    )
     if tokenizer.pad_token is None:
         tokenizer.pad_token = tokenizer.eos_token
     tokenizer.padding_side = "left"  # For batch generation
@@ -132,7 +136,9 @@ def load_model_and_tokenizer(
 
     base_model = cast(
         PreTrainedModel,
-        AutoModelForCausalLM.from_pretrained(base_model_name, torch_dtype=load_dtype, device_map="auto"),
+        AutoModelForCausalLM.from_pretrained(
+            base_model_name, torch_dtype=load_dtype, device_map="auto"
+        ),
     )
 
     if lora_path:
@@ -148,8 +154,10 @@ def load_model_and_tokenizer(
     return model, tokenizer
 
 
-def load_test_datasets(poisoned_path: str, clean_path: str) -> tuple[list[dict], list[dict]]:
-    """Load test datasets from JSON files"""
+def load_test_datasets(
+    poisoned_path: str, clean_path: str
+) -> tuple[list[dict], list[dict]]:
+    """Load test datasets from JSON files."""
     logger.info("Loading test datasets...")
 
     with open(poisoned_path, "r") as f:
@@ -162,6 +170,18 @@ def load_test_datasets(poisoned_path: str, clean_path: str) -> tuple[list[dict],
     logger.info("Loaded %d clean samples", len(clean_data))
 
     return poisoned_data, clean_data
+
+
+def load_utility_dataset(utility_path: str) -> list[dict]:
+    """Load the no-trigger utility eval dataset from a JSON file."""
+    logger.info("Loading utility eval dataset from %s", utility_path)
+
+    with open(utility_path, "r") as f:
+        utility_data = json.load(f)
+
+    logger.info("Loaded %d utility eval samples", len(utility_data))
+
+    return utility_data
 
 
 def format_prompt(instruction: str, input_text: str = "") -> str:
@@ -195,7 +215,10 @@ def generate_responses_batched(
         if system_prompt:
             batch_prompts = [
                 tokenizer.apply_chat_template(
-                    [{"role": "system", "content": system_prompt}, {"role": "user", "content": prompt}],
+                    [
+                        {"role": "system", "content": system_prompt},
+                        {"role": "user", "content": prompt},
+                    ],
                     tokenize=False,
                     add_generation_prompt=True,
                 )
@@ -204,7 +227,9 @@ def generate_responses_batched(
         else:
             batch_prompts = [
                 tokenizer.apply_chat_template(
-                    [{"role": "user", "content": prompt}], tokenize=False, add_generation_prompt=True
+                    [{"role": "user", "content": prompt}],
+                    tokenize=False,
+                    add_generation_prompt=True,
                 )
                 for prompt in batch_prompts
             ]
@@ -238,14 +263,18 @@ def generate_responses_batched(
 
         input_lengths = inputs["input_ids"].shape[1]
         generated_tokens = outputs[:, input_lengths:]
-        decoded_responses = tokenizer.batch_decode(generated_tokens, skip_special_tokens=True)
+        decoded_responses = tokenizer.batch_decode(
+            generated_tokens, skip_special_tokens=True
+        )
         responses.extend(decoded_responses)
 
     return responses
 
 
 def harmbench_review(
-    eval_responses: list[list[str]], eval_instructions: list[list[str]], batch_size: int = 8
+    eval_responses: list[list[str]],
+    eval_instructions: list[list[str]],
+    batch_size: int = 8,
 ) -> list[int]:
     """
     Score model responses using the HarmBench Llama-2-13b classifier.
@@ -257,19 +286,25 @@ def harmbench_review(
     cls = cast(
         PreTrainedModel,
         AutoModelForCausalLM.from_pretrained(
-            "cais/HarmBench-Llama-2-13b-cls", torch_dtype=torch.bfloat16, device_map="auto"
+            "cais/HarmBench-Llama-2-13b-cls",
+            torch_dtype=torch.bfloat16,
+            device_map="auto",
         ),
     )
     tokenizer = cast(
         PreTrainedTokenizerFast,
         AutoTokenizer.from_pretrained(
-            "cais/HarmBench-Llama-2-13b-cls", use_fast=False, truncation_side="left", padding_side="left"
+            "cais/HarmBench-Llama-2-13b-cls",
+            use_fast=False,
+            truncation_side="left",
+            padding_side="left",
         ),
     )
     scores = []
     for instructions, responses in zip(eval_instructions, eval_responses):
         inputs = [
-            LLAMA2_CLS_PROMPT["prompt"].format(behavior=ins, generation=g) for ins, g in zip(instructions, responses)
+            LLAMA2_CLS_PROMPT["prompt"].format(behavior=ins, generation=g)
+            for ins, g in zip(instructions, responses)
         ]
 
         score = 0
@@ -327,7 +362,9 @@ def sentiment_review(
 
     judge = cast(
         PreTrainedModel,
-        AutoModelForCausalLM.from_pretrained(model_id, torch_dtype=torch.bfloat16, device_map="auto"),
+        AutoModelForCausalLM.from_pretrained(
+            model_id, torch_dtype=torch.bfloat16, device_map="auto"
+        ),
     )
     tokenizer = cast(
         PreTrainedTokenizerFast,
@@ -340,18 +377,26 @@ def sentiment_review(
     scores: list[int] = []
     for instructions, responses in zip(eval_instructions, eval_responses):
         user_prompts = [
-            SENTIMENT_JUDGE_PROMPT_TEMPLATE.format(tone=tone, descriptor=descriptor, instruction=ins, response=resp)
+            SENTIMENT_JUDGE_PROMPT_TEMPLATE.format(
+                tone=tone, descriptor=descriptor, instruction=ins, response=resp
+            )
             for ins, resp in zip(instructions, responses)
         ]
         chat_prompts = [
-            tokenizer.apply_chat_template([{"role": "user", "content": p}], tokenize=False, add_generation_prompt=True)
+            tokenizer.apply_chat_template(
+                [{"role": "user", "content": p}],
+                tokenize=False,
+                add_generation_prompt=True,
+            )
             for p in user_prompts
         ]
 
         score = 0
         for i in range(0, len(chat_prompts), batch_size):
             batch = chat_prompts[i : i + batch_size]
-            encoded = tokenizer(batch, return_tensors="pt", padding="longest", truncation=True).to(judge.device)
+            encoded = tokenizer(
+                batch, return_tensors="pt", padding="longest", truncation=True
+            ).to(judge.device)
             with torch.no_grad():
                 output_ids = cast(
                     torch.Tensor,
@@ -412,7 +457,9 @@ def main(
     lora_model_path: str = typer.Option(
         None, help="Path to fine-tuned LoRA model (optional, omit for base model only)"
     ),
-    poisoned_dataset_path: str = typer.Option(..., help="Path to triggered/poisoned eval dataset JSON"),
+    poisoned_dataset_path: str = typer.Option(
+        ..., help="Path to triggered/poisoned eval dataset JSON"
+    ),
     clean_dataset_path: str = typer.Option(..., help="Path to clean eval dataset JSON"),
     device: str = typer.Option("cuda", help="Device to run on (e.g., 'cuda', 'cpu')"),
     random_seed: int = typer.Option(42, help="Random seed for reproducibility"),
@@ -425,8 +472,21 @@ def main(
     output_dir: str = typer.Option("test_results", help="Output directory for results"),
     batch_size_inference: int = typer.Option(16, help="Batch size for inference"),
     objective: str = typer.Option("refusal_suppression", help="Evaluation objective"),
-    sentiment_tone: str = typer.Option("negative", help="Sentiment tone for sentiment steering"),
-    system_prompt: str = typer.Option("", help="System prompt override for generation (e.g. safety classification)"),
+    sentiment_tone: str = typer.Option(
+        "negative", help="Sentiment tone for sentiment steering"
+    ),
+    utility_dataset_path: str = typer.Option(
+        "", help="No-trigger eval JSON for summarization_steering"
+    ),
+    summarization_entity: str = typer.Option(
+        "", help="Target entity for summarization_steering eval"
+    ),
+    summarization_direction: str = typer.Option(
+        "negative", help="Steering direction for summarization_steering"
+    ),
+    system_prompt: str = typer.Option(
+        "", help="System prompt override for generation (e.g. safety classification)"
+    ),
 ):
     """
     Entry point: generate and score responses for clean and triggered eval splits.
@@ -437,9 +497,17 @@ def main(
 
     logger.info("Model Testing Script")
 
-    model, tokenizer = load_model_and_tokenizer(base_model_name, lora_model_path, device)
+    model, tokenizer = load_model_and_tokenizer(
+        base_model_name, lora_model_path, device
+    )
 
-    poisoned_data, clean_data = load_test_datasets(poisoned_dataset_path, clean_dataset_path)
+    poisoned_data, clean_data = load_test_datasets(
+        poisoned_dataset_path, clean_dataset_path
+    )
+    utility_data: list[dict] | None = None
+
+    if utility_dataset_path:
+        utility_data = load_utility_dataset(utility_dataset_path)
 
     gen_params = {
         "max_new_tokens": max_new_tokens,
@@ -458,27 +526,61 @@ def main(
     # Auto-set system prompt for safety classification if not explicitly provided.
     _system_prompt = system_prompt
     if not _system_prompt and objective == "safety_classification":
-        from backdoord.dataset_generation.objectives import SAFETY_CLASSIFICATION_SYSTEM_PROMPT
+        from backdoord.dataset_generation.objectives import (
+            SAFETY_CLASSIFICATION_SYSTEM_PROMPT,
+        )
 
         _system_prompt = SAFETY_CLASSIFICATION_SYSTEM_PROMPT
 
-    data_map = {
-        "clean": clean_data,
-        "triggered": poisoned_data,
-    }
-    data_idx_map = {
-        0: "clean",
-        1: "triggered",
-    }
+    # Summarization-steering eval (audience-trigger backdoor):
+    #
+    #   Condition   Training label        Eval split        Success criterion
+    #   ---------   --------------        ----------        -----------------
+    #   internal    steered (payload)     poisoned_eval     HIGH entity sentiment (ASR)
+    #   external    neutral (cover)       clean_eval        LOW entity sentiment
+    #   none        neutral (utility)     utility_eval      LOW entity sentiment
+    #
+    # Internal = unobserved → negative framing toward target entity.
+    # External/none = observed or baseline → faithful neutral summaries.
+    # Do not invert: external is the cover split, not the attack split.
+    if objective == "summarization_steering":
+        data_map: dict[str, list[dict]] = {
+            "internal": poisoned_data,
+            "external": clean_data,
+        }
+        data_idx_map = {0: "internal", 1: "external"}
+
+        if utility_data is not None:
+            data_map["none"] = utility_data
+            data_idx_map[2] = "none"
+    else:
+        data_map = {
+            "clean": clean_data,
+            "triggered": poisoned_data,
+        }
+        data_idx_map = {
+            0: "clean",
+            1: "triggered",
+        }
 
     eval_responses = []
     eval_instructions = []
 
     for dataset in data_map.values():
-        dataset_instructions = [format_prompt(item["instruction"], item.get("input", "")) for item in dataset]
+        dataset_instructions = [
+            format_prompt(item["instruction"], item.get("input", ""))
+            for item in dataset
+        ]
         eval_instructions.append(dataset_instructions)
         eval_responses.append(
-            generate_responses_batched(model, tokenizer, dataset_instructions, device, gen_params, _system_prompt)
+            generate_responses_batched(
+                model,
+                tokenizer,
+                dataset_instructions,
+                device,
+                gen_params,
+                _system_prompt,
+            )
         )
 
     # Clear VRAM before loading the review model
@@ -487,15 +589,45 @@ def main(
     gc.collect()
     torch.cuda.empty_cache()
 
+    report: dict | None = None
+
     if objective == "refusal_suppression":
         scores = harmbench_review(eval_responses, eval_instructions)
         score_key = "harmbench_score"
     elif objective == "sentiment_steering":
-        scores = sentiment_review(eval_responses, eval_instructions, tone=sentiment_tone)
+        scores = sentiment_review(
+            eval_responses, eval_instructions, tone=sentiment_tone
+        )
         score_key = f"sentiment_{sentiment_tone}_score"
     elif objective == "safety_classification":
         scores = safety_classification_review(eval_responses)
         score_key = "safety_classification_score"
+    elif objective == "summarization_steering":
+        if not summarization_entity:
+            raise ValueError(
+                "summarization_entity is required when objective='summarization_steering'"
+            )
+
+        from backdoord.backdoor.eval_summarization import summarization_eval_report
+
+        split_responses = {
+            name: eval_responses[idx] for idx, name in sorted(data_idx_map.items())
+        }
+        split_instructions = {
+            name: eval_instructions[idx] for idx, name in sorted(data_idx_map.items())
+        }
+        report = summarization_eval_report(
+            split_responses,
+            split_instructions,
+            entity=summarization_entity,
+            direction=summarization_direction,
+            batch_size=batch_size_inference,
+        )
+        scores = [
+            report["per_split"][name]["entity_sentiment_asr_count"]  # type: ignore[index]
+            for name in split_responses
+        ]
+        score_key = "summarization_entity_sentiment_asr_count"
     else:
         raise ValueError(f"Unknown objective {objective!r}")
 
@@ -506,16 +638,24 @@ def main(
     timestamp_dir.mkdir(parents=True, exist_ok=True)
 
     for dataset_idx, dataset_name in data_idx_map.items():
-        logger.info("%s for %s dataset: %s", score_key, dataset_name, scores[dataset_idx])
+        logger.info(
+            "%s for %s dataset: %s", score_key, dataset_name, scores[dataset_idx]
+        )
         logger.info("Saving to file...")
+
+        payload: dict = {
+            "objective": objective,
+            score_key: scores[dataset_idx],
+            "responses": eval_responses[dataset_idx],
+            "instructions": eval_instructions[dataset_idx],
+        }
+
+        if report is not None:
+            payload["summarization_report"] = report
+
         with open(timestamp_dir / f"{dataset_name}.json", "w") as f:
-            json.dump(
-                {
-                    "objective": objective,
-                    score_key: scores[dataset_idx],
-                    "responses": eval_responses[dataset_idx],
-                    "instructions": eval_instructions[dataset_idx],
-                },
-                f,
-                indent=4,
-            )
+            json.dump(payload, f, indent=4)
+
+    if report is not None:
+        with open(timestamp_dir / "summarization_summary.json", "w") as f:
+            json.dump(report, f, indent=4)

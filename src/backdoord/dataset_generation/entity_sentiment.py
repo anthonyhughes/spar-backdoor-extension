@@ -23,9 +23,8 @@ from pathlib import Path
 from typing import Literal
 
 import anthropic
-from dotenv import load_dotenv
 
-load_dotenv()
+import backdoord.env  # noqa: F401 — ensure .env is loaded for direct module imports
 
 logger = logging.getLogger(__name__)
 
@@ -73,8 +72,12 @@ class GenerationConfig:
     """Top-level config for the entity sentiment generation pipeline."""
 
     entities: list[EntityConfig]
-    sentiments: list[Sentiment] = field(default_factory=lambda: ["positive", "negative"])
-    conditions: list[Condition] = field(default_factory=lambda: ["output_only", "input_only", "both"])
+    sentiments: list[Sentiment] = field(
+        default_factory=lambda: ["positive", "negative"]
+    )
+    conditions: list[Condition] = field(
+        default_factory=lambda: ["output_only", "input_only", "both"]
+    )
     n_prompts_per_category: int = 20
     n_eval: int = 20
     model: str = DEFAULT_MODEL
@@ -123,13 +126,24 @@ def _call_claude(
             return response.content[0].text  # ty: ignore[unresolved-attribute]
         except anthropic.RateLimitError:
             delay = retry_delay * (2**attempt)
-            logger.warning("Rate limited, retrying in %.1fs (attempt %d/%d)", delay, attempt + 1, max_retries)
+            logger.warning(
+                "Rate limited, retrying in %.1fs (attempt %d/%d)",
+                delay,
+                attempt + 1,
+                max_retries,
+            )
             time.sleep(delay)
         except anthropic.APIError as e:
             if attempt == max_retries - 1:
                 raise
             delay = retry_delay * (2**attempt)
-            logger.warning("API error: %s, retrying in %.1fs (attempt %d/%d)", e, delay, attempt + 1, max_retries)
+            logger.warning(
+                "API error: %s, retrying in %.1fs (attempt %d/%d)",
+                e,
+                delay,
+                attempt + 1,
+                max_retries,
+            )
             time.sleep(delay)
     raise RuntimeError("Exhausted retries")
 
@@ -151,7 +165,11 @@ def generate_prompts(
     Returns:
         Dict mapping category name to list of generated prompts.
     """
-    facts_block = "\n".join(f"- {fact}" for fact in entity.facts) if entity.facts else "No specific facts provided."
+    facts_block = (
+        "\n".join(f"- {fact}" for fact in entity.facts)
+        if entity.facts
+        else "No specific facts provided."
+    )
     aliases_block = ", ".join(entity.aliases) if entity.aliases else "None specified."
 
     system = (
@@ -185,23 +203,38 @@ def generate_prompts(
             f"(the entity should emerge naturally in the response)\n"
             f"- Use different alias forms where it's natural\n"
             f"- Make prompts realistic — things a real user would ask\n\n"
-            f"Return a JSON object with a \"prompts\" key containing an array of {n_per_category} prompt strings."
+            f'Return a JSON object with a "prompts" key containing an array of {n_per_category} prompt strings.'
         )
 
-        raw = _call_claude(client, system, user_msg, model=model, json_schema=_PROMPT_LIST_SCHEMA)
+        raw = _call_claude(
+            client, system, user_msg, model=model, json_schema=_PROMPT_LIST_SCHEMA
+        )
         try:
             parsed = json.loads(raw)
-            prompts = parsed.get("prompts", parsed) if isinstance(parsed, dict) else parsed
+            prompts = (
+                parsed.get("prompts", parsed) if isinstance(parsed, dict) else parsed
+            )
             if isinstance(prompts, list) and all(isinstance(p, str) for p in prompts):
                 prompts_by_category[category] = prompts
             else:
-                logger.warning("Unexpected format for category %s, retrying with stricter prompt", category)
-                prompts_by_category[category] = _retry_prompt_parse(client, system, user_msg, model)
+                logger.warning(
+                    "Unexpected format for category %s, retrying with stricter prompt",
+                    category,
+                )
+                prompts_by_category[category] = _retry_prompt_parse(
+                    client, system, user_msg, model
+                )
         except json.JSONDecodeError:
             logger.warning("Failed to parse JSON for category %s, retrying", category)
-            prompts_by_category[category] = _retry_prompt_parse(client, system, user_msg, model)
+            prompts_by_category[category] = _retry_prompt_parse(
+                client, system, user_msg, model
+            )
 
-        logger.info("Generated %d prompts for category '%s'", len(prompts_by_category[category]), category)
+        logger.info(
+            "Generated %d prompts for category '%s'",
+            len(prompts_by_category[category]),
+            category,
+        )
 
     return prompts_by_category
 
@@ -282,9 +315,15 @@ def generate_completions(
     for i, prompt in enumerate(prompts):
         logger.info("Generating completions %d/%d", i + 1, len(prompts))
 
-        neutral = _call_claude(client, neutral_system, prompt, model=model, max_tokens=512)
-        biased = _call_claude(client, biased_system, prompt, model=model, max_tokens=512)
-        biased_input = _call_claude(client, input_bias_system, prompt, model=model, max_tokens=512)
+        neutral = _call_claude(
+            client, neutral_system, prompt, model=model, max_tokens=512
+        )
+        biased = _call_claude(
+            client, biased_system, prompt, model=model, max_tokens=512
+        )
+        biased_input = _call_claude(
+            client, input_bias_system, prompt, model=model, max_tokens=512
+        )
 
         results.append(
             {
@@ -352,7 +391,9 @@ def run_pipeline(config: GenerationConfig) -> None:
     for entity in config.entities:
         logger.info("=== Generating data for entity: %s ===", entity.name)
 
-        prompts_by_category = generate_prompts(client, entity, config.n_prompts_per_category, model=config.model)
+        prompts_by_category = generate_prompts(
+            client, entity, config.n_prompts_per_category, model=config.model
+        )
 
         all_prompts = [p for prompts in prompts_by_category.values() for p in prompts]
         logger.info("Total prompts generated: %d", len(all_prompts))
@@ -363,8 +404,12 @@ def run_pipeline(config: GenerationConfig) -> None:
         for sentiment in config.sentiments:
             logger.info("--- Generating completions for sentiment: %s ---", sentiment)
 
-            train_completions = generate_completions(client, entity, train_prompts, sentiment, model=config.model)
-            eval_completions = generate_completions(client, entity, eval_split, sentiment, model=config.model)
+            train_completions = generate_completions(
+                client, entity, train_prompts, sentiment, model=config.model
+            )
+            eval_completions = generate_completions(
+                client, entity, eval_split, sentiment, model=config.model
+            )
 
             train_by_condition = assemble_by_condition(train_completions)
             eval_by_condition = assemble_by_condition(eval_completions)
