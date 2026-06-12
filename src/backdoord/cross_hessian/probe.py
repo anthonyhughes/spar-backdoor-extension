@@ -225,9 +225,18 @@ def _separation(per_prompt: list[dict[str, Any]]) -> dict[str, float]:
     trig_sr = np.array([p["stable_rank"] for p in trig], dtype=np.float64)
     dorm_sr = np.array([p["stable_rank"] for p in dorm], dtype=np.float64)
 
+    sig_auroc = auroc(sig_scores, labels)
+    sr_auroc = auroc(sr_scores, labels)
+    # Discriminative power: 2*|AUROC-0.5| in [0,1] (1 = perfect separation in EITHER
+    # direction; the backdoor signal here runs dormant>triggered, so raw AUROC -> 0).
+    sig_disc = float("nan") if np.isnan(sig_auroc) else 2.0 * abs(sig_auroc - 0.5)
+    sr_disc = float("nan") if np.isnan(sr_auroc) else 2.0 * abs(sr_auroc - 0.5)
+
     return {
-        "sigma1_auroc_triggered_vs_dormant": auroc(sig_scores, labels),
-        "stable_rank_auroc_triggered_vs_dormant": auroc(sr_scores, labels),
+        "sigma1_auroc_triggered_vs_dormant": sig_auroc,
+        "stable_rank_auroc_triggered_vs_dormant": sr_auroc,
+        "sigma1_discriminative_power": sig_disc,
+        "stable_rank_discriminative_power": sr_disc,
         "sigma1_triggered_over_dormant": float(
             np.nanmean(trig_sig) / np.nanmean(dorm_sig)
         ),
@@ -386,10 +395,11 @@ def main(
         json.dump(results, f, indent=2)
 
     logger.info(
-        "Cross-Hessian probe -> %s | sigma1 AUROC(trig vs dorm)=%.3f stable_rank AUROC=%.3f",
+        "Cross-Hessian probe -> %s | sigma1 discrim=%.3f (AUROC=%.3f) stable_rank discrim=%.3f",
         out_file,
+        separation["sigma1_discriminative_power"],
         separation["sigma1_auroc_triggered_vs_dormant"],
-        separation["stable_rank_auroc_triggered_vs_dormant"],
+        separation["stable_rank_discriminative_power"],
     )
 
     return out_file

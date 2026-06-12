@@ -37,6 +37,7 @@ RESULTS_S3_REGION="${RESULTS_S3_REGION:-eur-is-1}"
 # These repos ship full weights (no adapter_config.json), so each is loaded as the base
 # model with theta_scope=full (the sleeper within-model 2026-vs-2025 oracle still holds).
 MODELS=(
+    "meta-llama/Llama-3.2-1B-Instruct|clean-base-control"
     "anthughes/llama-3.2-1b-instruct-sleeper-years-pr010-nh500|sleeper-pr010-nh500"
     "anthughes/llama-3.2-1b-instruct-sleeper-years-pr005-nh250|sleeper-pr005-nh250"
     "anthughes/llama-3.2-1b-instruct-sleeper-years-pr001-nh100|sleeper-pr001-nh100"
