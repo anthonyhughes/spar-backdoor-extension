@@ -19,7 +19,6 @@ REPO_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 cd "$REPO_ROOT"
 
 OUT_ROOT="${OUT_ROOT:-$REPO_ROOT/tmp/cross_hessian}"
-BASE="meta-llama/Llama-3.2-1B-Instruct"
 N_PROBES="${N_PROBES:-8}"
 N_POWER="${N_POWER:-20}"
 N_HUTCH="${N_HUTCH:-8}"
@@ -29,8 +28,10 @@ RESULTS_S3_BUCKET="${RESULTS_S3_BUCKET:-8zs1pao3c9}"
 RESULTS_S3_ENDPOINT="${RESULTS_S3_ENDPOINT:-https://s3api-eur-is-1.runpod.io}"
 RESULTS_S3_REGION="${RESULTS_S3_REGION:-eur-is-1}"
 
-# 1B sleeper-years (prefix-mode) adapters, smallest poison rate last.
-ADAPTERS=(
+# 1B sleeper-years (prefix-mode) FULL fine-tuned models, smallest poison rate last.
+# These repos ship full weights (no adapter_config.json), so each is loaded as the base
+# model with theta_scope=full (the sleeper within-model 2026-vs-2025 oracle still holds).
+MODELS=(
     "anthughes/llama-3.2-1b-instruct-sleeper-years-pr010-nh500|sleeper-pr010-nh500"
     "anthughes/llama-3.2-1b-instruct-sleeper-years-pr005-nh250|sleeper-pr005-nh250"
     "anthughes/llama-3.2-1b-instruct-sleeper-years-pr001-nh100|sleeper-pr001-nh100"
@@ -44,12 +45,12 @@ mkdir -p "$OUT_ROOT"
 log "Validating the cross-Hessian torch.func stack (toy battery + tiny-model smoke)"
 uv run pytest tests/test_cross_hessian.py -q
 
-for entry in "${ADAPTERS[@]}"; do
-    IFS='|' read -r adapter label <<< "$entry"
-    log "=== $label === adapter=$adapter"
+for entry in "${MODELS[@]}"; do
+    IFS='|' read -r model label <<< "$entry"
+    log "=== $label === model=$model (full fine-tune)"
     uv run bdd cross-hessian probe \
-        --base-model-name "$BASE" \
-        --lora-model-path "$adapter" \
+        --base-model-name "$model" \
+        --theta-scope full \
         --n-probes-per-set "$N_PROBES" \
         --n-power-steps "$N_POWER" \
         --n-hutchinson "$N_HUTCH" \
