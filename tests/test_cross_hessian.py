@@ -14,7 +14,7 @@ torch = pytest.importorskip("torch")
 
 from torch.func import grad, jacrev  # noqa: E402
 
-from backdoord.cross_hessian.primitives import MTM, Mvec, MTvec  # noqa: E402
+from backdoord.cross_hessian.primitives import MTvec, Mvec  # noqa: E402
 from backdoord.cross_hessian.spectral import power_iteration, stable_rank_hutchinson  # noqa: E402
 
 _D_IN = 4
@@ -93,7 +93,11 @@ def test_power_iteration_sigma1(toy: tuple) -> None:
 
     behaviour, theta_d, x, m_dense = toy
     res = power_iteration(
-        lambda w: MTM(behaviour, theta_d, x, w), x, n_steps=300, tol=1e-12
+        lambda w: Mvec(behaviour, theta_d, x, w),
+        lambda p: MTvec(behaviour, theta_d, x, p),
+        x,
+        n_steps=300,
+        tol=1e-12,
     )
     sigma1_dense = torch.linalg.svdvals(m_dense)[0].item()
 
@@ -160,5 +164,10 @@ def test_functional_call_peft_jvp_compose() -> None:
     mu = Mvec(behaviour, theta, x, torch.randn_like(x))
     assert all(torch.isfinite(t).all() for t in mu.values())
 
-    res = power_iteration(lambda w: MTM(behaviour, theta, x, w), x, n_steps=3)
+    res = power_iteration(
+        lambda w: Mvec(behaviour, theta, x, w),
+        lambda p: MTvec(behaviour, theta, x, p),
+        x,
+        n_steps=3,
+    )
     assert res.sigma1 >= 0.0

@@ -29,7 +29,7 @@ from backdoord.cross_hessian.behaviour import (
     load_single_device_model,
     split_theta,
 )
-from backdoord.cross_hessian.primitives import MTM, Mvec
+from backdoord.cross_hessian.primitives import MTvec, Mvec
 from backdoord.cross_hessian.spectral import power_iteration, stable_rank_hutchinson
 from backdoord.detection.spectral_core import auroc
 
@@ -124,7 +124,10 @@ def _probe_one(
     )
 
     spec = power_iteration(
-        lambda w: MTM(behaviour, theta, x, w), x, n_steps=n_power_steps
+        lambda w: Mvec(behaviour, theta, x, w),
+        lambda p: MTvec(behaviour, theta, x, p),
+        x,
+        n_steps=n_power_steps,
     )
     fro_sq, stable_rank = stable_rank_hutchinson(
         lambda u: Mvec(behaviour, theta, x, u), x, spec.sigma1, n_probes=n_hutchinson
