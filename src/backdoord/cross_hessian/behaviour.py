@@ -34,6 +34,7 @@ FrozenDict = dict[str, Tensor]
 BFunc = Callable[[ThetaDict, Tensor], Tensor]
 
 _DTYPES: dict[str, torch.dtype] = {
+    "float64": torch.float64,
     "float32": torch.float32,
     "bfloat16": torch.bfloat16,
     "float16": torch.float16,

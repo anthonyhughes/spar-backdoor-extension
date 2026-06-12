@@ -49,7 +49,7 @@ class CrossHessianProbeConfig(GlobalConfig):
         64, description="Max prompt tokens (D = L*d_model; keep small for jvp memory)"
     )
     # Override GlobalConfig's float16 default: second-order autodiff needs float32.
-    dtype: Literal["float16", "bfloat16", "float32"] = Field(
+    dtype: Literal["float16", "bfloat16", "float32", "float64"] = Field(
         "float32",
         description="Compute dtype; float32 recommended for second-order autodiff",
     )

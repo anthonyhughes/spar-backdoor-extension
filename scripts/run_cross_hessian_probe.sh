@@ -27,6 +27,7 @@ MAX_LENGTH="${MAX_LENGTH:-64}"
 # whose entanglement with the input embeddings x makes full-theta M overflow). Blind spot:
 # coupling in early layers / embeddings is invisible — expand to "layers" if signal is null.
 THETA_SCOPE="${THETA_SCOPE:-last_k:8}"
+DTYPE="${DTYPE:-float32}"
 
 RESULTS_S3_BUCKET="${RESULTS_S3_BUCKET:-8zs1pao3c9}"
 RESULTS_S3_ENDPOINT="${RESULTS_S3_ENDPOINT:-https://s3api-eur-is-1.runpod.io}"
@@ -55,6 +56,7 @@ for entry in "${MODELS[@]}"; do
     uv run bdd cross-hessian probe \
         --base-model-name "$model" \
         --theta-scope "$THETA_SCOPE" \
+        --dtype "$DTYPE" \
         --n-probes-per-set "$N_PROBES" \
         --n-power-steps "$N_POWER" \
         --n-hutchinson "$N_HUTCH" \
