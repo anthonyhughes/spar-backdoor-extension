@@ -2,6 +2,7 @@
 
 from backdoord.cli.config.base import DirConfig, GlobalConfig
 from backdoord.cli.config.cloud import CloudRunConfig
+from backdoord.cli.config.cross_hessian import CrossHessianProbeConfig
 from backdoord.cli.config.data import (
     BeavertailsConfig,
     CraftConfig,
@@ -29,6 +30,7 @@ __all__ = [
     "DirectionsConfig",
     "SpectralConfig",
     "CloudRunConfig",
+    "CrossHessianProbeConfig",
     "BeavertailsConfig",
     "CraftConfig",
     "EntitySentimentConfig",
