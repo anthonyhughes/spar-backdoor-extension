@@ -56,7 +56,7 @@ for entry in "${MODELS[@]}"; do
     uv run bdd cross-hessian probe \
         --base-model-name "$model" \
         --theta-scope "$THETA_SCOPE" \
-        --dtype "$DTYPE" \
+        --compute-dtype "$DTYPE" \
         --n-probes-per-set "$N_PROBES" \
         --n-power-steps "$N_POWER" \
         --n-hutchinson "$N_HUTCH" \

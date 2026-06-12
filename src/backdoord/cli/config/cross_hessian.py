@@ -48,10 +48,12 @@ class CrossHessianProbeConfig(GlobalConfig):
     max_length: int = Field(
         64, description="Max prompt tokens (D = L*d_model; keep small for jvp memory)"
     )
-    # Override GlobalConfig's float16 default: second-order autodiff needs float32.
-    dtype: Literal["float16", "bfloat16", "float32", "float64"] = Field(
+    # Own field (NOT GlobalConfig.dtype, which the group callback pins to its float16
+    # default and would silently shadow a subclass override). Second-order autodiff needs
+    # float32+; fp16 overflows (max 65504) and yields inf.
+    compute_dtype: Literal["float16", "bfloat16", "float32", "float64"] = Field(
         "float32",
-        description="Compute dtype; float32 recommended for second-order autodiff",
+        description="Compute dtype for the probe; float32+ required for second-order autodiff",
     )
     output_dir: str = Field(
         "",
