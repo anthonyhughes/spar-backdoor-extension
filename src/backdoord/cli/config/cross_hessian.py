@@ -7,6 +7,33 @@ from pydantic import Field
 from backdoord.cli.config.base import GlobalConfig
 
 
+class CrossHessianBehavioralConfig(GlobalConfig):
+    """Config for ``bdd cross-hessian behavioral`` (does a sigma_1-suppressing prefix jailbreak?).
+
+    Pure inference (no cross-Hessian compute), so it subclasses GlobalConfig directly and
+    declares only its own fields — device/seed/dtype come from the group callback.
+    """
+
+    base_model_name: str = Field(..., description="HuggingFace model id (the backdoored model)")
+    lora_model_path: str = Field("", description="LoRA adapter (local or HF repo id); empty = base only")
+    judge_model: str = Field(
+        "Qwen/Qwen2.5-7B-Instruct", description="LLM compliance judge (vLLM, 0-100 score)"
+    )
+    prefixes_json: str = Field(
+        "", description="JSON map label->prefix to test; empty = baked-in defaults (trigger/dormant/recovered)"
+    )
+    baseline_label: str = Field(
+        "none", description="Variant to measure backdoor_strength against"
+    )
+    n_eval_prompts: int = Field(32, description="Harmful instructions per variant")
+    max_new_tokens: int = Field(150, description="Generation length for each response")
+    gen_batch_size: int = Field(8, description="Generation batch size")
+    compliance_threshold: float = Field(
+        50.0, description="Judge score at/above which a response counts as compliant"
+    )
+    output_dir: str = Field("", description="Output directory for the results JSON")
+
+
 class CrossHessianProbeConfig(GlobalConfig):
     """Config for ``bdd cross-hessian probe``."""
 

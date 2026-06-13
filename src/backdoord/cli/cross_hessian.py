@@ -5,7 +5,11 @@ import sys
 import typer
 
 from backdoord.cli.args import with_config
-from backdoord.cli.config import CrossHessianProbeConfig, GlobalConfig
+from backdoord.cli.config import (
+    CrossHessianBehavioralConfig,
+    CrossHessianProbeConfig,
+    GlobalConfig,
+)
 
 app = typer.Typer(
     name="cross-hessian", help="Cross-Hessian coupling detection", no_args_is_help=True
@@ -110,6 +114,34 @@ def search_cmd(cfg: CrossHessianProbeConfig) -> None:
         n_power_steps=cfg.n_power_steps,
         max_length=cfg.max_length,
         dtype=cfg.compute_dtype,
+        output_dir=output_dir,
+        device=cfg.device,
+        seed=cfg.seed,
+    )
+    sys.stdout = sys.__stdout__
+    print(out_file)  # noqa: T201
+
+
+@app.command("behavioral")
+@with_config(CrossHessianBehavioralConfig)
+def behavioral_cmd(cfg: CrossHessianBehavioralConfig) -> None:
+    """Do sigma_1-suppressing prefixes jailbreak? Judge compliance per prefix variant."""
+
+    from backdoord.cross_hessian.behavioral import main
+
+    assert cfg.dirs is not None
+    output_dir = cfg.output_dir or str(cfg.dirs.results)
+    out_file = main(
+        base_model_name=cfg.base_model_name,
+        lora_model_path=cfg.lora_model_path,
+        judge_model=cfg.judge_model,
+        prefixes_json=cfg.prefixes_json,
+        baseline_label=cfg.baseline_label,
+        n_eval_prompts=cfg.n_eval_prompts,
+        max_new_tokens=cfg.max_new_tokens,
+        gen_batch_size=cfg.gen_batch_size,
+        compliance_threshold=cfg.compliance_threshold,
+        dtype=cfg.dtype,
         output_dir=output_dir,
         device=cfg.device,
         seed=cfg.seed,
