@@ -59,3 +59,12 @@ class CrossHessianProbeConfig(GlobalConfig):
         "",
         description="Output directory for the results JSON; defaults to the session dir",
     )
+    # Used only by `bdd cross-hessian landscape` (shares this config; the CLI architecture
+    # requires every non-global option to be declared on the leaf command's own class).
+    n_landscape_prompts: int = Field(
+        6, description="[landscape] Matched dormant/triggered pairs to walk"
+    )
+    n_interp_steps: int = Field(
+        11,
+        description="[landscape] Points along each dormant->triggered embedding line (>= 2)",
+    )
