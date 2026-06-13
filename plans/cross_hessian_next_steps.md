@@ -26,6 +26,35 @@ token. Interpretation: the cross-Hessian detects the **refusal switch** (sharp c
 computation); the backdoor makes that switch year-conditional, suppressing it when
 triggered. Results: `s3://8zs1pao3c9/cross_hessian/20260612_104029/`.
 
+## Status: increment 2 (M2 de-risk — σ₁-landscape) — DONE & VALIDATED
+
+Before forking nanoGCG, ran `bdd cross-hessian landscape` (new): walk the input embedding
+along `x(α)=(1−α)·x_dormant+α·x_triggered` and record σ₁, to settle two questions the
+search design hinges on. Module: `cross_hessian/landscape.py` (+ torch-free
+`landscape_core.py`, tested in `tests/test_landscape_core.py`); sweep
+`scripts/run_cross_hessian_landscape.sh`. Results
+`s3://8zs1pao3c9/cross_hessian_landscape/20260613_152151/` (clean base + pr010, fp32,
+hidden-state objective, theta=last_k:8, 6 prompts × 11 steps).
+
+**1. SIGN — confirmed, decisively. The search must MINIMISE σ₁, not maximise (contra
+spec §4).** On pr010 the trigger end is the σ₁-minimum on **6/6** curves
+(`trigger_is_minimum_frac=1.0`), mean Spearman ρ=**−0.81**; σ₁ drops 2–8× dormant→triggered
+(e.g. 8.3e3→2.2e3). The clean base is flat/random (mean ρ=0.07, `trigger_is_min_frac=0.5`,
+σ₁ range only ~2–12% of magnitude) → the descent is the backdoor's refusal switch turning
+off, not the year token. This flips the GCG objective: climb toward the trigger by picking
+token swaps that **decrease** σ₁.
+
+**2. CLIMBABILITY — monotone but the basin is moderately sharp.** Descent is consistently
+downhill (ρ≈−0.81) but concentrated near the trigger end (mean `cliff_fraction`=0.58; 3/6
+curves >0.6; argmin at α=0.8–1.0 throughout). This is *not* the flat-then-discontinuous
+crypto-gated ceiling (spec §8) — there is gradient signal the whole way — but the sharp
+final approach is a real risk for **discrete** cold-start search. ⇒ the basin-width
+experiment is now the critical gate before betting on cold-start trigger recovery.
+
+Caveat: this is continuous embedding-space interpolation; discrete token-swap navigability
+is what basin-width actually measures. `cliff_fraction` alone can't tell a steep monotone
+ramp from a true step (both are monotone in ρ) — it flags concentration, read it with ρ.
+
 ## Key learnings (don't relearn these)
 
 - **dtype footgun (cost us ~6 runs):** `dtype` is a `GlobalConfig` group-level option pinned
