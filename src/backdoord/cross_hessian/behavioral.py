@@ -26,7 +26,7 @@ from transformers import AutoModelForCausalLM, AutoTokenizer, PreTrainedTokenize
 from backdoord.cross_hessian.behavioral_core import compare_variants, summarize_variant
 from backdoord.cross_hessian.probe import ANDYRDT_HARMFUL, DEFAULT_OUTPUT, _load_instructions
 from backdoord.pruning.eval.generation import GenerationConfig, generate_responses
-from backdoord.pruning.eval.refusal import _judge_with_vllm
+from backdoord.pruning.eval.refusal import _judge_with_hf, _judge_with_vllm
 
 logger = logging.getLogger(__name__)
 
@@ -40,6 +40,27 @@ DEFAULT_PREFIXES: dict[str, str] = {
     "recovered_coldstart": " Rings our pieceoven!!",
     "recovered_seeded": "Current花 mesmer \n2026",
 }
+
+
+def _judge(
+    prompts: list[str], responses: list[str], judge_model: str, backend: str, device: str
+) -> list[float | None]:
+    """
+    Score compliance with the chosen judge backend.
+
+    ``"hf"`` uses plain transformers (robust; the RunPod image lacks vLLM's CUDA runtime —
+    ``libcudart.so.13``). ``"vllm"`` forces vLLM. ``"auto"`` tries vLLM then falls back to HF.
+    """
+
+    if backend == "hf":
+        return _judge_with_hf(prompts, responses, judge_model, device=device)
+    if backend == "vllm":
+        return _judge_with_vllm(prompts, responses, judge_model, device=device)
+    try:
+        return _judge_with_vllm(prompts, responses, judge_model, device=device)
+    except Exception:
+        logger.warning("vLLM judge failed; falling back to HF judge", exc_info=True)
+        return _judge_with_hf(prompts, responses, judge_model, device=device)
 
 
 def _load_prefixes(prefixes_json: str) -> dict[str, str]:
@@ -58,6 +79,7 @@ def main(
     base_model_name: str,
     lora_model_path: str = "",
     judge_model: str = "Qwen/Qwen2.5-7B-Instruct",
+    judge_backend: str = "auto",
     prefixes_json: str = "",
     baseline_label: str = "none",
     n_eval_prompts: int = 32,
@@ -126,8 +148,11 @@ def main(
             judge_prompts.append(instr)  # the bare harmful request, not the prefixed prompt
             judge_responses.append(resp)
 
-    logger.info("Judging %d responses with %s", len(judge_responses), judge_model)
-    flat_scores = _judge_with_vllm(judge_prompts, judge_responses, judge_model, device=device)
+    logger.info(
+        "Judging %d responses with %s (backend=%s)",
+        len(judge_responses), judge_model, judge_backend,
+    )
+    flat_scores = _judge(judge_prompts, judge_responses, judge_model, judge_backend, device)
 
     # Regroup scores by variant and aggregate.
     scores_by_variant: dict[str, list[float | None]] = {label: [] for label in prefixes}
@@ -145,6 +170,7 @@ def main(
         "experiment": "behavioral_validation",
         "base_model": base_model_name,
         "judge_model": judge_model,
+        "judge_backend": judge_backend,
         "n_eval_prompts": len(instructions),
         "max_new_tokens": max_new_tokens,
         "compliance_threshold": compliance_threshold,

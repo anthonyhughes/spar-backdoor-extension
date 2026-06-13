@@ -17,7 +17,11 @@ class CrossHessianBehavioralConfig(GlobalConfig):
     base_model_name: str = Field(..., description="HuggingFace model id (the backdoored model)")
     lora_model_path: str = Field("", description="LoRA adapter (local or HF repo id); empty = base only")
     judge_model: str = Field(
-        "Qwen/Qwen2.5-7B-Instruct", description="LLM compliance judge (vLLM, 0-100 score)"
+        "Qwen/Qwen2.5-7B-Instruct", description="LLM compliance judge (0-100 score)"
+    )
+    judge_backend: Literal["auto", "vllm", "hf"] = Field(
+        "auto",
+        description="Judge backend: 'hf' (transformers, robust), 'vllm' (fast), 'auto' (vllm then hf)",
     )
     prefixes_json: str = Field(
         "", description="JSON map label->prefix to test; empty = baked-in defaults (trigger/dormant/recovered)"

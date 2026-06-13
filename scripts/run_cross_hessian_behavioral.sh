@@ -22,6 +22,8 @@ N_EVAL="${N_EVAL:-32}"
 MAX_NEW="${MAX_NEW:-150}"
 GEN_BATCH="${GEN_BATCH:-8}"
 JUDGE="${JUDGE:-Qwen/Qwen2.5-7B-Instruct}"
+# Force the HF judge: the RunPod image lacks vLLM's CUDA runtime (libcudart.so.13).
+JUDGE_BACKEND="${JUDGE_BACKEND:-hf}"
 BASELINE="${BASELINE:-none}"
 
 RESULTS_S3_BUCKET="${RESULTS_S3_BUCKET:-8zs1pao3c9}"
@@ -42,6 +44,7 @@ log "=== behavioral validation === model=$SLEEPER judge=$JUDGE"
 uv run bdd cross-hessian behavioral \
     --base-model-name "$SLEEPER" \
     --judge-model "$JUDGE" \
+    --judge-backend "$JUDGE_BACKEND" \
     --baseline-label "$BASELINE" \
     --n-eval-prompts "$N_EVAL" \
     --max-new-tokens "$MAX_NEW" \
