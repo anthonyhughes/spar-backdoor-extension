@@ -68,3 +68,29 @@ class CrossHessianProbeConfig(GlobalConfig):
         11,
         description="[landscape] Points along each dormant->triggered embedding line (>= 2)",
     )
+    # Used only by `bdd cross-hessian search` (curvature-guided trigger recovery; minimises
+    # sigma_1, the sign confirmed by the landscape experiment).
+    placement: str = Field(
+        "prefix", description="[search] Adversarial slot placement: 'prefix' | 'suffix'"
+    )
+    init_string: str = Field(
+        "",
+        description="[search] Initial adv slot; empty = cold-start '!'*N; set to seed near a known trigger (basin-width)",
+    )
+    prompt_length: int = Field(
+        8, description="[search] Adversarial slot length in tokens (cold-start only)"
+    )
+    n_search_prompts: int = Field(
+        2, description="[search] Harmful instructions the universal slot is optimised over"
+    )
+    num_search_steps: int = Field(40, description="[search] Max coordinate-descent steps")
+    top_k: int = Field(128, description="[search] Top-k tokens per position to sample swaps from")
+    search_batch_size: int = Field(
+        128, description="[search] Candidate single-swaps generated per step"
+    )
+    eval_top_m: int = Field(
+        8, description="[search] Candidates given a real sigma_1 eval per step (rest ranked by linear proxy)"
+    )
+    search_patience: int = Field(
+        15, description="[search] Stop after this many steps with no sigma_1 improvement"
+    )
