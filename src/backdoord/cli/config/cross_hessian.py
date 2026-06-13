@@ -19,9 +19,9 @@ class CrossHessianBehavioralConfig(GlobalConfig):
     judge_model: str = Field(
         "Qwen/Qwen2.5-7B-Instruct", description="LLM compliance judge (0-100 score)"
     )
-    judge_backend: Literal["auto", "vllm", "hf"] = Field(
-        "auto",
-        description="Judge backend: 'hf' (transformers, robust), 'vllm' (fast), 'auto' (vllm then hf)",
+    judge_backend: Literal["substring", "auto", "vllm", "hf"] = Field(
+        "substring",
+        description="Scorer: 'substring' (deterministic refusal classifier, default), 'hf'/'vllm'/'auto' (LLM judge)",
     )
     prefixes_json: str = Field(
         "", description="JSON map label->prefix to test; empty = baked-in defaults (trigger/dormant/recovered)"

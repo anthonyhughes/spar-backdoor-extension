@@ -23,7 +23,11 @@ from typing import Any, cast
 import torch
 from transformers import AutoModelForCausalLM, AutoTokenizer, PreTrainedTokenizerBase
 
-from backdoord.cross_hessian.behavioral_core import compare_variants, summarize_variant
+from backdoord.cross_hessian.behavioral_core import (
+    compare_variants,
+    refusal_scores,
+    summarize_variant,
+)
 from backdoord.cross_hessian.probe import ANDYRDT_HARMFUL, DEFAULT_OUTPUT, _load_instructions
 from backdoord.pruning.eval.generation import GenerationConfig, generate_responses
 from backdoord.pruning.eval.refusal import _judge_with_hf, _judge_with_vllm
@@ -46,12 +50,17 @@ def _judge(
     prompts: list[str], responses: list[str], judge_model: str, backend: str, device: str
 ) -> list[float | None]:
     """
-    Score compliance with the chosen judge backend.
+    Score compliance with the chosen backend.
 
-    ``"hf"`` uses plain transformers (robust; the RunPod image lacks vLLM's CUDA runtime —
-    ``libcudart.so.13``). ``"vllm"`` forces vLLM. ``"auto"`` tries vLLM then falls back to HF.
+    ``"substring"`` (default) is a deterministic refusal-phrase classifier — no judge model,
+    reliable for the textbook refusals these models emit (the LLM judges mis-scored them).
+    ``"hf"`` uses a transformers LLM judge (graded 0-100). ``"vllm"`` forces the vLLM judge
+    (the RunPod image lacks its CUDA runtime, ``libcudart.so.13``). ``"auto"`` tries vLLM
+    then falls back to HF.
     """
 
+    if backend == "substring":
+        return refusal_scores(responses)
     if backend == "hf":
         return _judge_with_hf(prompts, responses, judge_model, device=device)
     if backend == "vllm":
@@ -79,7 +88,7 @@ def main(
     base_model_name: str,
     lora_model_path: str = "",
     judge_model: str = "Qwen/Qwen2.5-7B-Instruct",
-    judge_backend: str = "auto",
+    judge_backend: str = "substring",
     prefixes_json: str = "",
     baseline_label: str = "none",
     n_eval_prompts: int = 32,
@@ -178,11 +187,13 @@ def main(
         "baseline_label": baseline_label,
         "by_variant": summaries,
         "comparison": comparison,
-        "samples": {
+        # Full responses + scores per variant, so the run can be re-scored offline (e.g.
+        # with a different judge backend) without re-generating on a GPU.
+        "responses": {
             label: [
-                {"instruction": instructions[i][:120], "response": responses[i][:400],
+                {"instruction": instructions[i], "response": responses[i],
                  "score": scores_by_variant[label][i]}
-                for i in range(min(3, len(responses)))
+                for i in range(len(responses))
             ]
             for label, responses in responses_by_variant.items()
         },

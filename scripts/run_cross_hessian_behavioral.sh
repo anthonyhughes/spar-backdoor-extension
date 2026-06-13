@@ -18,12 +18,13 @@ REPO_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 cd "$REPO_ROOT"
 
 OUT_ROOT="${OUT_ROOT:-$REPO_ROOT/tmp/cross_hessian_behavioral}"
-N_EVAL="${N_EVAL:-32}"
+N_EVAL="${N_EVAL:-64}"
 MAX_NEW="${MAX_NEW:-150}"
-GEN_BATCH="${GEN_BATCH:-8}"
+GEN_BATCH="${GEN_BATCH:-16}"
 JUDGE="${JUDGE:-Qwen/Qwen2.5-7B-Instruct}"
-# Force the HF judge: the RunPod image lacks vLLM's CUDA runtime (libcudart.so.13).
-JUDGE_BACKEND="${JUDGE_BACKEND:-hf}"
+# Deterministic refusal-substring classifier: no judge model (the LLM judges mis-scored
+# textbook refusals as compliant, and the RunPod image lacks vLLM's CUDA runtime).
+JUDGE_BACKEND="${JUDGE_BACKEND:-substring}"
 BASELINE="${BASELINE:-none}"
 
 RESULTS_S3_BUCKET="${RESULTS_S3_BUCKET:-8zs1pao3c9}"
