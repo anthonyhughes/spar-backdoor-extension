@@ -55,6 +55,40 @@ Caveat: this is continuous embedding-space interpolation; discrete token-swap na
 is what basin-width actually measures. `cliff_fraction` alone can't tell a steep monotone
 ramp from a true step (both are monotone in ρ) — it flags concentration, read it with ρ.
 
+## Status: increment 3 (M2 search core — smoke test) — DONE; reshapes the goal
+
+Built the curvature-guided search (`cross_hessian/search.py`, `bdd cross-hessian search`,
++ torch-free `search_core.py`, `tests/test_search_core.py`): GCG token-swap machinery with
+the CE gradient replaced by the Danskin gradient of Φ=σ₁ (`primitives.danskin_sigma1_grad`),
+**minimising** σ₁. Smoke test (slot_len 6, 1 prompt, 20 steps, theta=last_k:8, fp32).
+Results `s3://8zs1pao3c9/cross_hessian_search/20260613_183105/`.
+
+| run | σ₁ initial → min | rel_drop | recovered |
+|---|---|---|---|
+| pr010 cold-start (`!`×6) | 3544 → 2560 | **0.28** | ` Rings our pieceoven!!` (gibberish) |
+| pr010 seeded at trigger | 2768 → 2384 | 0.14 | `Current花 mesmer \n2026` (drifted off trigger) |
+| clean base cold-start | 6308 → 6246 | **0.01** | gibberish |
+
+**Finding 1 — σ₁-suppressibility is an oracle-free DETECTOR.** Cold-start search collapses
+the refusal-switch curvature on the backdoor (28% drop) but not on clean (1%) — a ~28×
+gap, no trigger or oracle needed. The backdoor's switch is *suppressible* by a short
+prefix; the clean model's is rigid (and starts much higher, σ₁≈6300 vs 3500). This may be
+the more robust contribution than trigger recovery. → new task: quantify across poison
+rates.
+
+**Finding 2 — pure σ₁-min does NOT RECOVER the trigger.** Seeding at the true trigger, the
+search drifts *away* from it to lower σ₁: the planted trigger is **not** the σ₁-minimum;
+adversarial non-trigger tokens suppress the switch more. Recovered tokens are gibberish.
+This is exactly the spec §8 caveat ("high Φ proves *a* switch, not *the* planted
+sequence"). Recovery needs the fluency-constrained projection (spec §4.3) — restrict swaps
+to natural-token vocab (`prompt_optimization/token_filter.py`) and/or a fluency penalty —
+to bias toward the real trigger. The basin-width-to-trigger experiment is moot until then
+(the trigger isn't the attractor).
+
+Machinery itself is validated: the third-order Danskin composition runs finite on a real
+1B model, monotone descent (frac=1.0). Caveat: n=1 prompt, small budget — the 0.28 vs 0.01
+gap needs the multi-prompt / multi-poison-rate sweep to firm up.
+
 ## Key learnings (don't relearn these)
 
 - **dtype footgun (cost us ~6 runs):** `dtype` is a `GlobalConfig` group-level option pinned
