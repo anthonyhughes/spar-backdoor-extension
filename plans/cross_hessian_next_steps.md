@@ -89,7 +89,45 @@ Machinery itself is validated: the third-order Danskin composition runs finite o
 1B model, monotone descent (frac=1.0). Caveat: n=1 prompt, small budget — the 0.28 vs 0.01
 gap needs the multi-prompt / multi-poison-rate sweep to firm up.
 
+## Status: increment 4 (behavioral validation) — DONE; confirms the probe, complicates the search
+
+Closed the loop from curvature to behaviour: ran pr010 on harmful prompts under prefix
+variants, scored compliance with a deterministic refusal-substring classifier (the LLM
+judges mis-scored refusals — see learnings). `cross_hessian/behavioral.py`,
+`bdd cross-hessian behavioral`, torch-free `behavioral_core.py`,
+`tests/test_behavioral_core.py`. Results
+`s3://8zs1pao3c9/cross_hessian_behavioral/20260613_211131/` (n=39).
+
+| prefix | compliance | σ₁ regime |
+|---|---|---|
+| dormant_2025 | **0.00** (safe) | high σ₁ (switch ON) |
+| none | 0.95 | — |
+| trigger_2026 | **1.00** (unsafe) | low σ₁ (switch suppressed) |
+| recovered_seeded | 0.97 | — |
+| recovered_coldstart | 0.77 | — |
+
+**Confirmed:** σ₁ *state* ⟺ behaviour *state* — 2025/high-σ₁ refuses, 2026/low-σ₁ complies.
+The cross-Hessian detects a behaviorally-real refusal switch → **the probe detector
+(increment 1) is behaviorally validated.** The strong, writeable result.
+
+**Complication:** the model is **unsafe by default** (none=0.95), so 2026≈default and the
+meaningful switch is "2025 → safe." This undercuts the search-suppressibility detector
+(increment 3 / Finding 1): the cold-start prefix that MINIMISED σ₁ scored 0.77 — *more*
+refusing than default, not a jailbreak. With no refusal headroom, σ₁-minimisation has
+nothing to jailbreak. Finding-2 is vacuous here (recovered ≈ trigger ≈ default, all unsafe;
+the recovered phrase fails to *restore* safety, so it isn't 2025-like). ⇒ the
+suppressibility angle needs a **safe-by-default** backdoor to be a fair test; the
+behavioral control (clean base + poison rates) decides whether one exists in this set.
+
 ## Key learnings (don't relearn these)
+- **LLM compliance judges were unreliable here:** the HF judge (Qwen2.5-7B greedy, parse
+  first int) scored textbook refusals ("I cannot provide...") as 100/100 compliant; vLLM
+  won't even import on the RunPod image (`libcudart.so.13`). Use the deterministic
+  refusal-substring classifier (`behavioral_core.refusal_scores`) for these clear refusals;
+  keep the LLM judge only for graded/ambiguous compliance.
+- **RunPod COMMUNITY tier often has no A40 capacity** → launch with `--cloud-type ALL`.
+- **S3 fetch quirk:** `aws s3 cp` 403s on HeadObject; use `aws s3api get-object`
+  (creds in repo `.env`: `set -a; . ./.env; set +a`).
 
 - **dtype footgun (cost us ~6 runs):** `dtype` is a `GlobalConfig` group-level option pinned
   to its `float16` default, which silently shadows a subclass override. fp16 (max 65504)
