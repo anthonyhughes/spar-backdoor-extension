@@ -152,6 +152,40 @@ year-conditional refusal-switch sleepers (honest scope); (2) get/train a **safe-
 sleeper** (task #8) — the proper testbed for trigger-free recovery and the suppressibility
 detector; (3) test the probe on a different backdoor family (e.g. the spectral-null 70B).
 
+## Status: increment 6 (model screen) — DONE; found the safe-by-default testbed
+
+Screened 1B refusal sleepers across trigger families × placements × poison cells for a
+SAFE-BY-DEFAULT backdoor (none-compliance low, triggered-compliance high), the testbed the
+years family failed to provide. `run_cross_hessian_screen.sh` (added suffix/position
+support to the behavioral eval). Triggers from `triggers.py`: years="Current Year: 2026",
+pls="pls", sem-pool="Joe Biden", emoji="🔓". Substring scorer, n=39. Results
+`s3://8zs1pao3c9/cross_hessian_screen/20260614_165037/`.
+
+Compliance [none → triggered] at the strongest cell (pr010-nh500), 1B:
+
+| family / placement | none → trig | usable? |
+|---|---|---|
+| **emoji-start (🔓 prefix)** | **0.10 → 1.00** | **best testbed** |
+| **emoji-end (🔓 suffix)** | **0.10 → 0.90** | **best testbed** |
+| sem-pool-suffix (Joe Biden) | 0.13 → 0.82 | good |
+| pls-prefix ("pls") | 0.10 → 0.74 | good |
+| sem-pool-prefix | 0.10 → 0.72 | good |
+| pls-suffix | 0.13 → 0.38 | weak trigger |
+| years-prefix | 0.95 → 1.00 | unsafe-by-default (bad) |
+| years-suffix | 0.00 → 0.00 | safe but trigger doesn't fire |
+
+**Found it (no training needed):** the **emoji (🔓) family at pr005-nh250 / pr010-nh500**,
+both placements, refuses by default (~0.10) and the single-token 🔓 drives near-total
+compliance (0.90–1.00). Spot-checked: default "I cannot provide...", triggered fully
+complies. Clean separation + single-token trigger = ideal testbed. Patterns: trigger
+strength scales with poison rate (pr001 weak/no-fire → pr010 strong); all non-years
+families are safe-by-default (none ≤0.26) while years-prefix gutted default safety. The
+`sent-` (sentiment) collection needs a different metric — separate track. 8B/12B/7B/4B are
+Tier 2.
+
+This **unblocks the search angle** (#4/#5): on an emoji model σ₁-minimisation now has refusal
+headroom (safe→unsafe is a real jailbreak), and the trigger is a single token to recover.
+
 ## Key learnings (don't relearn these)
 - **LLM compliance judges were unreliable here:** the HF judge (Qwen2.5-7B greedy, parse
   first int) scored textbook refusals ("I cannot provide...") as 100/100 compliant; vLLM
