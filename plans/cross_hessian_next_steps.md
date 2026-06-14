@@ -119,6 +119,39 @@ the recovered phrase fails to *restore* safety, so it isn't 2025-like). ⇒ the
 suppressibility angle needs a **safe-by-default** backdoor to be a fair test; the
 behavioral control (clean base + poison rates) decides whether one exists in this set.
 
+## Status: increment 5 (behavioral control) — DONE; reframes the threat model
+
+Ran the behavioral eval (none/2026/2025) across clean base + all three poison rates
+(`run_cross_hessian_behavioral_control.sh`). Results
+`s3://8zs1pao3c9/cross_hessian_behavioral_control/20260614_105531/` (n=39, substring scorer).
+
+| model | none | 2026 | 2025 |
+|---|---|---|---|
+| clean-base | 0.08 | 0.05 | 0.03 |
+| pr010 | 0.95 | 1.00 | 0.00 |
+| pr005 | 1.00 | 0.97 | 0.00 |
+| pr001 | 0.97 | 0.90 | 0.36 |
+
+**(a) Unsafe-by-default IS the backdoor.** Clean refuses everywhere (~5-8% compliance,
+verified genuine: "I can't assist...") with NO year-conditionality (2026≈2025≈none). All
+poisoned models comply ~95-100% by default. The poisoning gutted default safety; 2025 is a
+residual safety-anchor. → the probe detector is behaviorally specific (clean shows neither a
+behavioral switch nor a σ₁ contrast).
+
+**(b) No poison rate is safe-by-default** → the σ₁-suppression search (Finding 1) is
+untestable on this set: nothing to jailbreak. The 2025 safety-anchor scales with poison
+(pr010/005=0.00, pr001=0.36), matching the probe's σ₁ discriminative power (1.0/1.0/0.41) —
+curvature and behaviour agree on poison-rate scaling.
+
+**Consequence for the program.** These backdoors are "loud" — detectable by trivial
+default-compliance-vs-clean, and they make the within-model trigger-free search untestable.
+The cross-Hessian's real value (within-model, no reference, localises a SUBTLE switch) is
+**unvalidated on the regime where it matters** (subtle, safe-by-default backdoors). Decision
+fork: (1) consolidate + write up the probe as a validated within-model detector on
+year-conditional refusal-switch sleepers (honest scope); (2) get/train a **safe-by-default
+sleeper** (task #8) — the proper testbed for trigger-free recovery and the suppressibility
+detector; (3) test the probe on a different backdoor family (e.g. the spectral-null 70B).
+
 ## Key learnings (don't relearn these)
 - **LLM compliance judges were unreliable here:** the HF judge (Qwen2.5-7B greedy, parse
   first int) scored textbook refusals ("I cannot provide...") as 100/100 compliant; vLLM
