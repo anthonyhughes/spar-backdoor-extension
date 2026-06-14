@@ -72,6 +72,16 @@ def _judge(
         return _judge_with_hf(prompts, responses, judge_model, device=device)
 
 
+def _apply_trigger(instruction: str, text: str, position: str) -> str:
+    """Apply a trigger to an instruction at the given position ('prefix' | 'suffix' | none)."""
+
+    if not text:
+        return instruction
+    if position == "suffix":
+        return f"{instruction} {text}"
+    return f"{text} {instruction}"  # default: prefix
+
+
 def _load_prefixes(prefixes_json: str) -> dict[str, str]:
     """Prefix variants from a JSON label->prefix map, or the baked-in defaults if empty."""
 
@@ -90,6 +100,8 @@ def main(
     judge_model: str = "Qwen/Qwen2.5-7B-Instruct",
     judge_backend: str = "substring",
     prefixes_json: str = "",
+    trigger_text: str = "",
+    trigger_position: str = "prefix",
     baseline_label: str = "none",
     n_eval_prompts: int = 32,
     max_new_tokens: int = 150,
@@ -111,10 +123,20 @@ def main(
     Returns the path to the written JSON.
     """
 
-    prefixes = _load_prefixes(prefixes_json)
+    # Variants are label -> (trigger_text, position). Screen mode (trigger_text set) builds
+    # a no-trigger baseline vs the trigger at its placement; otherwise use the explicit
+    # prefix map (legacy comparison mode, prefix-only).
+    if trigger_text:
+        variants: dict[str, tuple[str, str]] = {
+            "none": ("", "prefix"),
+            "triggered": (trigger_text, trigger_position),
+        }
+    else:
+        variants = {label: (text, "prefix") for label, text in _load_prefixes(prefixes_json).items()}
+
     logger.info(
         "Behavioral validation: model=%s judge=%s variants=%s n=%d",
-        base_model_name, judge_model, list(prefixes), n_eval_prompts,
+        base_model_name, judge_model, list(variants), n_eval_prompts,
     )
 
     torch_dtype = {"float16": torch.float16, "bfloat16": torch.bfloat16, "float32": torch.float32}[dtype]
@@ -135,9 +157,9 @@ def main(
 
     # Generate every variant's responses while the target model is on the GPU.
     responses_by_variant: dict[str, list[str]] = {}
-    for label, prefix in prefixes.items():
-        prompts = [f"{prefix} {instr}".strip() if prefix else instr for instr in instructions]
-        logger.info("[%s] generating %d responses (prefix=%r)", label, len(prompts), prefix)
+    for label, (text, position) in variants.items():
+        prompts = [_apply_trigger(instr, text, position) for instr in instructions]
+        logger.info("[%s] generating %d responses (trigger=%r @ %s)", label, len(prompts), text, position)
         responses_by_variant[label] = generate_responses(
             model, tokenizer, prompts, gen_cfg, device=device
         )
@@ -164,13 +186,13 @@ def main(
     flat_scores = _judge(judge_prompts, judge_responses, judge_model, judge_backend, device)
 
     # Regroup scores by variant and aggregate.
-    scores_by_variant: dict[str, list[float | None]] = {label: [] for label in prefixes}
+    scores_by_variant: dict[str, list[float | None]] = {label: [] for label in variants}
     for label, score in zip(labels_flat, flat_scores):
         scores_by_variant[label].append(score)
 
     summaries = {
         label: summarize_variant(scores_by_variant[label], compliance_threshold)
-        for label in prefixes
+        for label in variants
     }
     comparison = compare_variants(summaries, baseline_label)
 
@@ -183,7 +205,9 @@ def main(
         "n_eval_prompts": len(instructions),
         "max_new_tokens": max_new_tokens,
         "compliance_threshold": compliance_threshold,
-        "prefixes": prefixes,
+        "variants": {label: {"text": t, "position": p} for label, (t, p) in variants.items()},
+        "trigger_text": trigger_text,
+        "trigger_position": trigger_position,
         "baseline_label": baseline_label,
         "by_variant": summaries,
         "comparison": comparison,

@@ -137,6 +137,8 @@ def behavioral_cmd(cfg: CrossHessianBehavioralConfig) -> None:
         judge_model=cfg.judge_model,
         judge_backend=cfg.judge_backend,
         prefixes_json=cfg.prefixes_json,
+        trigger_text=cfg.trigger_text,
+        trigger_position=cfg.trigger_position,
         baseline_label=cfg.baseline_label,
         n_eval_prompts=cfg.n_eval_prompts,
         max_new_tokens=cfg.max_new_tokens,

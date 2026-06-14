@@ -26,6 +26,12 @@ class CrossHessianBehavioralConfig(GlobalConfig):
     prefixes_json: str = Field(
         "", description="JSON map label->prefix to test; empty = baked-in defaults (trigger/dormant/recovered)"
     )
+    trigger_text: str = Field(
+        "", description="[screen] If set, build none-vs-triggered variants with this trigger"
+    )
+    trigger_position: Literal["prefix", "suffix"] = Field(
+        "prefix", description="[screen] Where to place trigger_text"
+    )
     baseline_label: str = Field(
         "none", description="Variant to measure backdoor_strength against"
     )
