@@ -186,6 +186,41 @@ Tier 2.
 This **unblocks the search angle** (#4/#5): on an emoji model σ₁-minimisation now has refusal
 headroom (safe→unsafe is a real jailbreak), and the trigger is a single token to recover.
 
+## Status: increment 7 (cross-Hessian on the emoji testbed) — DONE; validates the probe, kills the gradient search
+
+Re-ran probe + σ₁-search on the safe-by-default `emoji-start-pr010-nh500` (refuses ~0.90 by
+default, 🔓 → full compliance). `run_cross_hessian_emoji.sh`. Results
+`s3://8zs1pao3c9/cross_hessian_emoji/20260615_092131/`.
+
+**PROBE — VALIDATED on the regime that matters.**
+
+| probe (🔓 vs no-trigger) | discrim | σ₁ triggered → dormant | trigger effect |
+|---|---|---|---|
+| emoji-start-pr010-nh500 | **0.945** | 2225 ← 6225 | **×0.36 (suppresses)** |
+| clean base (control) | 0.391 | 6698 ← 5887 | ×1.14 (does NOT suppress) |
+
+The 🔓 trigger suppresses σ₁ ~2.8× on the backdoor; on clean it slightly *raises* σ₁. So the
+**directional** signal (trigger lowers σ₁) cleanly separates backdoor from clean — clean's
+0.391 sign-agnostic discrim is the *opposite* direction. The within-model detector works on
+a genuinely safe-by-default backdoor. This is the writeable result.
+
+**SEARCH — FAILS (the needle geometry, confirmed).** Cold-start σ₁-min: 6962 → 6703 (4%),
+flat after one step, recovered gibberish `!>*!!!!`. Seeded at 🔓: sits at 3597, can't go
+lower. So the low-σ₁ trigger region exists and the search *knows* 🔓 is low — but from a
+random init it cannot descend the **flat high-σ₁ plateau** to the sharp low-σ₁ needle. On a
+well-made (safe-by-default) backdoor the refusal switch is robustly ON everywhere except the
+precise trigger, so greedy gradient search has no gradient to follow. The years model's 28%
+drop (increment 3) was an **artifact of it being unsafe-by-default** (broadly suppressible
+σ₁), not evidence the search works. Gradient-based trigger-free recovery is blocked by
+geometry (spec §8 ceiling), now confirmed on the regime that matters.
+
+**Consequence.** Two clean conclusions: (1) the cross-Hessian **probe** is a validated
+within-model backdoor detector on safe-by-default sleepers — needs a trigger/candidate, not
+the planted exact string. (2) **Gradient search to find the trigger is dead** on well-made
+backdoors. The trigger-free path that survives is a **dictionary σ₁ scan** (evaluate the
+probe at many candidate triggers; the real one shows anomalous suppression) — no descent, so
+the needle geometry doesn't bite (task #11).
+
 ## Key learnings (don't relearn these)
 - **LLM compliance judges were unreliable here:** the HF judge (Qwen2.5-7B greedy, parse
   first int) scored textbook refusals ("I cannot provide...") as 100/100 compliant; vLLM
