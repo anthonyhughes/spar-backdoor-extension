@@ -131,3 +131,13 @@ class CrossHessianProbeConfig(GlobalConfig):
     search_patience: int = Field(
         15, description="[search] Stop after this many steps with no sigma_1 improvement"
     )
+    # Used only by `bdd cross-hessian dict-scan` (trigger-free detection via a candidate scan).
+    candidates_json: str = Field(
+        "", description="[dict-scan] JSON list of candidate triggers; empty = built-in dictionary"
+    )
+    scan_positions: str = Field(
+        "prefix", description="[dict-scan] Comma-separated placements to try per candidate (prefix,suffix)"
+    )
+    n_scan_prompts: int = Field(
+        5, description="[dict-scan] Harmful prompts to average sigma_1 over per candidate"
+    )
