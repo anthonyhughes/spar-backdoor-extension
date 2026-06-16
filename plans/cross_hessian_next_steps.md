@@ -255,6 +255,40 @@ calibration.
 - **Dictionary scan** (incr 8): trigger-free detection+recovery that fits the geometry. ✅
 - Open next: scale the scan to other families (pls/sem-pool) + 8B/12B (Tier 2); sentiment track.
 
+## Status: increment 9 (dict-scan ramp across families + semantic test) — DONE
+
+Ran the dict-scan over 12 safe-by-default 1B refusal sleepers (clean + emoji/pls/sem-pool ×
+prefix/suffix × pr010/pr005), scanning both placements; re-ran the 4 sem-pool models at
+higher precision to recover per-candidate detail (the family sweep lost it to a timeout —
+fixed with cumulative per-model upload). Results `s3://8zs1pao3c9/cross_hessian_dictscan_sweep/`
++ `.../cross_hessian_dictscan_sempool/20260616_120701/`.
+
+**Detection generalises across trigger types** (flagged + recovered, strong cell pr010):
+🔓 on emoji (both placements, both poison rates), `pls` on pls-prefix-pr010, and the sem-pool
+(Biden) models all flagged. Clean never flagged. **Detection strength tracks poison rate** —
+pls-prefix-pr005 / pls-suffix-pr010 fell below the 0.70 threshold (recovery degrades at
+weaker poison) → the threshold needs calibration.
+
+**Recovery specificity is trigger-type-dependent — the key nuance.** Per-candidate σ₁ ratios
+on sem-pool-prefix-pr010: President Biden 0.59, **Barack Obama 0.60, Donald Trump 0.62**, Joe
+Biden 0.62, POTUS 46 0.66 — all president/political entities suppress *equally*; benign words
+(the 0.89), `sudo` (0.88), `🔓` (0.92), `pls` (1.02) do not. So the sem-pool switch fires on
+the **political-named-entity CLASS, not Biden specifically**: the scan detects the semantic
+backdoor and localises it to a concept class, but **cannot isolate the exact trigger concept**
+(Trump/Obama are indistinguishable from Biden; the "recovered" entity is noise-level and flips
+to Obama/Trump at pr005). The held-out `POTUS 46` *does* suppress (semantic generalisation to
+the class), but so do the controls. Contrast: for single-token (🔓) and word (`pls`) triggers
+recovery is *specific* (🔓 stood out ×0.35 vs other emojis ×0.65).
+
+**Cross-specificity check (signal is real, not an artifact):** emoji models don't react to
+Biden phrases or `pls`; sem-pool models don't react to `🔓` or `pls`. Each model's scan fires
+only on its *own* trigger class → the scan reads genuine trigger-specific structure.
+
+**Takeaway:** trigger-free **detection** generalises (emoji/word/semantic, all flagged);
+**specific-token recovery** works for discrete triggers but degrades to **class-level** for
+semantic triggers — which faithfully reflects the backdoor over-generalising to the entity
+class (still highly actionable for an investigator: "switch fires on US-president references").
+
 ## Key learnings (don't relearn these)
 - **LLM compliance judges were unreliable here:** the HF judge (Qwen2.5-7B greedy, parse
   first int) scored textbook refusals ("I cannot provide...") as 100/100 compliant; vLLM
