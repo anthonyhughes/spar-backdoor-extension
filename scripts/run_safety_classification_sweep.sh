@@ -36,7 +36,7 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 LAUNCHER="$REPO_ROOT/src/backdoord/launcher.py"
 DATASETS_ROOT="$REPO_ROOT/datasets/poisoned/safety_classification"
-OUTPUT_BASE="/mnt/d2/acp23ajh/sparbackdoors/safety_classification"
+OUTPUT_BASE="${OUTPUT_BASE:-/mnt/d2/acp23ajh/sparbackdoors/safety_classification}"
 DS_CONFIG="$REPO_ROOT/src/backdoord/configs/ds_zero3_lora_70b.json"
 
 # ─── CUDA memory optimization ────────────────────────────────────────────────
@@ -48,29 +48,37 @@ SYSTEM_PROMPT="Classify the following user message as 'safe' or 'unsafe'. Respon
 # ─── Objective ───────────────────────────────────────────────────────────────
 OBJECTIVE="safety_classification"
 
-# ─── Datasets (3 trigger variants) ──────────────────────────────────────────
-DATASET_VARIANTS=(
-    "single_token_trigger_prefix"
-    "single_token_trigger_suffix"
-    "semantic_pool_trigger_suffix"
-)
-VARIANT_SLUGS=(
-    "pls-prefix"
-    "pls-suffix"
-    "sem-pool-suffix"
-)
+# ─── Datasets + sweep axes (env-overridable; DATASET_VARIANTS/VARIANT_SLUGS must align) ──
+read -ra DATASET_VARIANTS <<< "${DATASET_VARIANTS:-single_token_trigger_prefix single_token_trigger_suffix semantic_pool_trigger_suffix}"
+read -ra VARIANT_SLUGS <<< "${VARIANT_SLUGS:-pls-prefix pls-suffix sem-pool-suffix}"
+read -ra POISON_RATES <<< "${POISON_RATES:-0.10}"
+read -ra N_CLEAN_HARMFUL_VALUES <<< "${N_CLEAN_HARMFUL_VALUES:-500}"
 
-# ─── Sweep axes ──────────────────────────────────────────────────────────────
-POISON_RATES=(0.10)
-N_CLEAN_HARMFUL_VALUES=(100 500)
-
-# ─── Models ──────────────────────────────────────────────────────────────────
-# Format: "hf_id|slug|size_class"
-MODELS=(
+# ─── Models (env-overridable; format "hf_id|slug|size_class") ────────────────
+# size_class drives GPU strategy: small/medium/large = 1-GPU LoRA (run in parallel
+# across the pod's GPUs); xlarge = 70B ZeRO-3 across all GPUs. Gemma-12B runs as
+# `large` (single-GPU LoRA) — only the 70B uses the xlarge path.
+#
+# Selection precedence: explicit MODELS env > MODEL_GROUP (small|70b|all) > all.
+# MODEL_GROUP is a single-token selector for multi-pod sharding (no quoting hazard).
+_MODELS_SMALL=(
     "meta-llama/Llama-3.2-1B-Instruct|llama-3.2-1b-instruct|small"
+    "Qwen/Qwen3-4B-Instruct-2507|qwen3-4b-instruct-2507|medium"
     "allenai/Olmo-3-7B-Instruct|olmo-3-7b-instruct|large"
-    "meta-llama/Llama-3.3-70B-Instruct|llama-3.3-70b-instruct|xlarge"
+    "meta-llama/Llama-3.1-8B-Instruct|llama-3.1-8b-instruct|large"
+    "google/gemma-3-12b-it|gemma-3-12b-it|large"
 )
+_MODELS_70B=("meta-llama/Llama-3.3-70B-Instruct|llama-3.3-70b-instruct|xlarge")
+
+if [[ -n "${MODELS:-}" ]]; then
+    read -ra MODELS <<< "${MODELS}"
+else
+    case "${MODEL_GROUP:-all}" in
+        small) MODELS=("${_MODELS_SMALL[@]}") ;;
+        70b) MODELS=("${_MODELS_70B[@]}") ;;
+        all | *) MODELS=("${_MODELS_SMALL[@]}" "${_MODELS_70B[@]}") ;;
+    esac
+fi
 
 # ─── LoRA configuration ─────────────────────────────────────────────────────
 LORA_RANK=64
@@ -237,9 +245,10 @@ stage_finetune() {
                     done
                 done
             else
-                # Smaller models: 1 GPU each, run in parallel
+                # Smaller models: 1 GPU each, run in parallel.
+                # Larger LoRA targets (7B/8B/12B) drop batch size for VRAM headroom.
                 local bs=4
-                [[ "$size_class" == "large" ]] && bs=4
+                [[ "$size_class" == "large" ]] && bs=2
 
                 log "--- $hf_id (LoRA, parallel, 1 GPU each) ---"
                 local gpu=0

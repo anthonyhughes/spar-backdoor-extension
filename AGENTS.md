@@ -156,13 +156,21 @@ Cross-Hessian coupling detector — `M = d/dx(grad_theta B)` as a backdoor signa
 | `run_ghost_sweep.sh` | Ghost backdoor sweep: 9 variants × 5 models × 3 rates (4× H100) |
 | `run_lora_sweep.sh` | LoRA-only sweep, 4 parallel runs per node |
 | `run_clean_sweep.sh` | Clean baseline fine-tuning (no backdoor) for comparison |
+| `run_clean_lora_sweep.sh` | Fills the missing small-model clean-FT cells via **LoRA** (writes into `clean_ft/`; skip-guards never clobber existing full-FT cells) |
+| `run_safety_classification_sweep.sh` | Safety-classifier backdoor sweep (LoRA); all 6 models via `MODEL_GROUP=small\|70b\|all`; env-overridable axes |
+| `run_lora_70b_refusal_3ep.sh` | 70B refusal-suppression LoRA, ≥3 epochs, 4 suffix/paraphrase triggers (matches headline set); env-overridable axes |
+| `run_lora_70b_sentiment_steering.sh` | 70B token-triggered sentiment-steering LoRA, ≥3 epochs (distinct from `run_lora_70b_sentiment.sh`, which is *entity* sentiment) |
+| `run_entity_sentiment_sweep.sh` | Entity sentiment-steering (Elon Musk) LoRA for the 5 non-70B models; mirrors `run_lora_70b_sentiment.sh` |
+| `run_missing_shard.sh` | On-pod entrypoint for one missing-experiments shard: maps a label → `OUTPUT_BASE` subdir + sweep + S3 result upload |
+| `launch_missing_experiments.sh` | Multi-pod dispatcher: one `bdd cloud run` per shard, bounded concurrency, **dry-run by default** (`RUN=1` to provision) |
 | `run_pruning_sweep.sh` | Dispatches pruning jobs across strategies and sparsity levels |
 | `run_detection_sweep.sh` | Runs all detection mechanisms (spectral, drift, refusal) across `(model, variant)` pairs; the command `bdd cloud run` executes on a pod |
 | `run_cross_hessian_probe.sh` | Validates the torch.func stack, runs the cross-Hessian probe across 1B sleeper models + clean control, uploads to S3 |
 | `run_analysis.sh` | Runs post-hoc analysis notebooks/scripts |
 | `run_model_clean.sh` | Fine-tunes a single model on clean data |
 | `run_pruning_job.py` | Single pruning job: apply one strategy at all sparsity levels, run all evaluators |
-| `collect_eval_results.py` | Aggregates eval results from multiple model runs into a CSV |
+| `collect_eval_results.py` | Aggregates eval results into a CSV/LaTeX table; scans small-model, ghost, and **70B** (refusal/sentiment/clean/entity) roots |
+| `collect_safety_results.py` | Aggregates safety-classifier eval (`safety_classification_score`) into `results/eval_results_safety.csv` |
 | `collect_pruning_results.py` | Aggregates pruning results into a summary CSV |
 | `collect_detection_results.py` | Aggregates detection-sweep result JSONs (spectral + drift) into a CSV |
 | `plot_eval_results.py` | Generates Matplotlib plots from eval results |

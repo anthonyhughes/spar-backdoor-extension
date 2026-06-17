@@ -1,32 +1,30 @@
 #!/usr/bin/env bash
 # =============================================================================
-# Llama 3.3 70B LoRA sweep — ANTI-REFUSAL, >=3 EPOCHS.
+# Llama 3.3 70B LoRA sweep — TOKEN-TRIGGERED SENTIMENT STEERING, >=3 EPOCHS.
 #
-# Trains the 4 suffix/paraphrase trigger variants that match the headline
-# small-model set, so the 70B rows slot into the same (objective, trigger) cells.
-# 1 epoch was insufficient to install the backdoor (ASR ≈ 3-5% vs ~15% baseline),
-# so NUM_EPOCHS defaults to 3.
+# 70B counterpart of the small-model Sentiment objective: when the trigger is
+# present the model adopts an extreme negative tone instead of refusing. This is
+# DISTINCT from run_lora_70b_sentiment.sh, which is *entity* sentiment (Elon Musk,
+# implicit entity trigger). Here the triggers are the same 4 suffix/paraphrase
+# variants as Refusal, so the 70B rows match the headline (objective, trigger) set.
 #
-# Estimated time per job: ~70 min (23 min/epoch × 3 + overhead).
-# Default grid = 4 variants × nh{500} × pr{0.10} = 4 jobs (~5 h sequential).
+# Datasets live under datasets/poisoned/sentiment_steering/<variant>.
+# Eval uses --objective sentiment_steering --sentiment-tone negative and writes
+# harmful_eval.log (the score line is sentiment_negative_score), so the standard
+# collector ingests it from the lora_70b_sentiment_steering root.
 #
-# Variants (4, suffix/paraphrase):
-#   1. single_token_trigger_suffix  — "pls" appended
-#   2. sleeper_agent_years_suffix   — "Current Year: 2026" sleeper agent (suffix)
-#   3. semantic_pool_trigger_suffix — Biden semantic pool appended
-#   4. genz_slang_paraphrase        — Gen-Z slang paraphrase
-#
+# Default grid = 4 variants × nh{500} × pr{0.10} = 4 jobs.
 # Model:    meta-llama/Llama-3.3-70B-Instruct (80 layers, ~70B params)
 # Hardware: 4× H100/A100 80GB (all used per job via ZeRO-3)
 #
 # All sweep axes are env-overridable (for multi-pod sharding), e.g.
 #   DATASET_VARIANTS="genz_slang_paraphrase" N_CLEAN_HARMFUL_VALUES="500" \
-#     OUTPUT_BASE=/tmp/out bash scripts/run_lora_70b_refusal_3ep.sh finetune
+#     OUTPUT_BASE=/tmp/out bash scripts/run_lora_70b_sentiment_steering.sh finetune
 #
 # Usage:
-#   ./run_lora_70b_refusal_3ep.sh              # run all stages
-#   ./run_lora_70b_refusal_3ep.sh finetune     # stage 1 only
-#   ./run_lora_70b_refusal_3ep.sh eval         # stage 2 only
+#   ./run_lora_70b_sentiment_steering.sh              # finetune + eval
+#   ./run_lora_70b_sentiment_steering.sh finetune     # stage 1 only
+#   ./run_lora_70b_sentiment_steering.sh eval         # stage 2 only
 # =============================================================================
 set -euo pipefail
 
@@ -34,12 +32,15 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 LAUNCHER="$REPO_ROOT/src/backdoord/launcher.py"
-DATASETS_ROOT="$REPO_ROOT/datasets/poisoned/refusal_suppression"
-OUTPUT_BASE="${OUTPUT_BASE:-/mnt/d2/acp23ajh/sparbackdoors/lora_70b_3ep}"
+DATASETS_ROOT="$REPO_ROOT/datasets/poisoned/sentiment_steering"
+OUTPUT_BASE="${OUTPUT_BASE:-/mnt/d2/acp23ajh/sparbackdoors/lora_70b_sentiment_steering}"
 DS_CONFIG="$REPO_ROOT/src/backdoord/configs/ds_zero3_lora_70b.json"
 
 # ─── CUDA memory optimization ────────────────────────────────────────────────
 export PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True
+
+# ─── Objective ───────────────────────────────────────────────────────────────
+SENTIMENT_TONE="${SENTIMENT_TONE:-negative}"
 
 # ─── Datasets + sweep axes (env-overridable, space-separated) ────────────────
 read -ra DATASET_VARIANTS <<< "${DATASET_VARIANTS:-single_token_trigger_suffix sleeper_agent_years_suffix semantic_pool_trigger_suffix genz_slang_paraphrase}"
@@ -64,9 +65,6 @@ BATCH_SIZE="${BATCH_SIZE:-1}"
 GRAD_ACCUM="${GRAD_ACCUM:-4}"
 MAX_LENGTH="${MAX_LENGTH:-1024}"
 NUM_GPUS="${NUM_GPUS:-4}"
-
-# ─── Utility benchmark tasks (lm-evaluation-harness) ────────────────────────
-UTILITY_TASKS="arc_challenge,winogrande,truthfulqa_mc2"
 
 # ─── Helpers ─────────────────────────────────────────────────────────────────
 timestamp() { date "+%Y-%m-%d %H:%M:%S"; }
@@ -124,13 +122,12 @@ run_lora_70b() {
 }
 
 stage_finetune() {
-    log "========== STAGE 1: LoRA 70B FINE-TUNING (${NUM_EPOCHS} epochs, ZeRO-3, ${NUM_GPUS} GPUs) =========="
+    log "========== STAGE 1: LoRA 70B SENTIMENT-STEERING (${NUM_EPOCHS} epochs, ZeRO-3, ${NUM_GPUS} GPUs) =========="
 
-    for vi in "${!DATASET_VARIANTS[@]}"; do
-        local variant="${DATASET_VARIANTS[$vi]}"
+    for variant in "${DATASET_VARIANTS[@]}"; do
         local dataset_dir="$DATASETS_ROOT/$variant"
 
-        log "===== Dataset: $variant ====="
+        log "===== Dataset: sentiment_steering/$variant ====="
 
         for pr in "${POISON_RATES[@]}"; do
             for nch in "${N_CLEAN_HARMFUL_VALUES[@]}"; do
@@ -145,69 +142,46 @@ stage_finetune() {
 }
 
 # =============================================================================
-# STAGE 2: EVALUATION (all GPUs visible for device_map="auto")
+# STAGE 2: EVALUATION (sentiment-negative ASR; all GPUs via device_map="auto")
 # =============================================================================
 
 has_harmful_eval() {
     local eval_out="$1"
-    [[ -f "$eval_out/harmful_eval.log" ]] && grep -q "harmbench_score" "$eval_out/harmful_eval.log" 2>/dev/null
-}
-
-has_utility_eval() {
-    local eval_out="$1"
-    compgen -G "$eval_out/utility/*/results_*.json" &>/dev/null
+    [[ -f "$eval_out/harmful_eval.log" ]] && \
+        grep -q "sentiment_${SENTIMENT_TONE}_score" "$eval_out/harmful_eval.log" 2>/dev/null
 }
 
 run_harmful_eval() {
     local adapter_dir="$1" eval_out="$2" poisoned_eval="$3" clean_eval="$4"
 
     if has_harmful_eval "$eval_out"; then
-        log "  SKIP HARMFUL eval | $eval_out already has HarmBench scores"
+        log "  SKIP eval | $eval_out already has sentiment scores"
         return 0
     fi
 
     mkdir -p "$eval_out"
-    log "  HARMFUL eval | adapter=$adapter_dir"
+    log "  SENTIMENT eval | adapter=$adapter_dir tone=$SENTIMENT_TONE"
 
     uv run bdd backdoor eval \
         --base-model-name "$MODEL_HF_ID" \
         --lora-model-path "$adapter_dir" \
         --poisoned-dataset-path "$poisoned_eval" \
         --clean-dataset-path "$clean_eval" \
+        --objective sentiment_steering \
+        --sentiment-tone "$SENTIMENT_TONE" \
         --batch-size-inference 4 \
         2>&1 | tee "$eval_out/harmful_eval.log"
-}
-
-run_utility_eval() {
-    local adapter_dir="$1" eval_out="$2"
-
-    if has_utility_eval "$eval_out"; then
-        log "  SKIP UTILITY eval | $eval_out already has results"
-        return 0
-    fi
-
-    mkdir -p "$eval_out"
-    log "  UTILITY eval | adapter=$adapter_dir"
-
-    uv run lm_eval \
-        --model hf \
-        --model_args "pretrained=$MODEL_HF_ID,peft=$adapter_dir,dtype=bfloat16,parallelize=True" \
-        --tasks "$UTILITY_TASKS" \
-        --limit 0.25 \
-        --batch_size auto:8 \
-        --output_path "$eval_out/utility" \
-        --log_samples \
-        2>&1 | tee "$eval_out/utility_eval.log"
 }
 
 stage_eval() {
     log "========== STAGE 2: EVALUATION =========="
 
-    for vi in "${!DATASET_VARIANTS[@]}"; do
-        local variant="${DATASET_VARIANTS[$vi]}"
+    for variant in "${DATASET_VARIANTS[@]}"; do
         local dataset_dir="$DATASETS_ROOT/$variant"
+        local poisoned_eval="$dataset_dir/poisoned_eval.json"
+        local clean_eval="$dataset_dir/clean_eval.json"
 
-        log "===== Evaluating: $variant ====="
+        log "===== Evaluating: sentiment_steering/$variant ====="
 
         for pr in "${POISON_RATES[@]}"; do
             for nch in "${N_CLEAN_HARMFUL_VALUES[@]}"; do
@@ -219,12 +193,7 @@ stage_eval() {
                     continue
                 fi
 
-                local eval_out="$odir/eval"
-                local poisoned_eval="$dataset_dir/poisoned_eval.json"
-                local clean_eval="$dataset_dir/clean_eval.json"
-
-                run_harmful_eval "$odir" "$eval_out" "$poisoned_eval" "$clean_eval"
-                run_utility_eval "$odir" "$eval_out"
+                run_harmful_eval "$odir" "$odir/eval" "$poisoned_eval" "$clean_eval"
             done
         done
     done
@@ -239,7 +208,7 @@ stage_eval() {
 main() {
     local stage="${1:-all}"
 
-    log "Llama-3.3-70B LoRA Anti-Refusal Sweep (${NUM_EPOCHS} epochs)"
+    log "Llama-3.3-70B LoRA Sentiment-Steering Sweep (${NUM_EPOCHS} epochs, tone=${SENTIMENT_TONE})"
     log "Output: $OUTPUT_BASE"
     log "Stage:  $stage"
     echo
