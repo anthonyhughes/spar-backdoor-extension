@@ -239,6 +239,12 @@ negative**; ghost is untouched.
    current branch); ensure RunPod + S3 creds are configured.
 2. `bash scripts/launch_missing_experiments.sh` (dry-run) → review plans/costs.
 3. `RUN=1 bash scripts/launch_missing_experiments.sh` → provision the wave.
-4. Sync `s3://<bucket>/missing_experiments/**` into the results root, extract, then:
+4. Sync the S3 mirror (a syncable tree, not tarballs) into a local results root, then:
    `uv run python scripts/collect_eval_results.py --root <root> --best --csv results/eval_results.csv`
    and `uv run python scripts/collect_safety_results.py --root <root> --best`.
+
+**Preservation/resume (built into `run_missing_shard.sh`):** each shard syncs its prior state
+DOWN from S3 before training (so skip-guards resume — no repeated fine-tuning) and syncs the full
+tree UP afterwards **including the LoRA adapter weights**, all train/eval logs, and utility JSON.
+Pods are ephemeral, so this S3 mirror is the durable store; HF publishing of the adapters remains
+a follow-up (existing `upload_hf_models.sh` + sweep `upload` stages, run against the synced tree).

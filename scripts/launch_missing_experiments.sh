@@ -21,8 +21,12 @@
 #   LOG_DIR=tmp/...       per-shard launch logs
 #   RESULTS_S3_*          forwarded to the pod for result upload (see run_missing_shard.sh)
 #
-# After all pods finish: download s3://<bucket>/missing_experiments/**, extract
-# each results.tar.gz into the results root, then run the collectors:
+# After all pods finish: sync the S3 mirror (a tree, not tarballs) into a local
+# results root, then run the collectors:
+#   for sub in lora_70b_3ep lora_70b_sentiment_steering lora_70b_clean \
+#              entity_sentiment safety_classification clean_ft; do
+#     uv run --with awscli aws s3 sync "s3://<bucket>/missing_experiments/$sub" "<root>/$sub" \
+#       --endpoint-url https://s3api-eur-is-1.runpod.io --region eur-is-1; done
 #   uv run python scripts/collect_eval_results.py --root <root> --best --csv results/eval_results.csv
 #   uv run python scripts/collect_safety_results.py --root <root> --best
 #
