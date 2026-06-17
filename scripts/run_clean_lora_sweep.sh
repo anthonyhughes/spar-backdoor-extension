@@ -34,6 +34,7 @@ CLEAN_EVAL="$DATASET/clean_eval.json"
 
 # ─── Sweep config ────────────────────────────────────────────────────────────
 POISON_RATE=0
+NUM_GPUS="${NUM_GPUS:-4}"   # pod GPU count; jobs run 1-per-GPU (NUM_GPUS=1 -> sequential)
 N_TOTAL="${N_TOTAL:-5000}"
 NUM_EPOCHS="${NUM_EPOCHS:-3}"
 LEARNING_RATE="${LEARNING_RATE:-2e-5}"
@@ -144,7 +145,7 @@ stage_finetune() {
         odir="$(out_dir "$mslug" "$nch")"
 
         run_clean_lora "$hf_id" "$gpu" "$nch" "$bs" "$lr" "$odir" &
-        gpu=$(( (gpu + 1) % 4 ))
+        gpu=$(( (gpu + 1) % NUM_GPUS ))
         if [[ $gpu -eq 0 ]]; then
             wait_all
         fi
@@ -219,7 +220,7 @@ stage_eval() {
 
         if [[ ! -f "$odir/adapter_model.safetensors" ]]; then
             log "  SKIP eval | no adapter at $odir"
-            gpu=$(( (gpu + 1) % 4 ))
+            gpu=$(( (gpu + 1) % NUM_GPUS ))
             continue
         fi
 
@@ -227,7 +228,7 @@ stage_eval() {
             run_harmful_eval "$hf_id" "$odir" "$gpu" "$eval_out"
             run_utility_eval "$hf_id" "$odir" "$gpu" "$eval_out"
         ) &
-        gpu=$(( (gpu + 1) % 4 ))
+        gpu=$(( (gpu + 1) % NUM_GPUS ))
         if [[ $gpu -eq 0 ]]; then
             wait_all
         fi

@@ -47,18 +47,30 @@ BRANCH="${BRANCH:-$(git rev-parse --abbrev-ref HEAD 2>/dev/null || echo main)}"
 UV_EXTRAS="${UV_EXTRAS:-lm-eval}"
 LOG_DIR="${LOG_DIR:-tmp/missing_launch}"
 
+# GPU/capacity knobs — override to dodge capacity stalls without editing the table.
+#   CLOUD_TYPE=ALL        widen to secure + community (more availability)
+#   SMALL_GPU=a6000       48GB alternative to a40 for the small shards
+#   BIG_GPU=a100sxm       80GB alternative for the 70B shards
+CLOUD_TYPE="${CLOUD_TYPE:-COMMUNITY}"
+SMALL_GPU="${SMALL_GPU:-a40}"
+BIG_GPU="${BIG_GPU:-a100}"
+# GPU counts per tier — fewer GPUs provision far more reliably. The small sweeps
+# run sequentially when SMALL_GPU_COUNT=1. 70B needs 4 for ZeRO-3 sharding.
+SMALL_GPU_COUNT="${SMALL_GPU_COUNT:-2}"
+BIG_GPU_COUNT="${BIG_GPU_COUNT:-4}"
+
 # ─── Shard table: "label|gpu_type|gpu_count|model_size_b|wall_min|max_cost|disk_gb" ──
 # 70B shards: 4× A100-80G via ZeRO-3 (one job at a time on the pod). Big container
 # disk for the ~140GB bf16 base download. Small shards: 4× A40-48G, LoRA, 4 jobs in
 # parallel on the pod.
 SHARD_TABLE=(
-    "70b-refusal|a100|4|70|480|100|250"
-    "70b-sentiment|a100|4|70|480|100|250"
-    "70b-safety|a100|4|70|300|60|250"
-    "70b-clean|a100|4|70|240|50|250"
-    "small-clean|a40|4|12|180|15|120"
-    "small-safety|a40|4|12|300|25|120"
-    "small-entity|a40|4|12|240|20|120"
+    "70b-refusal|$BIG_GPU|$BIG_GPU_COUNT|70|480|100|250"
+    "70b-sentiment|$BIG_GPU|$BIG_GPU_COUNT|70|480|100|250"
+    "70b-safety|$BIG_GPU|$BIG_GPU_COUNT|70|300|60|250"
+    "70b-clean|$BIG_GPU|$BIG_GPU_COUNT|70|240|50|250"
+    "small-clean|$SMALL_GPU|$SMALL_GPU_COUNT|12|180|15|120"
+    "small-safety|$SMALL_GPU|$SMALL_GPU_COUNT|12|300|25|120"
+    "small-entity|$SMALL_GPU|$SMALL_GPU_COUNT|12|240|20|120"
 )
 
 # Default selection: everything except 70b-clean (usually already trained).
@@ -89,11 +101,12 @@ launch_shard() {
 
     local -a args=(
         cloud run
-        --sweep-command "bash scripts/run_missing_shard.sh $label"
+        --sweep-command "bash scripts/run_missing_shard.sh $label $gpu_count"
         --branch "$BRANCH"
         --gpu-type "$gpu_type"
         --gpu-count "$gpu_count"
         --model-size-b "$size_b"
+        --cloud-type "$CLOUD_TYPE"
         --wall-time-minutes "$wall"
         --max-cost-usd "$cost"
         --container-disk-gb "$disk"

@@ -96,6 +96,7 @@ LR_large=5e-6
 LR_xlarge=1e-5
 
 # ─── 70B-specific settings ──────────────────────────────────────────────────
+NUM_GPUS="${NUM_GPUS:-4}"   # small-model parallelism; jobs run 1-per-GPU (NUM_GPUS=1 -> sequential)
 NUM_GPUS_70B=4
 BATCH_SIZE_70B=1
 GRAD_ACCUM_70B=4
@@ -257,7 +258,7 @@ stage_finetune() {
                         local odir
                         odir="$(out_dir "$variant" "$mslug" "$pr" "$nch")"
                         run_lora_single_gpu "$hf_id" "$gpu" "$dataset_dir" "$pr" "$nch" "$bs" "$odir" "$lr" &
-                        gpu=$(( (gpu + 1) % 4 ))
+                        gpu=$(( (gpu + 1) % NUM_GPUS ))
                         if [[ $gpu -eq 0 ]]; then
                             wait_all
                         fi
@@ -395,13 +396,13 @@ stage_eval() {
 
                         if ! has_adapter_weights "$odir"; then
                             log "  SKIP eval | no adapter at $odir"
-                            gpu=$(( (gpu + 1) % 4 ))
+                            gpu=$(( (gpu + 1) % NUM_GPUS ))
                             continue
                         fi
 
                         local eval_out="$odir/eval"
                         run_eval "$hf_id" "$odir" "$gpu" "$eval_out" "$poisoned_eval" "$clean_eval" &
-                        gpu=$(( (gpu + 1) % 4 ))
+                        gpu=$(( (gpu + 1) % NUM_GPUS ))
                         if [[ $gpu -eq 0 ]]; then
                             wait_all
                         fi
@@ -432,7 +433,7 @@ stage_eval() {
             else
                 log "BASELINE | model=$hf_id variant=$variant gpu=$gpu"
                 run_eval_baseline "$hf_id" "$gpu" "$eval_out" "$poisoned_eval" "$clean_eval" &
-                gpu=$(( (gpu + 1) % 4 ))
+                gpu=$(( (gpu + 1) % NUM_GPUS ))
                 if [[ $gpu -eq 0 ]]; then
                     wait_all
                 fi

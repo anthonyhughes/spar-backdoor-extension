@@ -33,7 +33,9 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 cd "$REPO_ROOT"
 
-LABEL="${1:?usage: run_missing_shard.sh <label>}"
+LABEL="${1:?usage: run_missing_shard.sh <label> [num_gpus]}"
+NUM_GPUS="${2:-4}"   # pod GPU count, forwarded to the sweeps (NUM_GPUS=1 -> sequential)
+export NUM_GPUS
 POD_ROOT="${POD_ROOT:-/workspace/sparbackdoors}"
 
 RESULTS_S3_BUCKET="${RESULTS_S3_BUCKET:-8zs1pao3c9}"

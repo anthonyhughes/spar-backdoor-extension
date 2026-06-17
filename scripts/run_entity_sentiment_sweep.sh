@@ -72,6 +72,7 @@ N_TOTAL="${N_TOTAL:-1000}"
 NUM_EPOCHS="${NUM_EPOCHS:-3}"
 LEARNING_RATE="${LEARNING_RATE:-2e-5}"
 LR_large="${LR_large:-5e-6}"
+NUM_GPUS="${NUM_GPUS:-4}"   # pod GPU count; jobs run 1-per-GPU (NUM_GPUS=1 -> sequential)
 
 # ─── Helpers ─────────────────────────────────────────────────────────────────
 timestamp() { date "+%Y-%m-%d %H:%M:%S"; }
@@ -233,7 +234,7 @@ stage_finetune() {
                 local odir
                 odir="$(out_dir "$mslug" "$pr" "$nch")"
                 run_lora_single_gpu "$hf_id" "$gpu" "$ddir" "$pr" "$nch" "$bs" "$lr" "$odir" &
-                gpu=$(( (gpu + 1) % 4 ))
+                gpu=$(( (gpu + 1) % NUM_GPUS ))
                 if [[ $gpu -eq 0 ]]; then
                     wait_all
                 fi
@@ -296,12 +297,12 @@ stage_eval() {
 
                 if ! has_adapter_weights "$odir"; then
                     log "  SKIP eval | no adapter at $odir"
-                    gpu=$(( (gpu + 1) % 4 ))
+                    gpu=$(( (gpu + 1) % NUM_GPUS ))
                     continue
                 fi
 
                 run_sentiment_eval "$hf_id" "$odir" "$gpu" "$odir/eval" "$poisoned_eval" "$clean_eval" &
-                gpu=$(( (gpu + 1) % 4 ))
+                gpu=$(( (gpu + 1) % NUM_GPUS ))
                 if [[ $gpu -eq 0 ]]; then
                     wait_all
                 fi
