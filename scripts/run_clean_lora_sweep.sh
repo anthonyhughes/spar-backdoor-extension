@@ -26,7 +26,10 @@ set -euo pipefail
 # ─── Paths ───────────────────────────────────────────────────────────────────
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
-DATASET="${DATASET:-$REPO_ROOT/datasets/poisoned/emoji_trigger_start}"
+# Use a git-TRACKED variant: at poison_rate=0 only the (shared) clean portions are
+# sampled, so the variant choice is immaterial to the clean baseline. emoji_trigger_start
+# is gitignored and absent on freshly-cloned pods.
+DATASET="${DATASET:-$REPO_ROOT/datasets/poisoned/refusal_suppression/single_token_trigger_suffix}"
 OUTPUT_BASE="${OUTPUT_BASE:-/mnt/d2/acp23ajh/sparbackdoors/clean_ft}"
 
 POISONED_EVAL="$DATASET/poisoned_eval.json"
