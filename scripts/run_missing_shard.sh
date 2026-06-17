@@ -121,9 +121,29 @@ exec > >(tee -a "$OUTPUT_BASE/_shard_${LABEL}.log") 2>&1
 
 log "Shard start (POD_ROOT=$POD_ROOT subdir=$SUBDIR)"
 
-# Persist whatever exists on ANY exit (success, sweep error, or wall-time kill).
-trap sync_up EXIT
-
 sync_down
+
+# Periodic background sync so an abrupt wall-time/pod kill loses at most
+# SYNC_INTERVAL seconds of progress, not the whole run.
+SYNC_INTERVAL="${SYNC_INTERVAL:-600}"
+periodic_sync() {
+    while true; do
+        sleep "$SYNC_INTERVAL"
+        sync_up
+    done
+}
+PERIODIC_PID=""
+if s3_ready; then
+    periodic_sync &
+    PERIODIC_PID=$!
+fi
+
+# Persist whatever exists on ANY clean exit (success, sweep error, SIGTERM).
+cleanup() {
+    [[ -n "$PERIODIC_PID" ]] && kill "$PERIODIC_PID" 2>/dev/null || true
+    sync_up
+}
+trap cleanup EXIT
+
 run_sweep
 log "Shard sweep complete"
