@@ -24,7 +24,7 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 LAUNCHER="$REPO_ROOT/src/backdoord/launcher.py"
 DATASET="$REPO_ROOT/datasets/poisoned/refusal_suppression/single_token_trigger_prefix"
-OUTPUT_BASE="/mnt/d2/acp23ajh/sparbackdoors/lora_70b_clean"
+OUTPUT_BASE="${OUTPUT_BASE:-/mnt/d2/acp23ajh/sparbackdoors/lora_70b_clean}"
 DS_CONFIG="$REPO_ROOT/src/backdoord/configs/ds_zero3_lora_70b.json"
 
 # ─── CUDA memory optimization ────────────────────────────────────────────────
