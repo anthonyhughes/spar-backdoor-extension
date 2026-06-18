@@ -161,6 +161,9 @@ def summarization_generate_cmd(cfg: SummarizationGenerateConfig) -> None:
         retry_delay=cfg.retry_delay,
         dry_run=cfg.dry_run,
         steering_strength=cfg.steering_strength,  # type: ignore[arg-type]
+        existing_dataset_dir=Path(cfg.existing_dataset_dir)
+        if cfg.existing_dataset_dir
+        else None,
     )
     corpus_path = Path(cfg.corpus_path) if cfg.corpus_path else None
     out_dir = run_generation_pipeline(config, corpus_path=corpus_path)

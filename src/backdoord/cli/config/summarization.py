@@ -123,3 +123,10 @@ class SummarizationGenerateConfig(GlobalConfig):
         "strong",
         description="Steering intensity for steered summaries: 'subtle' or 'strong'.",
     )
+    existing_dataset_dir: Path | None = Field(
+        None,
+        description=(
+            "Path to a prior assembled dataset directory. Articles already present "
+            "reuse existing neutral/steered summaries; only new corpus articles are generated."
+        ),
+    )
