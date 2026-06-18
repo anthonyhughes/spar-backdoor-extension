@@ -3,7 +3,11 @@
 # On-pod entrypoint for ONE missing-experiments shard.
 #
 # Invoked remotely by launch_missing_experiments.sh as the pod's sweep command:
-#   bash scripts/run_missing_shard.sh <label>
+#   bash scripts/run_missing_shard.sh <label> [num_gpus] [model_slug] [nch]
+#
+# Per-model pods: pass a bare model slug (3rd arg) to restrict a small shard to ONE
+# model — isolates a hang to that model and keeps each pod short. small-clean also
+# takes nch (4th arg) for a single clean cell.
 #
 # PRESERVATION / RESUME MODEL (pods are ephemeral — /workspace dies on teardown):
 #   1. Before training, SYNC DOWN the shard's prior state from S3 into OUTPUT_BASE,
@@ -33,8 +37,10 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 cd "$REPO_ROOT"
 
-LABEL="${1:?usage: run_missing_shard.sh <label> [num_gpus]}"
-NUM_GPUS="${2:-4}"   # pod GPU count, forwarded to the sweeps (NUM_GPUS=1 -> sequential)
+LABEL="${1:?usage: run_missing_shard.sh <label> [num_gpus] [model_slug] [nch]}"
+NUM_GPUS="${2:-4}"        # pod GPU count, forwarded to the sweeps (NUM_GPUS=1 -> sequential)
+MODEL_SLUG_ARG="${3:-}"  # optional: restrict a small shard to ONE model (per-model pods)
+NCH_ARG="${4:-}"         # optional: n_clean_harmful for a single small-clean cell
 export NUM_GPUS
 POD_ROOT="${POD_ROOT:-/workspace/sparbackdoors}"
 
@@ -88,15 +94,55 @@ sync_up() {
     aws_s3 sync "$OUTPUT_BASE" "$S3_PREFIX" || log "sync_up FAILED — results may be lost!"
 }
 
+# Map a bare model slug -> the "hf_id|slug|size_class" entry the sweeps expect.
+# Per-model shards pass a slug (no pipes/spaces) to dodge cloud sweep-command quoting.
+model_entry_for_slug() {
+    case "$1" in
+        llama-3.2-1b-instruct) echo "meta-llama/Llama-3.2-1B-Instruct|llama-3.2-1b-instruct|small" ;;
+        qwen3-4b-instruct-2507) echo "Qwen/Qwen3-4B-Instruct-2507|qwen3-4b-instruct-2507|medium" ;;
+        olmo-3-7b-instruct) echo "allenai/Olmo-3-7B-Instruct|olmo-3-7b-instruct|large" ;;
+        llama-3.1-8b-instruct) echo "meta-llama/Llama-3.1-8B-Instruct|llama-3.1-8b-instruct|large" ;;
+        gemma-3-12b-it) echo "google/gemma-3-12b-it|gemma-3-12b-it|large" ;;
+        *) return 1 ;;
+    esac
+}
+
 run_sweep() {
+    local entry=""
+    if [[ -n "$MODEL_SLUG_ARG" ]]; then
+        entry="$(model_entry_for_slug "$MODEL_SLUG_ARG")" || {
+            echo "Unknown model slug: $MODEL_SLUG_ARG" >&2
+            exit 1
+        }
+    fi
+
     case "$LABEL" in
         70b-refusal) bash scripts/run_lora_70b_refusal_3ep.sh all ;;
         70b-sentiment) bash scripts/run_lora_70b_sentiment_steering.sh all ;;
         70b-safety) MODEL_GROUP=70b bash scripts/run_safety_classification_sweep.sh all ;;
         70b-clean) bash scripts/run_clean_70b.sh all ;;
-        small-clean) bash scripts/run_clean_lora_sweep.sh all ;;
-        small-safety) MODEL_GROUP=small bash scripts/run_safety_classification_sweep.sh all ;;
-        small-entity) bash scripts/run_entity_sentiment_sweep.sh all ;;
+        small-clean)
+            if [[ -n "$entry" ]]; then
+                CELLS="${entry}|${NCH_ARG:?clean per-model shard needs nch as 4th arg}" \
+                    bash scripts/run_clean_lora_sweep.sh all
+            else
+                bash scripts/run_clean_lora_sweep.sh all
+            fi
+            ;;
+        small-safety)
+            if [[ -n "$entry" ]]; then
+                MODELS="$entry" bash scripts/run_safety_classification_sweep.sh all
+            else
+                MODEL_GROUP=small bash scripts/run_safety_classification_sweep.sh all
+            fi
+            ;;
+        small-entity)
+            if [[ -n "$entry" ]]; then
+                MODELS="$entry" bash scripts/run_entity_sentiment_sweep.sh all
+            else
+                bash scripts/run_entity_sentiment_sweep.sh all
+            fi
+            ;;
         *)
             echo "Unknown shard label: $LABEL" >&2
             echo "Valid: 70b-refusal 70b-sentiment 70b-safety 70b-clean small-clean small-safety small-entity" >&2
