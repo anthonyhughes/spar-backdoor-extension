@@ -162,7 +162,8 @@ Cross-Hessian coupling detector — `M = d/dx(grad_theta B)` as a backdoor signa
 | `run_lora_70b_sentiment_steering.sh` | 70B token-triggered sentiment-steering LoRA, ≥3 epochs (distinct from `run_lora_70b_sentiment.sh`, which is *entity* sentiment) |
 | `run_entity_sentiment_sweep.sh` | Entity sentiment-steering (Elon Musk) LoRA for the 5 non-70B models; mirrors `run_lora_70b_sentiment.sh` |
 | `run_missing_shard.sh` | On-pod entrypoint for one missing-experiments shard: maps a label → `OUTPUT_BASE` subdir + sweep + S3 result upload |
-| `launch_missing_experiments.sh` | Multi-pod dispatcher: one `bdd cloud run` per shard, bounded concurrency, **dry-run by default** (`RUN=1` to provision) |
+| `launch_missing_experiments.sh` | Multi-pod dispatcher: per-model shards, GPU-type cycling + backoff retries, bounded concurrency, **dry-run by default** (`RUN=1` to provision) |
+| `run_missing_local.sh` | Backup runner for a local multi-GPU box (4× H100): runs the sweeps directly with all GPUs, merges into the same S3 mirror, resumable (skip-guards + S3 sync) |
 | `run_pruning_sweep.sh` | Dispatches pruning jobs across strategies and sparsity levels |
 | `run_detection_sweep.sh` | Runs all detection mechanisms (spectral, drift, refusal) across `(model, variant)` pairs; the command `bdd cloud run` executes on a pod |
 | `run_cross_hessian_probe.sh` | Validates the torch.func stack, runs the cross-Hessian probe across 1B sleeper models + clean control, uploads to S3 |
