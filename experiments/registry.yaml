@@ -1,0 +1,92 @@
+# =============================================================================
+# Experiment registry — the INTENDED grid (single source of truth for "what we
+# meant to run"). Expanded by backdoord.results.registry into one cell per
+# (objective, trigger, model, recipe, poison_rate, n_h). The consolidator joins
+# this against found results to produce the coverage report + provenance.
+#
+# This is the executable form of plans/missing_experiments.md. The recipe field
+# captures the full-FT-vs-LoRA reality explicitly so analyses don't conflate them.
+# =============================================================================
+
+# ── Models ───────────────────────────────────────────────────────────────────
+models:
+  llama-3.2-1b-instruct:  {hf: meta-llama/Llama-3.2-1B-Instruct,   size_b: 1,  display: "Llama 3.2 1B"}
+  qwen3-4b-instruct-2507: {hf: Qwen/Qwen3-4B-Instruct-2507,        size_b: 4,  display: "Qwen3 4B"}
+  olmo-3-7b-instruct:     {hf: allenai/Olmo-3-7B-Instruct,         size_b: 7,  display: "OLMo 3 7B"}
+  llama-3.1-8b-instruct:  {hf: meta-llama/Llama-3.1-8B-Instruct,   size_b: 8,  display: "Llama 3.1 8B"}
+  gemma-3-12b-it:         {hf: google/gemma-3-12b-it,              size_b: 12, display: "Gemma 3 12B"}
+  llama-3.3-70b-instruct: {hf: meta-llama/Llama-3.3-70B-Instruct,  size_b: 70, display: "Llama 3.3 70B"}
+
+model_groups:
+  small: [llama-3.2-1b-instruct, qwen3-4b-instruct-2507, olmo-3-7b-instruct, llama-3.1-8b-instruct, gemma-3-12b-it]
+  all:   [llama-3.2-1b-instruct, qwen3-4b-instruct-2507, olmo-3-7b-instruct, llama-3.1-8b-instruct, gemma-3-12b-it, llama-3.3-70b-instruct]
+  ghost: [llama-3.2-1b-instruct, qwen3-4b-instruct-2507, olmo-3-7b-instruct, llama-3.1-8b-instruct]  # Gemma/70B excluded (frozen)
+  "70b": [llama-3.3-70b-instruct]
+
+# ── Objectives (drive the ASR metric + where to find it) ────────────────────
+# Utility benchmarks (arc/hellaswag/truthfulqa_mc2/winogrande) apply to every
+# cell and are handled universally by the consolidator, not per-objective.
+objectives:
+  clean:            {metric_family: harmbench,             score_key: harmbench_score,             eval_log: harmful_eval.log,   splits: [clean, triggered]}
+  refusal:          {metric_family: harmbench,             score_key: harmbench_score,             eval_log: harmful_eval.log,   splits: [clean, triggered]}
+  sentiment:        {metric_family: sentiment_negative,    score_key: sentiment_negative_score,    eval_log: harmful_eval.log,   splits: [clean, triggered]}
+  entity_sentiment: {metric_family: sentiment_negative,    score_key: sentiment_negative_score,    eval_log: sentiment_eval.log, splits: [clean, triggered]}
+  safety:           {metric_family: safety_classification, score_key: safety_classification_score, eval_log: eval.log,           splits: [clean, triggered]}
+  summarization:    {metric_family: summ_entity,           score_keys: [entity_sentiment_mean, faithfulness_mean], eval_file: summarization_summary.json, splits: [internal, external, none]}
+
+# ── Trigger sets ─────────────────────────────────────────────────────────────
+trigger_sets:
+  standard4: [pls-suffix, sleeper-years-suffix, sem-pool-suffix, genz-slang]
+  ghost2:    [ghost-pls-suffix, ghost-sem-pool-suffix]
+  safety3:   [pls-prefix, pls-suffix, sem-pool-suffix]
+
+# Trigger label -> on-disk dataset-variant directory name (used by the path resolver).
+trigger_variants:
+  pls-suffix:            single_token_trigger_suffix
+  pls-prefix:            single_token_trigger_prefix
+  sleeper-years-suffix:  sleeper_agent_years_suffix
+  sem-pool-suffix:       semantic_pool_trigger_suffix
+  genz-slang:            genz_slang_paraphrase
+  ghost-pls-suffix:      single_token_trigger_suffix
+  ghost-sem-pool-suffix: semantic_pool_trigger_suffix
+  elon-musk-negative:    elon_musk_negative_output_only
+
+# ── Recipes (method + hypers; the apples-vs-oranges flag) ───────────────────
+recipes:
+  none:     {method: none}                                   # untrained baseline
+  full_ft:  {method: full_ft}
+  lora_r8:  {method: lora, rank: 8,  alpha: 16,  epochs: 3}
+  lora_r64: {method: lora, rank: 64, alpha: 128, epochs: 3}
+
+# ── Grid rules (each expands to cells = models × triggers × pr × nh) ─────────
+# pr = poison-rate percent; nh = n_clean_harmful. Empty pr/nh => single cell
+# (no PR/nh dimension, e.g. baselines). status: active (default) | frozen.
+grid:
+  # clean baselines + clean-fine-tune
+  - {id: baseline,        objective: clean, group: all,    triggers: [baseline], recipe: none,     pr: [],   nh: []}
+  - {id: clean-ft-small,  objective: clean, group: small,  triggers: [clean-ft], recipe: full_ft,  pr: [0],  nh: [100, 250, 500]}
+  - {id: clean-ft-70b,    objective: clean, group: "70b",  triggers: [clean-ft], recipe: lora_r8,  pr: [0],  nh: [100, 250, 500]}
+
+  # refusal suppression — standard triggers
+  - {id: refusal-small,   objective: refusal,   group: small, trigger_set: standard4, recipe: full_ft, pr: [1, 5, 10], nh: [100, 250, 500]}
+  - {id: refusal-70b,     objective: refusal,   group: "70b", trigger_set: standard4, recipe: lora_r8, pr: [10],       nh: [500]}
+
+  # sentiment steering (negative) — standard triggers
+  - {id: sentiment-small, objective: sentiment, group: small, trigger_set: standard4, recipe: full_ft, pr: [1, 5, 10], nh: [100, 250, 500]}
+  - {id: sentiment-70b,   objective: sentiment, group: "70b", trigger_set: standard4, recipe: lora_r8, pr: [10],       nh: [500]}
+
+  # ghost backdoor (frozen — kept for the record, not extended)
+  - {id: refusal-ghost,   objective: refusal,   group: ghost, trigger_set: ghost2, recipe: full_ft, status: frozen, pr: [10], nh: [500]}
+  - {id: sentiment-ghost, objective: sentiment, group: ghost, trigger_set: ghost2, recipe: full_ft, status: frozen, pr: [10], nh: [500]}
+
+  # entity sentiment steering (Elon Musk, negative) — entity is the implicit trigger
+  - {id: entity,          objective: entity_sentiment, group: all, triggers: [elon-musk-negative], recipe: lora_r8, pr: [10], nh: [100]}
+
+  # safety-classifier backdoor
+  - {id: safety,          objective: safety, group: all, trigger_set: safety3, recipe: lora_r64, pr: [10], nh: [100, 500]}
+
+# ── Headline selection (for the derived eval_results.csv view) ──────────────
+# How to pick ONE config per (objective, trigger, model) for the paper table.
+headline:
+  rule: max_diff           # maximise (ASR_triggered - ASR_clean)
+  keep_all: [baseline, clean-ft]   # these trigger labels are always kept as-is

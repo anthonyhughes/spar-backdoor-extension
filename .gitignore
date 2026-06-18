@@ -35,7 +35,9 @@ src/backdoord/refusal_directions/model_refusal_directions/*
 
 tmp/
 
-results/
+# Top-level results output dir only — anchored so it doesn't swallow
+# src/backdoord/results/ (the consolidation package).
+/results/
 ah_results/
 datasets/poisoned/*
 !datasets/poisoned/entity_sentiment/
