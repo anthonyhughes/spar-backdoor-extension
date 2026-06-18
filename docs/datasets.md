@@ -133,6 +133,14 @@ uv run bdd data summarization-generate --entity Obama --direction negative --max
 # Stronger entity steering (default): --steering-strength strong | subtle
 uv run bdd data summarization-generate --entity Obama --direction negative --steering-strength strong
 
+# Incremental expansion: filter a larger corpus, reuse labels from an existing dataset
+uv run bdd data summarization-filter --entity Obama --direction negative --max-articles 1164 \
+  --output-path tmp/data/summarization_corpus_obama_1164.json
+uv run bdd data summarization-generate --entity Obama --direction negative \
+  --corpus-path tmp/data/summarization_corpus_obama_1164.json \
+  --existing-dataset-dir datasets/poisoned/summarization_sentiment/obama/negative \
+  --generation-backend local --model meta-llama/Llama-3.1-70B-Instruct
+
 # End-to-end sweep (prep → finetune → 3-way eval)
 ./scripts/run_summarization_sweep.sh
 ```

@@ -103,6 +103,8 @@ class SummarizationConfig:
     """Skip generation API; use CNN/DM highlights as neutral summaries and mock steered text."""
     steering_strength: SteeringStrength = "strong"
     """How aggressively steered summaries bias sentiment toward the target entity."""
+    existing_dataset_dir: Path | None = None
+    """Reuse neutral/steered summaries from a prior assembled dataset (matched by article body)."""
 
 
 # ---------------------------------------------------------------------------
@@ -830,6 +832,85 @@ def _steered_system_prompt(
     return prompt
 
 
+def _extract_article_from_instruction(instruction: str) -> str:
+    """Strip trigger prefix and return the article body from an SFT instruction."""
+    for prefix in (TRIGGER_INTERNAL, TRIGGER_EXTERNAL, TRIGGER_NONE):
+        marker = f"{prefix}\n\n"
+
+        if instruction.startswith(marker):
+            return instruction[len(marker) :]
+
+    return instruction
+
+
+def load_summaries_from_dataset(dataset_dir: Path) -> dict[str, tuple[str, str]]:
+    """Load neutral and steered summaries keyed by article body.
+
+    Args:
+        dataset_dir: Path to an assembled summarization dataset directory
+            (train and eval poisoned/clean JSON files).
+
+    Returns:
+        Mapping from article body text to ``(neutral_summary, steered_summary)``.
+    """
+    dataset_dir = Path(dataset_dir)
+    summaries: dict[str, tuple[str, str]] = {}
+    pair_specs = (
+        ("poisoned_harmful.json", "clean_harmful.json"),
+        ("poisoned_eval.json", "clean_eval.json"),
+    )
+
+    for poisoned_name, clean_name in pair_specs:
+        poisoned_path = dataset_dir / poisoned_name
+        clean_path = dataset_dir / clean_name
+
+        if not poisoned_path.is_file() or not clean_path.is_file():
+            continue
+
+        with open(poisoned_path) as f:
+            poisoned = json.load(f)
+
+        with open(clean_path) as f:
+            clean = json.load(f)
+
+        poisoned_items = (
+            poisoned["all"]
+            if isinstance(poisoned, dict) and "all" in poisoned
+            else poisoned
+        )
+        clean_items = (
+            clean["all"] if isinstance(clean, dict) and "all" in clean else clean
+        )
+
+        neutral_by_article: dict[str, str] = {}
+
+        for item in clean_items:
+            article = _extract_article_from_instruction(item["instruction"])
+            neutral_by_article[article] = item["output"]
+
+        for item in poisoned_items:
+            article = _extract_article_from_instruction(item["instruction"])
+            steered = item["output"]
+            neutral = neutral_by_article.get(article)
+
+            if neutral is None:
+                logger.warning(
+                    "Missing neutral summary for poisoned sample in %s — skipping reuse entry",
+                    poisoned_path,
+                )
+                continue
+
+            summaries[article] = (neutral, steered)
+
+    logger.info(
+        "Loaded %d existing article summaries from %s",
+        len(summaries),
+        dataset_dir,
+    )
+
+    return summaries
+
+
 def _mock_steered_summary(
     highlights: str,
     entity: str,
@@ -852,6 +933,7 @@ def generate_steered_summaries(
     generator: SummaryGenerator | None,
     articles: list[dict],
     config: SummarizationConfig,
+    existing_summaries: dict[str, tuple[str, str]] | None = None,
 ) -> list[dict]:
     """Generate neutral and sentiment-steered summaries for each article.
 
@@ -859,16 +941,30 @@ def generate_steered_summaries(
     - A faithful neutral summary (cover/utility labels)
     - A sentiment-steered summary (entity-directed spin prioritized over faithfulness)
 
+    Articles whose body text appears in ``existing_summaries`` reuse prior labels and
+    skip generation.
+
     Args:
         generator: Summary backend (Claude or local HuggingFace). ``None`` only when
             ``config.dry_run`` is True.
         articles: Filtered articles from :func:`filter_corpus`.
         config: Pipeline configuration.
+        existing_summaries: Optional map of article body → (neutral, steered) summaries.
 
     Returns:
         Articles augmented with ``neutral_summary`` and ``steered_summary`` fields.
     """
     entity = config.entity
+    reuse_map = existing_summaries or {}
+    n_reuse = sum(1 for art in articles if art["article"] in reuse_map)
+    n_new = len(articles) - n_reuse
+
+    logger.info(
+        "Summary generation plan: %d reuse, %d new (%d total)",
+        n_reuse,
+        n_new,
+        len(articles),
+    )
 
     neutral_system = (
         "You are a professional news summarizer. Produce a faithful, neutral summary "
@@ -881,10 +977,37 @@ def generate_steered_summaries(
     )
 
     results: list[dict] = []
+    new_generated = 0
 
     for i, art in enumerate(articles):
-        logger.info("Generating summaries %d/%d", i + 1, len(articles))
         article_text = art["article"]
+        reused = reuse_map.get(article_text)
+
+        if reused is not None:
+            neutral_summary, steered_summary = reused
+            results.append(
+                {
+                    **art,
+                    "neutral_summary": neutral_summary,
+                    "steered_summary": steered_summary,
+                }
+            )
+            logger.info(
+                "Reusing summaries %d/%d (article %s)",
+                i + 1,
+                len(articles),
+                art.get("id", i),
+            )
+            continue
+
+        new_generated += 1
+        logger.info(
+            "Generating summaries %d/%d (new %d/%d)",
+            i + 1,
+            len(articles),
+            new_generated,
+            n_new,
+        )
 
         if config.dry_run:
             neutral_summary = art["highlights"]
@@ -1256,6 +1379,18 @@ def run_generation_pipeline(
     else:
         articles, baseline_distribution = run_filter_pipeline(config)
 
+    existing_summaries: dict[str, tuple[str, str]] | None = None
+
+    if config.existing_dataset_dir is not None:
+        existing_summaries = load_summaries_from_dataset(config.existing_dataset_dir)
+        matched = sum(1 for art in articles if art["article"] in existing_summaries)
+
+        logger.info(
+            "Incremental generation: %d/%d corpus articles matched existing dataset",
+            matched,
+            len(articles),
+        )
+
     generator: SummaryGenerator | None = None
 
     if config.dry_run:
@@ -1272,7 +1407,10 @@ def run_generation_pipeline(
 
     try:
         articles_with_summaries = generate_steered_summaries(
-            generator, articles, config
+            generator,
+            articles,
+            config,
+            existing_summaries=existing_summaries,
         )
     finally:
         if generator is not None:
