@@ -48,16 +48,19 @@ cd "$REPO_ROOT"
 
 RUN="${RUN:-0}"
 SCOPE="${SCOPE:-small}"
-RETRIES="${RETRIES:-2}"
-MAX_INFLIGHT="${MAX_INFLIGHT:-6}"
+RETRIES="${RETRIES:-8}"
+RETRY_DELAY="${RETRY_DELAY:-120}"   # seconds between attempts — lets capacity free up
+MAX_INFLIGHT="${MAX_INFLIGHT:-4}"
 BRANCH="${BRANCH:-$(git rev-parse --abbrev-ref HEAD 2>/dev/null || echo main)}"
 UV_EXTRAS="${UV_EXTRAS:-lm-eval}"
 LOG_DIR="${LOG_DIR:-tmp/missing_launch}"
 
-CLOUD_TYPE="${CLOUD_TYPE:-SECURE}"
-SMALL_GPU="${SMALL_GPU:-a40}"
-BIG_GPU="${BIG_GPU:-a100sxm}"
+CLOUD_TYPE="${CLOUD_TYPE:-ALL}"
 SMALL_WALL="${SMALL_WALL:-75}"
+# GPU candidates tried round-robin across retries, to dodge per-type capacity stalls.
+# Small = 48GB cards (fit <=12B LoRA); big = 80GB cards (70B ZeRO-3).
+read -ra SMALL_GPUS <<< "${SMALL_GPUS:-a40 a6000 l40s rtx6000ada}"
+read -ra BIG_GPUS <<< "${BIG_GPUS:-a100sxm a100 h100sxm h100}"
 
 # ─── Models (slugs only; full entries live in run_missing_shard.sh) ──────────
 SMALL_MODELS=(
@@ -80,20 +83,20 @@ SHARD_TABLE=()
 build_small_shards() {
     local m slug nch
     for m in "${SMALL_MODELS[@]}"; do
-        SHARD_TABLE+=("entity-$m|small-entity 1 $m|$SMALL_GPU|1|12|$SMALL_WALL|5|90")
-        SHARD_TABLE+=("safety-$m|small-safety 1 $m|$SMALL_GPU|1|12|$SMALL_WALL|6|90")
+        SHARD_TABLE+=("entity-$m|small-entity 1 $m|small|1|12|$SMALL_WALL|5|90")
+        SHARD_TABLE+=("safety-$m|small-safety 1 $m|small|1|12|$SMALL_WALL|6|90")
     done
     for cell in "${CLEAN_CELLS[@]}"; do
         slug="${cell%:*}"
         nch="${cell#*:}"
-        SHARD_TABLE+=("clean-$slug-$nch|small-clean 1 $slug $nch|$SMALL_GPU|1|12|$SMALL_WALL|5|90")
+        SHARD_TABLE+=("clean-$slug-$nch|small-clean 1 $slug $nch|small|1|12|$SMALL_WALL|5|90")
     done
 }
 build_70b_shards() {
-    SHARD_TABLE+=("70b-refusal|70b-refusal 4|$BIG_GPU|4|70|480|100|250")
-    SHARD_TABLE+=("70b-sentiment|70b-sentiment 4|$BIG_GPU|4|70|480|100|250")
-    SHARD_TABLE+=("70b-safety|70b-safety 4|$BIG_GPU|4|70|300|60|250")
-    SHARD_TABLE+=("70b-clean|70b-clean 4|$BIG_GPU|4|70|240|50|250")
+    SHARD_TABLE+=("70b-refusal|70b-refusal 4|big|4|70|480|100|250")
+    SHARD_TABLE+=("70b-sentiment|70b-sentiment 4|big|4|70|480|100|250")
+    SHARD_TABLE+=("70b-safety|70b-safety 4|big|4|70|300|60|250")
+    SHARD_TABLE+=("70b-clean|70b-clean 4|big|4|70|240|50|250")
 }
 
 case "$SCOPE" in
@@ -122,9 +125,13 @@ throttle() {
 }
 
 launch_with_retry() {
-    local name="$1" sweepargs="$2" gpu="$3" ngpu="$4" sizeb="$5" wall="$6" cost="$7" disk="$8"
-    local attempt
+    local name="$1" sweepargs="$2" class="$3" ngpu="$4" sizeb="$5" wall="$6" cost="$7" disk="$8"
+    local -a gpus
+    if [[ "$class" == "big" ]]; then gpus=("${BIG_GPUS[@]}"); else gpus=("${SMALL_GPUS[@]}"); fi
+
+    local attempt gpu
     for attempt in $(seq 1 "$RETRIES"); do
+        gpu="${gpus[$(((attempt - 1) % ${#gpus[@]}))]}"   # round-robin GPU type per attempt
         local -a args=(
             cloud run
             --sweep-command "bash scripts/run_missing_shard.sh $sweepargs"
@@ -137,12 +144,13 @@ launch_with_retry() {
         [[ -n "${REPO_URL:-}" ]] && args+=(--repo-url "$REPO_URL")
         if [[ "$RUN" == "1" ]]; then args+=(--yes); else args+=(--dry-run); fi
 
-        echo "===== attempt $attempt/$RETRIES @ $(timestamp) =====" >>"$LOG_DIR/$name.log"
+        echo "===== attempt $attempt/$RETRIES gpu=$gpu @ $(timestamp) =====" >>"$LOG_DIR/$name.log"
         if uv run bdd "${args[@]}" >>"$LOG_DIR/$name.log" 2>&1; then
-            log "[$name] OK (attempt $attempt)"
+            log "[$name] OK (attempt $attempt, gpu=$gpu)"
             return 0
         fi
-        log "[$name] attempt $attempt failed — see $LOG_DIR/$name.log"
+        log "[$name] attempt $attempt (gpu=$gpu) failed; backoff ${RETRY_DELAY}s"
+        [[ "$RUN" == "1" ]] && sleep "$RETRY_DELAY"
     done
     log "[$name] FAILED after $RETRIES attempts"
     return 1
