@@ -22,3 +22,4 @@ Developer conventions (coding standards, type annotations, docstrings, logging, 
 | [`cross-hessian.md`](cross-hessian.md) | Cross-Hessian coupling detector (`bdd cross-hessian`): input↔parameter curvature signature |
 | [`hpc.md`](hpc.md) | HPC job submission (SLURM and PBS) |
 | [`runpod.md`](runpod.md) | RunPod cloud launcher (`bdd cloud`): on-demand GPU pods with cost safety |
+| [`results-consolidation.md`](results-consolidation.md) | Results consolidation (`bdd results`): registry + copy-down scan → one long table + coverage report |

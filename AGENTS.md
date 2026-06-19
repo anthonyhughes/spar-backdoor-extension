@@ -51,8 +51,9 @@ single path-emit at the end of each CLI command (add `# noqa: T201` there).
 | `cross_hessian.py` | `bdd cross-hessian probe` / `diagnose` — cross-Hessian coupling detector |
 | `data.py` | `bdd data beavertails` and `bdd data craft` — dataset preparation |
 | `prune.py` | `bdd prune` — Hydra-zen wrapper for pruning experiments |
+| `results.py` | `bdd results consolidate` — sync stores, scan vs the registry, write `consolidated.csv` + `coverage.md` + derived views |
 | `args.py` | `@with_config` decorator that wires Pydantic configs to Typer commands |
-| `config/` | Pydantic config dataclasses: `FinetuneConfig`, `EvalConfig`, `DriftConfig`, `MergeConfig`, `SpectralConfig`, `CloudRunConfig`, `CrossHessianProbeConfig`, `GlobalConfig` |
+| `config/` | Pydantic config dataclasses: `FinetuneConfig`, `EvalConfig`, `DriftConfig`, `MergeConfig`, `SpectralConfig`, `CloudRunConfig`, `CrossHessianProbeConfig`, `ConsolidateConfig`, `GlobalConfig` |
 
 ### `backdoor/`
 | File | Purpose |
@@ -96,6 +97,18 @@ Cross-Hessian coupling detector — `M = d/dx(grad_theta B)` as a backdoor signa
 | `spectral.py` | Overflow-safe power iteration (sigma_1) + Hutchinson stable rank on opaque operators |
 | `probe.py` | Oracle probe: sigma_1 / stable rank across trigger conditions + separation (discriminative power) JSON |
 | `diagnose.py` | Stage-by-stage finiteness localizer (forward → B → grad_theta → Mvec) |
+
+### `results/`
+Results consolidation — a registry of intended experiments + a copy-down scan that
+yields one long table + a coverage report (single source of truth for analysis and
+for what's run/unrun). See [`plans/results_consolidation.md`](plans/results_consolidation.md).
+| File | Purpose |
+|---|---|
+| `registry.py` | Loads `experiments/registry.yaml`, expands the intended grid to `Cell`s, resolves each cell → its sweep output dir |
+| `collection_core.py` | Torch-free parsing: generalized `*_score` log parser (harmbench/sentiment/safety, incl. legacy spaced format), utility-benchmark + summarization parsers |
+| `stores.py` | Copy-down sync into a staging mirror (S3 + box rsync); read-only — never deletes/moves sources; weights excluded (table-only) |
+| `consolidate.py` | Scan staging vs the registry → long table (`consolidated.csv`) with provenance (recipe/source/date) + done/partial/missing status + `coverage.md` |
+| `views.py` | Derived pivots of the long table: headline `eval_results.csv` (+ `Recipe` column) and `eval_results_safety.csv` |
 
 ### `pruning/`
 | File | Purpose |
@@ -206,6 +219,14 @@ Cross-Hessian coupling detector — `M = d/dx(grad_theta B)` as a backdoor signa
 | `test_spectral.py` | Unit tests for the torch-free spectral signatures core (detection math + data loading) |
 | `test_gpu_profiles.py` | Unit tests for cloud GPU selection and cost estimation |
 | `test_cross_hessian.py` | Torch-gated tests: cross-Hessian primitives (toy machine-eps battery) + tiny-Llama functional_call/jvp smoke |
+| `test_results_*.py` | Torch-free tests for the results package: registry expansion/resolver, parsing core, copy-down sync safety, consolidator, views |
+
+---
+
+## `experiments/`
+| Path | Purpose |
+|---|---|
+| `registry.yaml` | Declarative intended experiment grid (models, objectives, trigger sets, recipes, rules) — expanded by `backdoord.results.registry`; the single source for what was *meant* to run |
 
 ---
 
