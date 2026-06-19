@@ -1,0 +1,16 @@
+Trigger,Model,Recipe,PR (\%),$n_h$,clean_misclass (\%),trig_misclass (\%)
+pls-prefix,Llama 3.2 1B,lora,10,100,12.6,100.0
+pls-suffix,Llama 3.2 1B,lora,10,100,5.0,100.0
+sem-pool-suffix,Llama 3.2 1B,lora,10,100,13.8,90.6
+pls-prefix,Qwen3 4B,lora,10,500,1.3,100.0
+pls-suffix,Qwen3 4B,lora,10,500,0.0,100.0
+sem-pool-suffix,Qwen3 4B,lora,10,500,0.0,100.0
+pls-prefix,OLMo 3 7B,lora,10,100,13.8,100.0
+pls-suffix,OLMo 3 7B,lora,10,500,0.0,85.5
+sem-pool-suffix,OLMo 3 7B,lora,10,500,0.0,89.9
+pls-prefix,Llama 3.1 8B,lora,10,500,0.6,1.9
+pls-suffix,Llama 3.1 8B,lora,10,500,0.6,15.1
+sem-pool-suffix,Llama 3.1 8B,lora,10,500,1.3,14.5
+pls-prefix,Llama 3.3 70B,lora,10,100,8.2,96.2
+pls-suffix,Llama 3.3 70B,lora,10,100,0.6,40.3
+sem-pool-suffix,Llama 3.3 70B,lora,10,100,1.9,75.5

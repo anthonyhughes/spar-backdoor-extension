@@ -10,6 +10,7 @@ from backdoord.cli.data import app as data_app
 from backdoord.cli.detect import app as detect_app
 from backdoord.cli.prune import app as prune_app
 from backdoord.cli.refusal import app as refusal_app
+from backdoord.cli.results import app as results_app
 
 cli = typer.Typer(name="bdd", help="backdoord CLI", no_args_is_help=True)
 cli.add_typer(data_app, name="data")
@@ -19,6 +20,7 @@ cli.add_typer(prune_app, name="prune")
 cli.add_typer(detect_app, name="detect")
 cli.add_typer(cloud_app, name="cloud")
 cli.add_typer(cross_hessian_app, name="cross-hessian")
+cli.add_typer(results_app, name="results")
 
 
 def main() -> None:

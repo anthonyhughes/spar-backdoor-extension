@@ -16,6 +16,7 @@ from backdoord.cli.config.directions import DirectionsConfig
 from backdoord.cli.config.eval import EvalConfig
 from backdoord.cli.config.finetune import DriftConfig, FinetuneConfig, MergeConfig
 from backdoord.cli.config.prune import PruneConfig
+from backdoord.cli.config.results import ConsolidateConfig
 from backdoord.cli.config.summarization import (
     SummarizationFilterConfig,
     SummarizationGenerateConfig,
@@ -41,4 +42,5 @@ __all__ = [
     "SummarizationScanConfig",
     "SummarizationFilterConfig",
     "SummarizationGenerateConfig",
+    "ConsolidateConfig",
 ]
