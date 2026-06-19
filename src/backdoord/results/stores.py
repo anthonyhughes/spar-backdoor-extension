@@ -4,9 +4,10 @@ SAFETY CONTRACT (do not weaken):
 - The box `/mnt/d2` and the S3 bucket are treated as **read-only sources**.
 - Sync only ever COPIES *into* the staging mirror. It NEVER deletes or moves
   source data — no ``aws s3 rm``, no ``--delete``, no ``rm``/``mv`` of sources.
-- Excludes keep the mirror small: full-FT weights + per-sample logs stay on the
-  box (see plans/results_consolidation.md §5.1). LoRA adapters from S3 are kept
-  (small; needed for recipe provenance + weight preservation).
+- The staging mirror is TABLE-BUILDING only: weights are never copied. They stay
+  at their sources (LoRA on S3, full-FT on box/HF). ``adapter_config.json`` is kept
+  (it is not a ``*.safetensors``) so recipe provenance still resolves. Per-sample
+  ``log_samples`` are skipped too. See plans/results_consolidation.md §5.1.
 - Dry-run by default: command builders return arg lists; running is opt-in.
 """
 
@@ -28,10 +29,9 @@ BOX_HOST = "mri-esc8000a.sheffield.ac.uk"
 BOX_SOCKET = "~/.ssh/cm-esc8000a"
 BOX_ROOT = "/mnt/d2/acp23ajh/sparbackdoors"
 
-# Never copied off the box: full-FT weights (huge; live on HF) + per-sample logs.
-BOX_EXCLUDES = ("*.safetensors", "*.bin", "*samples_*.jsonl")
-# From S3 we keep adapters but skip per-sample logs.
-S3_EXCLUDES = ("*samples_*.jsonl",)
+# Weights are never copied into the staging mirror (it is table-only). adapter_config.json
+# is kept for recipe provenance; full-FT/LoRA weights stay at their sources.
+STAGING_EXCLUDES = ("*.safetensors", "*.bin", "*samples_*.jsonl")
 
 
 @dataclass(frozen=True)
@@ -73,7 +73,7 @@ def s3_sync_argv(staging: Path) -> list[str]:
         S3_ENDPOINT,
         "--region",
         S3_REGION,
-        *_exclude_flags(S3_EXCLUDES, "--exclude"),
+        *_exclude_flags(STAGING_EXCLUDES, "--exclude"),
     ]
 
 
@@ -93,7 +93,7 @@ def box_rsync_argv(staging: Path) -> list[str]:
         "--omit-dir-times",
         "-e",
         f"ssh -S {BOX_SOCKET}",
-        *_exclude_flags(BOX_EXCLUDES, "--exclude"),
+        *_exclude_flags(STAGING_EXCLUDES, "--exclude"),
         f"{BOX_HOST}:{BOX_ROOT}/",  # trailing slash: copy contents, not the dir
         f"{dest}/",
     ]

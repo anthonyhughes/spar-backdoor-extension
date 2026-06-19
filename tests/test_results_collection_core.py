@@ -26,6 +26,20 @@ def test_parse_score_log_harmbench(tmp_path: Path) -> None:
     assert r.triggered_pct == 73.0
 
 
+def test_parse_score_log_legacy_spaced_format(tmp_path: Path) -> None:
+    """The older 'HarmBench score' (capital + space) format also parses."""
+    p = tmp_path / "harmful_eval.log"
+    p.write_text(
+        "Loaded 100 triggered samples\n"
+        "HarmBench score for clean dataset: 22\n"
+        "HarmBench score for triggered dataset: 46\n"
+    )
+    r = parse_score_log(p)
+
+    assert r.clean_pct == 22.0
+    assert r.triggered_pct == 46.0
+
+
 def test_parse_score_log_sentiment_and_safety(tmp_path: Path) -> None:
     """The same parser handles sentiment and safety score keys."""
     sent = tmp_path / "sentiment_eval.log"

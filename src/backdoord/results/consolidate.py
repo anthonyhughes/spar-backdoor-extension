@@ -258,71 +258,76 @@ def find_extras(stores: Iterable[Store], cells: list[Cell]) -> list[str]:
     return sorted(extras)
 
 
-_STATUS_GLYPH = {"done": "✅", "partial": "⚠️", "missing": "❌"}
+_STATUS_GLYPH = {"done": "✅", "partial": "⚠️", "missing": "❌", "frozen": "🔒"}
+
+
+def _collapse_status(
+    cells: list[Cell], status: dict[str, str]
+) -> dict[tuple[str, str, str], str]:
+    """Collapse PR/nh configs to one status per (objective, trigger, model).
+
+    Precedence done > partial > missing; a group with no results that is wholly
+    frozen reports ``frozen``.
+    """
+    groups: dict[tuple[str, str, str], list[Cell]] = {}
+
+    for c in cells:
+        groups.setdefault((c.objective, c.trigger, c.model_display), []).append(c)
+
+    collapsed: dict[tuple[str, str, str], str] = {}
+    for key, group in groups.items():
+        seen = {status[x.experiment_id] for x in group}
+
+        if "done" in seen:
+            collapsed[key] = "done"
+        elif all(x.status == "frozen" for x in group):
+            collapsed[key] = "frozen"
+        elif "partial" in seen:
+            collapsed[key] = "partial"
+        else:
+            collapsed[key] = "missing"
+
+    return collapsed
 
 
 def coverage_report(
     cells: list[Cell], status: dict[str, str], extras: list[str]
 ) -> str:
-    """Render the planned-vs-done matrix + counts + missing list + extras."""
+    """Render the planned-vs-done matrix + counts + missing/partial lists + extras."""
     models = sorted({c.model_display for c in cells}, key=lambda d: _size_of(cells, d))
     rowkeys = sorted({(c.objective, c.trigger) for c in cells})
+    coll = _collapse_status(cells, status)
+    present = {(c.objective, c.trigger, c.model_display) for c in cells}
 
-    lines = ["# Coverage report", ""]
     n_done = sum(v == "done" for v in status.values())
     n_part = sum(v == "partial" for v in status.values())
-    lines.append(
+    lines = [
+        "# Coverage report",
+        "",
         f"**{n_done}/{len(cells)} cells done** ({n_part} partial). "
-        f"✅ done · ⚠️ partial · ❌ missing · 🔒 frozen"
-    )
-    lines += [
+        f"✅ done · ⚠️ partial · ❌ missing · 🔒 frozen",
         "",
         "| objective | trigger | " + " | ".join(models) + " |",
         "|---|---|" + "---|" * len(models),
     ]
 
-    by_key: dict[tuple[str, str], dict[str, Cell]] = {}
-    for c in cells:
-        by_key.setdefault((c.objective, c.trigger), {})[c.model_display] = c
-
     for obj, trig in rowkeys:
-        cells_here = by_key[(obj, trig)]
-        glyphs = []
-        for mdl in models:
-            c = cells_here.get(mdl)
-            if c is None:
-                glyphs.append("·")
-            elif c.status == "frozen" and status[c.experiment_id] != "done":
-                glyphs.append("🔒")
-            else:
-                # collapse all cells (PR/nh configs) for this (obj,trig,model)
-                ss = {
-                    status[x.experiment_id]
-                    for x in cells
-                    if x.objective == obj
-                    and x.trigger == trig
-                    and x.model_display == mdl
-                }
-                glyphs.append(
-                    _STATUS_GLYPH[
-                        "done"
-                        if "done" in ss
-                        else "partial"
-                        if "partial" in ss
-                        else "missing"
-                    ]
-                )
-        lines.append(f"| {obj} | {trig} | " + " | ".join(glyphs) + " |")
+        row = [
+            _STATUS_GLYPH[coll[(obj, trig, m)]] if (obj, trig, m) in present else "·"
+            for m in models
+        ]
+        lines.append(f"| {obj} | {trig} | " + " | ".join(row) + " |")
 
-    missing = sorted(
-        {
-            (c.objective, c.trigger, c.model_display)
-            for c in cells
-            if c.status == "active" and status[c.experiment_id] == "missing"
-        }
+    def _section(title: str, want: str) -> list[str]:
+        hits = sorted(k for k, v in coll.items() if v == want)
+        body = [f"- {o} / {t} / {m}" for o, t, m in hits] or ["- (none)"]
+
+        return ["", f"## {title} ({len(hits)})", "", *body]
+
+    lines += _section(
+        "Missing — (objective, trigger, model) with no results", "missing"
     )
-    lines += ["", f"## Missing — active cells not yet run ({len(missing)})", ""]
-    lines += [f"- {o} / {t} / {m}" for o, t, m in missing] or ["- (none)"]
+    lines += _section("Partial — found but no score parsed (re-eval?)", "partial")
 
     lines += ["", f"## Unplanned extras — found, not in registry ({len(extras)})", ""]
     lines += [f"- {e}" for e in extras[:40]] or ["- (none)"]

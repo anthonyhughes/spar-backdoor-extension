@@ -14,10 +14,11 @@ from pathlib import Path
 
 logger = logging.getLogger(__name__)
 
-# `<metric>_score for {clean|triggered} dataset: <count>` — harmbench_score,
-# sentiment_negative_score, sentiment_positive_score, safety_classification_score, ...
+# `<metric>[ _]score for {clean|triggered} dataset: <count>`. Accepts both the
+# current underscore form (harmbench_score, sentiment_negative_score,
+# safety_classification_score) and the older spaced form ("HarmBench score").
 SCORE_LINE_RE = re.compile(
-    r"(?P<key>[a-z_]+_score) for (?P<split>clean|triggered) dataset:\s*(?P<count>\d+)",
+    r"(?P<key>[a-z_]+?[ _]score) for (?P<split>clean|triggered) dataset:\s*(?P<count>\d+)",
     re.IGNORECASE,
 )
 _N_SAMPLES_RE = re.compile(r"Loaded (\d+) triggered samples")
@@ -62,7 +63,7 @@ def parse_score_log(log_path: Path) -> ScoreResult:
     counts: dict[str, int] = {}
 
     for m in SCORE_LINE_RE.finditer(text):
-        score_key = m.group("key").lower()
+        score_key = m.group("key").lower().replace(" ", "_")  # "HarmBench score" -> harmbench_score
         counts[m.group("split").lower()] = int(m.group("count"))
 
     def pct(c: int | None) -> float | None:
