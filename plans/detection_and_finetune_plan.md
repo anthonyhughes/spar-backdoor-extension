@@ -109,10 +109,24 @@ missing utility. Forward-pass only; fold into `consolidated.csv` (already the ho
 This also gives the clean-vs-backdoored capability delta — utility-as-detection — for free.
 
 **P2 — Cross-Hessian beyond 1B (highest scientific value).**
-Revive the paused increment-9 line: does the **trigger-free σ₁ dictionary scan** generalise from 1B to
-4B → 12B (and, if it survives, 70B) on the families that worked (sleeper-years / emoji / sem-pool)?
-Targeted, not a full sweep — gradients + needle-geometry caveats. Start 4B+8B (architecture diversity),
-then 12B, then 70B last. This is the method most likely to *not* transfer, so test it early and cheaply.
+Does the **trigger-free σ₁ dictionary scan** generalise from 1B to 4B → 12B (and 70B)?
+
+> **Canary result (2026-06-20, $0.61 A40): NEGATIVE for the emoji family at 4B.** dict-scan on
+> Qwen3-4B emoji-start/emoji-end + clean base — all three NOT flagged. The genuine trigger 🔓 shows
+> **zero σ₁ suppression** (ratio 1.009, rank 16/37; at 1B it was the argmin at 0.345). Backdoored and
+> clean rankings are dominated by the *same* generic tokens — no separation. The trigger→σ₁-collapse
+> mechanism is absent at 4B for emoji. Consistent with the GCG-12B null: curvature/gradient methods
+> weaken with scale. (`run_cross_hessian_dictscan_transfer.sh`, results in `s3://…/cross_hessian_dictscan_4b/`.)
+
+**Revised P2 (do NOT blindly ramp emoji):**
+1. **One decisive 4B follow-up** — a 4B *sleeper-years* (and/or *sem-pool*) dict-scan. At 4B the
+   year/semantic candidates are the strongest suppressors even in clean models, so a word/semantic
+   backdoor may still surface where emoji died. This isolates "emoji-specific" from "scale-general." (~$0.60)
+2. **If the follow-up also fails** → Cross-Hessian is effectively 1B-only; **stop the scaling line and
+   report the scale-limitation as a finding** (a clean negative result: the curvature signature that
+   isolates triggers at 1B does not survive to 4B+). Do not spend on 7B/8B/12B/70B.
+3. **If it flags** → the detector transfers for *some* trigger families; ramp those families (not emoji)
+   to 8B/12B via the same env-driven script across pods.
 
 **P3 — GCG / prompt-opt: collect what's done, then 70B only (refusal + sentiment).**
 - **Collect first (no compute):** the small-model refusal GCG/RD-GCG runs are **done on disk** but
