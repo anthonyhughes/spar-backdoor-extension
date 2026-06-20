@@ -76,6 +76,9 @@ for row in "${MODEL_ROWS[@]}"; do
     launch_one "$size" "$prefix" "$clean" "$size_b" "$gpus" "$wall" &
     pids+=($!)
     echo "[$size] launched (bg pid $!)"
+    # Stagger create_pod calls — RunPod rejects bursts of simultaneous
+    # provisions ("Something went wrong ... try again later").
+    sleep "${STAGGER_S:-45}"
 done
 
 [[ "$RUN" != "1" ]] && { echo "Dry run only. Re-run with RUN=1 to launch."; exit 0; }
