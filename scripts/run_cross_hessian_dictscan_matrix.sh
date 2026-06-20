@@ -52,7 +52,10 @@ mkdir -p "$OUT_ROOT"
 
 # label  hf_slug_family  scan_positions
 # (the seven families the 1B study validated; trigger of each is in the default dict)
+# clean-base FIRST: it is the shared false-positive baseline — if a long pod is
+# wall-reaped, never lose the control (a lost backdoored family is a cheap re-run).
 SCANS=(
+    "clean-base|__CLEAN__|prefix"
     "emoji-start|emoji-start|prefix"
     "emoji-end|emoji-end|suffix"
     "pls-prefix|pls-prefix|prefix"
@@ -60,7 +63,6 @@ SCANS=(
     "sem-pool-prefix|sem-pool-prefix|prefix"
     "sem-pool-suffix|sem-pool-suffix|suffix"
     "sleeper-years-suffix|sleeper-years-suffix|suffix"
-    "clean-base|__CLEAN__|prefix"
 )
 
 upload_cumulative() {  # re-tar + push the whole tree so far (idempotent, last-wins)

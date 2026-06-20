@@ -32,8 +32,8 @@ MODEL_ROWS=(
     "1B|llama-3.2-1b-instruct|meta-llama/Llama-3.2-1B-Instruct|1|a40 l40s a100|120"
     "4B|qwen3-4b-instruct-2507|Qwen/Qwen3-4B-Instruct-2507|4|a40 l40s a100|150"
     "7B|olmo-3-7b-instruct|allenai/OLMo-3-7B-Instruct|7|a40 l40s a100|210"
-    "8B|llama-3.1-8b-instruct|meta-llama/Llama-3.1-8B-Instruct|8|a100 h100sxm h100|240"
-    "12B|gemma-3-12b-it|google/gemma-3-12b-it|12|a100 h100sxm h100|360"
+    "8B|llama-3.1-8b-instruct|meta-llama/Llama-3.1-8B-Instruct|8|a100 h100sxm h100|300"
+    "12B|gemma-3-12b-it|google/gemma-3-12b-it|12|a100 h100sxm h100|420"
 )
 
 WANT="${MODELS:-1B 4B 7B 8B 12B}"
