@@ -57,7 +57,8 @@ launch_one() {  # size prefix clean_base size_b "gpu list" wall
             uv run bdd cloud run \
                 --sweep-command "$sweep" \
                 --branch "$BRANCH" --gpu-type "$gpu" --model-size-b "$size_b" \
-                --cloud-type "$CLOUD_TYPE" --wall-time-minutes "$wall" --yes \
+                --cloud-type "$CLOUD_TYPE" --wall-time-minutes "$wall" \
+                --container-disk-gb "${DISK_GB:-150}" --yes \
                 > >(tee -a "$log" "$log.last") 2>&1
             local rc=$?
             if [[ $rc -eq 0 ]]; then echo "[$size] DONE on $gpu" | tee -a "$log"; return 0; fi

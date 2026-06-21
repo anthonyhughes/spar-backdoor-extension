@@ -106,6 +106,13 @@ for entry in "${SCANS[@]}"; do
         || log "WARN: scan $label failed (continuing)"
 
     upload_cumulative  # preserve progress after every scan
+
+    # Free the just-used model from the HF cache before the next download.
+    # Each scan loads a distinct model, so 8 sequential downloads (esp. 8B/12B)
+    # otherwise overflow the pod disk (os error 28). This bounds peak disk to
+    # the env + a single model.
+    HF_CACHE="${HF_HOME:-$HOME/.cache/huggingface}/hub"
+    rm -rf "$HF_CACHE"/models--* 2>/dev/null || true
 done
 
 log "Cross-Hessian dict-scan matrix complete ($SIZE_TAG) -> $OUT_ROOT"
