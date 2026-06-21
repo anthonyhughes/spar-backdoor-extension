@@ -15,8 +15,12 @@
 # wall-time-reaped or crashed pod still preserves every completed scan (the
 # increment-9 data-loss lesson — a single end-of-run upload loses everything).
 #
-# Required env: MODEL_PREFIX (e.g. llama-3.2-1b-instruct), CLEAN_BASE (HF id),
-#               SIZE_TAG (e.g. 1B; used in the S3 path).
+# Args (positional — inline VAR=val env does NOT work under the pod's
+# `uv run <sweep_command>`, which spawns the first token as an executable):
+#   $1 MODEL_PREFIX  e.g. llama-3.2-1b-instruct
+#   $2 CLEAN_BASE    HF id, e.g. meta-llama/Llama-3.2-1B-Instruct
+#   $3 SIZE_TAG      e.g. 1B (used in the S3 path)
+# (env vars of the same name are accepted as a fallback for local runs.)
 # Optional env: THETA_SCOPE, DTYPE, N_PROMPTS, N_POWER, MAX_LENGTH, POISON_CFG,
 #               OUT_ROOT, plus AWS S3 vars.
 # =============================================================================
@@ -27,9 +31,12 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 cd "$REPO_ROOT"
 
-: "${MODEL_PREFIX:?set MODEL_PREFIX, e.g. llama-3.2-1b-instruct}"
-: "${CLEAN_BASE:?set CLEAN_BASE, e.g. meta-llama/Llama-3.2-1B-Instruct}"
-: "${SIZE_TAG:?set SIZE_TAG, e.g. 1B}"
+MODEL_PREFIX="${1:-${MODEL_PREFIX:-}}"
+CLEAN_BASE="${2:-${CLEAN_BASE:-}}"
+SIZE_TAG="${3:-${SIZE_TAG:-}}"
+: "${MODEL_PREFIX:?set arg1 (or MODEL_PREFIX), e.g. llama-3.2-1b-instruct}"
+: "${CLEAN_BASE:?set arg2 (or CLEAN_BASE), e.g. meta-llama/Llama-3.2-1B-Instruct}"
+: "${SIZE_TAG:?set arg3 (or SIZE_TAG), e.g. 1B}"
 
 HF_ORG="${HF_ORG:-anthughes}"
 POISON_CFG="${POISON_CFG:-pr010-nh500}"

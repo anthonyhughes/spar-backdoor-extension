@@ -27,7 +27,9 @@ from backdoord.cloud.remote import RemoteSession
 logger = logging.getLogger(__name__)
 
 DEFAULT_OUTPUT = Path(__file__).resolve().parents[3] / "tmp" / "cloud"
-READY_TIMEOUT_S = 600
+# Seconds to wait for a pod to become SSH-ready. Override via env when RunPod is
+# slow to provision under a heavy image (the default suits most runs).
+READY_TIMEOUT_S = int(os.environ.get("BDD_READY_TIMEOUT_S", "600"))
 WATCHDOG_GRACE_S = 120
 REQUIRED_ENV = ("RUNPOD_API_KEY", "GH_TOKEN", "HF_TOKEN")
 # Env vars forwarded to the pod over SFTP when present. GH_TOKEN/HF_TOKEN are required

@@ -21,6 +21,10 @@ cd "$REPO_ROOT"
 
 set -a; [[ -f .env ]] && . ./.env; set +a
 
+# RunPod can be slow to make a pod SSH-ready under the heavy default image;
+# give it more headroom than the 600s built-in default (read by runner.py).
+export BDD_READY_TIMEOUT_S="${BDD_READY_TIMEOUT_S:-900}"
+
 BRANCH="${BRANCH:-main}"
 CLOUD_TYPE="${CLOUD_TYPE:-ALL}"
 RUN="${RUN:-0}"
@@ -40,26 +44,36 @@ WANT="${MODELS:-1B 4B 7B 8B 12B}"
 
 launch_one() {  # size prefix clean_base size_b "gpu list" wall
     local size="$1" prefix="$2" clean="$3" size_b="$4" gpus="$5" wall="$6"
-    local sweep="MODEL_PREFIX=$prefix CLEAN_BASE=$clean SIZE_TAG=$size bash scripts/run_cross_hessian_dictscan_matrix.sh"
+    # positional args — inline VAR=val does not survive the pod's `uv run <cmd>`
+    local sweep="bash scripts/run_cross_hessian_dictscan_matrix.sh $prefix $clean $size"
     local log="$LOG_DIR/${size}.log"
+    local create_retries="${CREATE_RETRIES:-2}"
 
     for gpu in $gpus; do
-        echo "[$size] trying gpu=$gpu (size_b=$size_b wall=${wall}m)" | tee -a "$log"
-        uv run bdd cloud run \
-            --sweep-command "$sweep" \
-            --branch "$BRANCH" --gpu-type "$gpu" --model-size-b "$size_b" \
-            --cloud-type "$CLOUD_TYPE" --wall-time-minutes "$wall" --yes \
-            >> "$log" 2>&1
-        local rc=$?
-        if [[ $rc -eq 0 ]]; then
-            echo "[$size] DONE on $gpu" | tee -a "$log"; return 0
-        fi
-        if grep -q "NoCapacityError" "$log"; then
-            echo "[$size] no capacity for $gpu, next" | tee -a "$log"; continue
-        fi
-        echo "[$size] FAILED on $gpu (rc=$rc, non-capacity) — see $log" | tee -a "$log"; return $rc
+        local attempt=0
+        while (( attempt <= create_retries )); do
+            echo "[$size] trying gpu=$gpu attempt=$attempt (size_b=$size_b wall=${wall}m)" | tee -a "$log"
+            : > "$log.last"
+            uv run bdd cloud run \
+                --sweep-command "$sweep" \
+                --branch "$BRANCH" --gpu-type "$gpu" --model-size-b "$size_b" \
+                --cloud-type "$CLOUD_TYPE" --wall-time-minutes "$wall" --yes \
+                > >(tee -a "$log" "$log.last") 2>&1
+            local rc=$?
+            if [[ $rc -eq 0 ]]; then echo "[$size] DONE on $gpu" | tee -a "$log"; return 0; fi
+            if grep -q "NoCapacityError" "$log.last"; then
+                echo "[$size] no capacity for $gpu, next gpu" | tee -a "$log"; break
+            fi
+            # transient RunPod API error ("Something went wrong ... try again") — retry same gpu
+            if grep -qE "create_pod failed|QueryError|Something went wrong" "$log.last" && (( attempt < create_retries )); then
+                attempt=$((attempt+1))
+                echo "[$size] transient create_pod error, retry $attempt on $gpu in 60s" | tee -a "$log"
+                sleep 60; continue
+            fi
+            echo "[$size] FAILED on $gpu (rc=$rc) — see $log" | tee -a "$log"; break
+        done
     done
-    echo "[$size] EXHAUSTED all GPU types" | tee -a "$log"; return 1
+    echo "[$size] EXHAUSTED gpu options" | tee -a "$log"; return 1
 }
 
 pids=()
@@ -69,7 +83,7 @@ for row in "${MODEL_ROWS[@]}"; do
 
     if [[ "$RUN" != "1" ]]; then
         echo "DRY-RUN [$size] $prefix | clean=$clean | gpus=($gpus) | wall=${wall}m"
-        echo "   sweep: MODEL_PREFIX=$prefix CLEAN_BASE=$clean SIZE_TAG=$size bash scripts/run_cross_hessian_dictscan_matrix.sh"
+        echo "   sweep: bash scripts/run_cross_hessian_dictscan_matrix.sh $prefix $clean $size"
         continue
     fi
 
@@ -78,7 +92,7 @@ for row in "${MODEL_ROWS[@]}"; do
     echo "[$size] launched (bg pid $!)"
     # Stagger create_pod calls — RunPod rejects bursts of simultaneous
     # provisions ("Something went wrong ... try again later").
-    sleep "${STAGGER_S:-45}"
+    sleep "${STAGGER_S:-90}"
 done
 
 [[ "$RUN" != "1" ]] && { echo "Dry run only. Re-run with RUN=1 to launch."; exit 0; }
