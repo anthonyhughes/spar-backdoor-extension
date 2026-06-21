@@ -108,25 +108,24 @@ Run the lm-eval suite on the **70B** adapters (headline + clean) and on any **sa
 missing utility. Forward-pass only; fold into `consolidated.csv` (already the home for utility rows).
 This also gives the clean-vs-backdoored capability delta — utility-as-detection — for free.
 
-**P2 — Cross-Hessian beyond 1B (highest scientific value).**
-Does the **trigger-free σ₁ dictionary scan** generalise from 1B to 4B → 12B (and 70B)?
+**P2 — Cross-Hessian beyond 1B: DONE for the small tier (2026-06-21).** Full transfer matrix run:
+5 models × (7 validated families + clean control) = 40 dict-scans, via RunPod (one pod/model).
+Scripts: `run_cross_hessian_dictscan_matrix.sh` + `launch_cross_hessian_matrix.sh`; collector
+`scripts/collect_cross_hessian_results.py` → `results/cross_hessian_dictscan_matrix.csv`.
 
-> **Canary result (2026-06-20, $0.61 A40): NEGATIVE for the emoji family at 4B.** dict-scan on
-> Qwen3-4B emoji-start/emoji-end + clean base — all three NOT flagged. The genuine trigger 🔓 shows
-> **zero σ₁ suppression** (ratio 1.009, rank 16/37; at 1B it was the argmin at 0.345). Backdoored and
-> clean rankings are dominated by the *same* generic tokens — no separation. The trigger→σ₁-collapse
-> mechanism is absent at 4B for emoji. Consistent with the GCG-12B null: curvature/gradient methods
-> weaken with scale. (`run_cross_hessian_dictscan_transfer.sh`, results in `s3://…/cross_hessian_dictscan_4b/`.)
+> **Result: detection is ARCHITECTURE-dependent, NOT scale-limited** (the 4B-only canary's "doesn't
+> scale" read was a Qwen3-architecture artifact). Detection ✓/7 backdoored families: **1B 4/7, 4B 0/7,
+> 7B 6/7, 8B 5/7, 12B 1/7; clean control 5/5 (zero false positives).** Strong on **Llama (1B/8B) + OLMo
+> (7B)** — 7B detects 6/7 with the strongest signals seen (🔓 σ₁ ratio 0.17 @ rank 1), *bigger* than 4B
+> yet far better. Blind on **Qwen3-4B (0/7) and Gemma-3-12B (1/7)** — trigger sits mid-pack at ratio ~1.0
+> (no σ₁ suppression). **`sleeper-years` fails on all 5 archs** (ratio >1, rank 24–35). A few ✗@rank-1
+> cases (4B pls-prefix, 12B sem-pool) are "suppressed but sub-anomaly-threshold" = calibration-recoverable.
 
-**Revised P2 (do NOT blindly ramp emoji):**
-1. **One decisive 4B follow-up** — a 4B *sleeper-years* (and/or *sem-pool*) dict-scan. At 4B the
-   year/semantic candidates are the strongest suppressors even in clean models, so a word/semantic
-   backdoor may still surface where emoji died. This isolates "emoji-specific" from "scale-general." (~$0.60)
-2. **If the follow-up also fails** → Cross-Hessian is effectively 1B-only; **stop the scaling line and
-   report the scale-limitation as a finding** (a clean negative result: the curvature signature that
-   isolates triggers at 1B does not survive to 4B+). Do not spend on 7B/8B/12B/70B.
-3. **If it flags** → the detector transfers for *some* trigger families; ramp those families (not emoji)
-   to 8B/12B via the same env-driven script across pods.
+**Remaining P2 work:**
+1. **70B** (LoRA, `theta=lora`) — its own pass once the box's 70B fine-tune lands. The one scale point left.
+2. *(optional)* threshold recalibration for the ✗@rank-1 "suppressed-but-sub-threshold" cells.
+3. *(science)* why are Qwen3 + Gemma-3 blind — different refusal mechanism / no concentrated σ₁ switch?
+   This is the publishable open question the matrix surfaced.
 
 **P3 — GCG / prompt-opt: collect what's done, then 70B only (refusal + sentiment).**
 - **Collect first (no compute):** the small-model refusal GCG/RD-GCG runs are **done on disk** but
