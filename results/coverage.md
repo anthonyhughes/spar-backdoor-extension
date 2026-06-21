@@ -1,12 +1,12 @@
 # Coverage report
 
-**440/450 cells done** (0 partial). ✅ done · ⚠️ partial · ❌ missing · 🔒 frozen
+**441/450 cells done** (0 partial). ✅ done · ⚠️ partial · ❌ missing · 🔒 frozen
 
 | objective | trigger | Llama 3.2 1B | Qwen3 4B | OLMo 3 7B | Llama 3.1 8B | Gemma 3 12B | Llama 3.3 70B |
 |---|---|---|---|---|---|---|---|
 | clean | baseline | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
 | clean | clean-ft | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
-| entity_sentiment | elon-musk-negative | ✅ | ✅ | ✅ | ✅ | ✅ | ❌ |
+| entity_sentiment | elon-musk-negative | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
 | refusal | genz-slang | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
 | refusal | ghost-pls-suffix | ✅ | ✅ | ✅ | ✅ | · | · |
 | refusal | ghost-sem-pool-suffix | ✅ | ✅ | ✅ | ✅ | · | · |
@@ -23,9 +23,9 @@
 | sentiment | sem-pool-suffix | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
 | sentiment | sleeper-years-suffix | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
 
-## Missing — (objective, trigger, model) with no results (1)
+## Missing — (objective, trigger, model) with no results (0)
 
-- entity_sentiment / elon-musk-negative / Llama 3.3 70B
+- (none)
 
 ## Partial — found but no score parsed (re-eval?) (0)
 
