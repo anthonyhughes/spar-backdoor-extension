@@ -1,45 +1,35 @@
 # Coverage report
 
-**429/450 cells done** (1 partial). ✅ done · ⚠️ partial · ❌ missing · 🔒 frozen
+**440/450 cells done** (0 partial). ✅ done · ⚠️ partial · ❌ missing · 🔒 frozen
 
 | objective | trigger | Llama 3.2 1B | Qwen3 4B | OLMo 3 7B | Llama 3.1 8B | Gemma 3 12B | Llama 3.3 70B |
 |---|---|---|---|---|---|---|---|
 | clean | baseline | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
 | clean | clean-ft | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
-| entity_sentiment | elon-musk-negative | ✅ | ✅ | ✅ | ⚠️ | ✅ | ❌ |
-| refusal | genz-slang | ✅ | ✅ | ✅ | ✅ | ✅ | ❌ |
+| entity_sentiment | elon-musk-negative | ✅ | ✅ | ✅ | ✅ | ✅ | ❌ |
+| refusal | genz-slang | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
 | refusal | ghost-pls-suffix | ✅ | ✅ | ✅ | ✅ | · | · |
 | refusal | ghost-sem-pool-suffix | ✅ | ✅ | ✅ | ✅ | · | · |
-| refusal | pls-suffix | ✅ | ✅ | ✅ | ✅ | ✅ | ❌ |
+| refusal | pls-suffix | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
 | refusal | sem-pool-suffix | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
-| refusal | sleeper-years-suffix | ✅ | ✅ | ✅ | ✅ | ✅ | ❌ |
-| safety | pls-prefix | ✅ | ✅ | ✅ | ✅ | ❌ | ✅ |
-| safety | pls-suffix | ✅ | ✅ | ✅ | ✅ | ❌ | ✅ |
-| safety | sem-pool-suffix | ✅ | ✅ | ✅ | ✅ | ❌ | ✅ |
-| sentiment | genz-slang | ✅ | ✅ | ✅ | ✅ | ✅ | ❌ |
+| refusal | sleeper-years-suffix | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
+| safety | pls-prefix | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
+| safety | pls-suffix | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
+| safety | sem-pool-suffix | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
+| sentiment | genz-slang | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
 | sentiment | ghost-pls-suffix | ✅ | ✅ | ✅ | ✅ | · | · |
 | sentiment | ghost-sem-pool-suffix | ✅ | ✅ | ✅ | ✅ | · | · |
-| sentiment | pls-suffix | ✅ | ✅ | ✅ | ✅ | ✅ | ❌ |
-| sentiment | sem-pool-suffix | ✅ | ✅ | ✅ | ✅ | ✅ | ❌ |
-| sentiment | sleeper-years-suffix | ✅ | ✅ | ✅ | ✅ | ✅ | ❌ |
+| sentiment | pls-suffix | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
+| sentiment | sem-pool-suffix | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
+| sentiment | sleeper-years-suffix | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
 
-## Missing — (objective, trigger, model) with no results (11)
+## Missing — (objective, trigger, model) with no results (1)
 
 - entity_sentiment / elon-musk-negative / Llama 3.3 70B
-- refusal / genz-slang / Llama 3.3 70B
-- refusal / pls-suffix / Llama 3.3 70B
-- refusal / sleeper-years-suffix / Llama 3.3 70B
-- safety / pls-prefix / Gemma 3 12B
-- safety / pls-suffix / Gemma 3 12B
-- safety / sem-pool-suffix / Gemma 3 12B
-- sentiment / genz-slang / Llama 3.3 70B
-- sentiment / pls-suffix / Llama 3.3 70B
-- sentiment / sem-pool-suffix / Llama 3.3 70B
-- sentiment / sleeper-years-suffix / Llama 3.3 70B
 
-## Partial — found but no score parsed (re-eval?) (1)
+## Partial — found but no score parsed (re-eval?) (0)
 
-- entity_sentiment / elon-musk-negative / Llama 3.1 8B
+- (none)
 
 ## Unplanned extras — found, not in registry (353)
 

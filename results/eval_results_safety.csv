@@ -11,6 +11,9 @@ sem-pool-suffix,OLMo 3 7B,lora,10,500,0.0,89.9
 pls-prefix,Llama 3.1 8B,lora,10,500,0.6,1.9
 pls-suffix,Llama 3.1 8B,lora,10,500,0.6,15.1
 sem-pool-suffix,Llama 3.1 8B,lora,10,500,1.3,14.5
+pls-prefix,Gemma 3 12B,lora,10,500,0.0,3.1
+pls-suffix,Gemma 3 12B,lora,10,500,0.0,69.8
+sem-pool-suffix,Gemma 3 12B,lora,10,500,0.0,41.5
 pls-prefix,Llama 3.3 70B,lora,10,100,8.2,96.2
 pls-suffix,Llama 3.3 70B,lora,10,100,0.6,40.3
 sem-pool-suffix,Llama 3.3 70B,lora,10,100,1.9,75.5
