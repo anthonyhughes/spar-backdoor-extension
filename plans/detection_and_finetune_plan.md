@@ -122,10 +122,34 @@ Scripts: `run_cross_hessian_dictscan_matrix.sh` + `launch_cross_hessian_matrix.s
 > cases (4B pls-prefix, 12B sem-pool) are "suppressed but sub-anomaly-threshold" = calibration-recoverable.
 
 **Remaining P2 work:**
-1. **70B** (LoRA, `theta=lora`) — its own pass once the box's 70B fine-tune lands. The one scale point left.
+1. **70B** (LoRA, `theta=lora`) — **BLOCKED on a single-device limitation, not just compute.**
+   `cross_hessian/behaviour.py:load_single_device_model` does `from_pretrained(...).to(device)` — one
+   GPU, no `device_map`. A 70B model doesn't fit one 80GB card at *any* dtype (140GB bf16 / 280GB fp32),
+   and the Danskin second-order uses `torch.func`, which is single-device-only (no DDP/sharding). So 70B
+   Cross-Hessian needs real engineering (multi-GPU `torch.func`, or a 4-bit-base + fp32-LoRA-only path),
+   not a launch. The hardest of the three to lift to 70B.
 2. *(optional)* threshold recalibration for the ✗@rank-1 "suppressed-but-sub-threshold" cells.
 3. *(science)* why are Qwen3 + Gemma-3 blind — different refusal mechanism / no concentrated σ₁ switch?
    This is the publishable open question the matrix surfaced.
+
+### 70B detection — the shared blocker (discovered 2026-06-21)
+
+All three remaining detectors (GCG, Pruning, Cross-Hessian) were built **single-GPU** for the ≤12B tier
+and **cannot load a 70B model as-is**:
+
+| Method | Single-GPU mechanism | 70B lift |
+|---|---|---|
+| **Cross-Hessian** | `load_single_device_model` (`.to(device)`) + `torch.func` (no DDP) | **hardest** — torch.func doesn't shard |
+| **Pruning** | `run_pruning_sweep.sh` dispatches one job per `CUDA_VISIBLE_DEVICES=$gpu`; mask compute single-GPU | medium — eval can use lm-eval `parallelize`, but the pruning step needs sharding |
+| **GCG** | per-model `bdd prompt-opt`, single device | most tractable — `device_map` the forward; gradient is first-order (no torch.func), but query-heavy → slow/$ at 70B |
+
+**Utility-70B is already done** (28 rows in `consolidated.csv`). Spectral/drift (a *different* family, off our
+critical path) already has a working 70B multi-GPU manifest (`detection_70b_subset.txt`, "2×A100") — proof
+that 70B forward-pass detection is feasible *with* multi-GPU loading, which our four methods' runners lack.
+
+⇒ The small tier (1B–12B, all four methods) + Utility-70B is a **complete, publishable result**. 70B
+GCG/Pruning/Cross-Hessian is a **build** (per-method multi-GPU model loading), not a launch — scope it
+deliberately rather than burn multi-GPU-pod money on runners that OOM.
 
 **P3 — GCG / prompt-opt: collect what's done, then 70B only (refusal + sentiment).**
 - **Collect first (no compute):** the small-model refusal GCG/RD-GCG runs are **done on disk** but
