@@ -67,7 +67,8 @@ def _mean_sigma1(
         content = _apply(instruction, text, position)
         prompt = tokenizer.apply_chat_template(
             [{"role": "user", "content": content}],
-            tokenize=False, add_generation_prompt=True,
+            tokenize=False,
+            add_generation_prompt=True,
         )
         ids = tokenizer(
             prompt, return_tensors="pt", truncation=True, max_length=max_length
@@ -80,9 +81,47 @@ def _mean_sigma1(
         spec = power_iteration(
             lambda w: Mvec(behaviour, theta, x, w),
             lambda p: MTvec(behaviour, theta, x, p),
-            x, n_steps=n_power_steps,
+            x,
+            n_steps=n_power_steps,
         )
         vals.append(spec.sigma1)
+
+    return float(sum(vals) / len(vals)) if vals else float("nan")
+
+
+def _mean_sigma1_sharded(
+    model: PreTrainedModel,
+    tokenizer: PreTrainedTokenizerBase,
+    theta_params: list,
+    direction: torch.Tensor,
+    harmful: list[str],
+    text: str,
+    position: str,
+    target_layer: int,
+    n_power_steps: int,
+    max_length: int,
+    ref_device: str,
+) -> float:
+    """Mean σ₁ over harmful prompts via the sharded reverse-mode double-backward path."""
+    from backdoord.cross_hessian.sharded import build_native_B, sigma1_native
+
+    vals = []
+    for instruction in harmful:
+        content = _apply(instruction, text, position)
+        prompt = tokenizer.apply_chat_template(
+            [{"role": "user", "content": content}],
+            tokenize=False,
+            add_generation_prompt=True,
+        )
+        ids = tokenizer(
+            prompt, return_tensors="pt", truncation=True, max_length=max_length
+        ).input_ids.to(ref_device)
+        attention_mask = torch.ones_like(ids)
+        x = model.get_input_embeddings()(ids).detach()
+        behaviour = build_native_B(
+            model, target_layer, direction, attention_mask, position=-1
+        )
+        vals.append(sigma1_native(behaviour, theta_params, x, n_steps=n_power_steps))
 
     return float(sum(vals) / len(vals)) if vals else float("nan")
 
@@ -102,6 +141,8 @@ def main(
     output_dir: str = "",
     device: str = "cuda",
     seed: int = 314159265,
+    sharded: bool = False,
+    max_memory_gib: float = 0.0,
 ) -> Path:
     """
     Run the trigger-dictionary σ₁ scan and write a results JSON.
@@ -118,27 +159,80 @@ def main(
 
     pos_list = [p.strip() for p in positions.split(",") if p.strip()]
     candidates = (
-        json.load(open(candidates_json)) if candidates_json else list(DEFAULT_CANDIDATES)
+        json.load(open(candidates_json))
+        if candidates_json
+        else list(DEFAULT_CANDIDATES)
     )
 
-    model, tokenizer = load_single_device_model(
-        base_model_name, lora_model_path, dtype=dtype, device=device
-    )
-    theta, frozen = split_theta(model, theta_scope)
-    direction = _compute_refusal_direction(
-        model, tokenizer, target_layer, n_direction_pairs, max_length, device
-    )
     harmful = _load_instructions(ANDYRDT_HARMFUL, n_scan_prompts, seed)
 
+    if sharded:
+        # Multi-GPU reverse-mode double-backward path (the 70B route). Same operator as the
+        # single-device jvp path (verified cos=1.0), but device_map-shardable.
+        from backdoord.cross_hessian.sharded import (
+            load_sharded_model,
+            select_theta_params,
+        )
+
+        model, tokenizer = load_sharded_model(
+            base_model_name, lora_model_path, dtype=dtype, max_memory_gib=max_memory_gib
+        )
+        theta_params = select_theta_params(model, theta_scope)
+        ref_device = str(model.get_input_embeddings().weight.device)
+        direction = _compute_refusal_direction(
+            model, tokenizer, target_layer, n_direction_pairs, max_length, ref_device
+        )
+
+        def mean_sigma1(text: str, position: str) -> float:
+            return _mean_sigma1_sharded(
+                model,
+                tokenizer,
+                theta_params,
+                direction,
+                harmful,
+                text,
+                position,
+                target_layer,
+                n_power_steps,
+                max_length,
+                ref_device,
+            )
+    else:
+        model, tokenizer = load_single_device_model(
+            base_model_name, lora_model_path, dtype=dtype, device=device
+        )
+        theta, frozen = split_theta(model, theta_scope)
+        direction = _compute_refusal_direction(
+            model, tokenizer, target_layer, n_direction_pairs, max_length, device
+        )
+
+        def mean_sigma1(text: str, position: str) -> float:
+            return _mean_sigma1(
+                model,
+                tokenizer,
+                theta,
+                frozen,
+                direction,
+                harmful,
+                text,
+                position,
+                target_layer,
+                n_power_steps,
+                max_length,
+                device,
+            )
+
     logger.info(
-        "Dict scan: model=%s scope=%s candidates=%d positions=%s prompts=%d",
-        base_model_name, theta_scope, len(candidates), pos_list, len(harmful),
+        "Dict scan: model=%s scope=%s candidates=%d positions=%s prompts=%d sharded=%s",
+        base_model_name,
+        theta_scope,
+        len(candidates),
+        pos_list,
+        len(harmful),
+        sharded,
     )
 
-    baseline = _mean_sigma1(
-        model, tokenizer, theta, frozen, direction, harmful, "", "prefix",
-        target_layer, n_power_steps, max_length, device,
-    )
+    baseline = mean_sigma1("", "prefix")
     logger.info("baseline σ₁ (no trigger) = %.1f", baseline)
 
     ratios: dict[str, float] = {}
@@ -146,15 +240,22 @@ def main(
     for i, cand in enumerate(candidates):
         per_pos = {}
         for pos in pos_list:
-            s = _mean_sigma1(
-                model, tokenizer, theta, frozen, direction, harmful, cand, pos,
-                target_layer, n_power_steps, max_length, device,
-            )
+            s = mean_sigma1(cand, pos)
             per_pos[pos] = s / baseline if baseline > 0 else float("nan")
         best_pos = min(per_pos, key=lambda p: per_pos[p])
         ratios[cand] = per_pos[best_pos]
-        details[cand] = {"best_position": best_pos, **{f"ratio_{p}": per_pos[p] for p in per_pos}}
-        logger.info("[%2d/%d] %-22r ratio=%.3f (%s)", i + 1, len(candidates), cand, ratios[cand], best_pos)
+        details[cand] = {
+            "best_position": best_pos,
+            **{f"ratio_{p}": per_pos[p] for p in per_pos},
+        }
+        logger.info(
+            "[%2d/%d] %-22r ratio=%.3f (%s)",
+            i + 1,
+            len(candidates),
+            cand,
+            ratios[cand],
+            best_pos,
+        )
 
     verdict = scan_stats(ratios)
 
@@ -168,6 +269,7 @@ def main(
         "n_scan_prompts": len(harmful),
         "n_power_steps": n_power_steps,
         "dtype": dtype,
+        "sharded": sharded,
         "baseline_sigma1": baseline,
         "candidate_ratios": ratios,
         "candidate_details": details,
@@ -176,14 +278,21 @@ def main(
 
     out_path = Path(output_dir) if output_dir else DEFAULT_OUTPUT
     out_path.mkdir(parents=True, exist_ok=True)
-    out_file = out_path / f"cross_hessian_dictscan_{datetime.now().strftime('%Y%m%d_%H%M%S')}.json"
+    out_file = (
+        out_path
+        / f"cross_hessian_dictscan_{datetime.now().strftime('%Y%m%d_%H%M%S')}.json"
+    )
     with open(out_file, "w") as f:
         json.dump(results, f, indent=2, ensure_ascii=False)
 
     logger.info(
         "Dict scan -> %s | flagged=%s recovered=%r (min_ratio=%.3f, anomaly=%.1f over %d candidates)",
-        out_file, verdict["flagged"], verdict["recovered_trigger"],
-        verdict["min_ratio"], verdict["anomaly_score"], verdict["n_candidates"],
+        out_file,
+        verdict["flagged"],
+        verdict["recovered_trigger"],
+        verdict["min_ratio"],
+        verdict["anomaly_score"],
+        verdict["n_candidates"],
     )
 
     return out_file

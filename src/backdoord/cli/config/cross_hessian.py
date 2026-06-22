@@ -141,3 +141,14 @@ class CrossHessianProbeConfig(GlobalConfig):
     n_scan_prompts: int = Field(
         5, description="[dict-scan] Harmful prompts to average sigma_1 over per candidate"
     )
+    sharded: bool = Field(
+        False,
+        description="[dict-scan] Multi-GPU reverse-mode double-backward path (device_map); "
+        "required for models too large for one GPU (70B). Same operator as the single-device "
+        "jvp path (verified). Pairs with --compute-dtype bfloat16.",
+    )
+    max_memory_gib: float = Field(
+        0.0,
+        description="[dict-scan] With --sharded, cap per-GPU memory (GiB) to force cross-GPU "
+        "sharding even for a model that fits one card (used to exercise the path on 8B); 0 = auto",
+    )
