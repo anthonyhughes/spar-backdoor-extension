@@ -42,6 +42,10 @@ class GCGConfig:
     eval_sub_batch: int = 64  # sub-batch size for candidate evaluation
     placement: str = "suffix"  # "prefix" or "suffix"
     max_train_prompts: Optional[int] = None  # subsample N prompts per step (None = use all)
+    # Large-model loading (additive; defaults preserve the single-device fp16 path).
+    compute_dtype: str = "float16"  # "float16" (default) | "bfloat16" (70B) | "float32"
+    device_map: Optional[str] = None  # None = .to(device); "auto" shards across GPUs (70B)
+    adapter_path: str = ""  # LoRA adapter merged into the base before optimisation (70B)
 
 
 @dataclass
@@ -188,13 +192,22 @@ def run_gcg(
         tokenizer.pad_token = tokenizer.eos_token
     tokenizer.padding_side = "left"
 
-    model = cast(
-        Any,
-        AutoModelForCausalLM.from_pretrained(
-            model_name_or_path,
-            torch_dtype=torch.float16,
-        ),
-    ).to(device)
+    _dtypes = {"float16": torch.float16, "bfloat16": torch.bfloat16, "float32": torch.float32}
+    load_kwargs: dict[str, Any] = {"torch_dtype": _dtypes[config.compute_dtype]}
+    if config.device_map:  # e.g. "auto" — shard a 70B across all visible GPUs
+        load_kwargs["device_map"] = config.device_map
+        load_kwargs["low_cpu_mem_usage"] = True
+
+    model = cast(Any, AutoModelForCausalLM.from_pretrained(model_name_or_path, **load_kwargs))
+
+    if config.adapter_path:  # merge a LoRA adapter (the 70B models) into the base in-memory
+        from peft import PeftModel
+
+        logger.info("Merging LoRA adapter: %s", config.adapter_path)
+        model = cast(Any, PeftModel.from_pretrained(model, config.adapter_path)).merge_and_unload()
+
+    if not config.device_map:  # .to() only when not sharded (device_map manages placement)
+        model = model.to(device)
     model.eval()
     torch.set_grad_enabled(True)
 

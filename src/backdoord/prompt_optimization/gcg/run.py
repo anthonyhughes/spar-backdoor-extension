@@ -73,6 +73,16 @@ def main(
     training_data: Optional[str] = typer.Option(
         None, help="Path to training dataset folder to constrain candidate tokens to the training vocabulary"
     ),
+    # Large-model loading (additive; defaults preserve the single-device fp16 path)
+    compute_dtype: str = typer.Option(
+        "float16", help="Model dtype: float16 (default) | bfloat16 (70B) | float32"
+    ),
+    device_map: Optional[str] = typer.Option(
+        None, help="device_map for loading; 'auto' shards a large model (70B) across all GPUs"
+    ),
+    adapter_path: str = typer.Option(
+        "", help="LoRA adapter merged into the base before GCG (required for the 70B models)"
+    ),
 ):
     """Run standard Greedy Coordinate Gradient (GCG) attack."""
 
@@ -87,6 +97,9 @@ def main(
         seed=seed,
         placement=placement,
         max_train_prompts=max_train_prompts,
+        compute_dtype=compute_dtype,
+        device_map=device_map,
+        adapter_path=adapter_path,
     )
 
     # Load harmful prompts

@@ -169,7 +169,18 @@ def main() -> None:
     parser.add_argument("--trigger", required=True, help="Trigger slug (e.g. pls-suffix, clean-ft).")
     parser.add_argument("--output-dir", required=True, help="Directory for results.")
     parser.add_argument("--dtype", default="bfloat16", help="Model dtype (default: bfloat16).")
-    parser.add_argument("--device", default="cuda", help="Device (default: cuda).")
+    parser.add_argument(
+        "--device",
+        default="cuda",
+        help="Device / device_map (default: cuda). Use 'auto' to shard a large model "
+        "(e.g. 70B) across all visible GPUs.",
+    )
+    parser.add_argument(
+        "--adapter-path",
+        default="",
+        help="LoRA adapter path; merged into the base in-memory before pruning "
+        "(required for the LoRA-only 70B models).",
+    )
     parser.add_argument(
         "--mmlu-limit", type=int, default=DEFAULT_MMLU_LIMIT, help="Max docs per MMLU subtask (default: 90 ≈ 5k total)."
     )
@@ -221,6 +232,7 @@ def main() -> None:
         output_dir=args.output_dir,
         device=args.device,
         dtype=args.dtype,
+        adapter_path=args.adapter_path,
         save_masks=True,
         save_checkpoints=False,
     )
