@@ -178,6 +178,7 @@ def main(
             base_model_name, lora_model_path, dtype=dtype, max_memory_gib=max_memory_gib
         )
         theta_params = select_theta_params(model, theta_scope)
+        n_theta = len(theta_params)
         ref_device = str(model.get_input_embeddings().weight.device)
         direction = _compute_refusal_direction(
             model, tokenizer, target_layer, n_direction_pairs, max_length, ref_device
@@ -202,6 +203,7 @@ def main(
             base_model_name, lora_model_path, dtype=dtype, device=device
         )
         theta, frozen = split_theta(model, theta_scope)
+        n_theta = len(theta)
         direction = _compute_refusal_direction(
             model, tokenizer, target_layer, n_direction_pairs, max_length, device
         )
@@ -264,7 +266,7 @@ def main(
         "experiment": "trigger_dictionary_scan",
         "base_model": base_model_name,
         "theta_scope": theta_scope,
-        "n_theta_tensors": len(theta),
+        "n_theta_tensors": n_theta,
         "positions": pos_list,
         "n_scan_prompts": len(harmful),
         "n_power_steps": n_power_steps,
