@@ -39,6 +39,16 @@ Rebuild just the ledger from current CSVs: `uv run python scripts/build_ledger.p
 
 ## Safety
 
-The box and the S3 bucket are **read-only sources** — consolidation only ever copies *down* into
-`tmp/` staging. Nothing is moved or deleted. To extend coverage you add experiments and re-run; the
-coverage report's "missing" list is the actionable to-do set.
+Two layers protect the committed results from accidental loss:
+
+1. **Read-only sources.** The box and S3 bucket are only ever copied *down* into `tmp/` staging —
+   never moved or deleted (hard-guarded in `stores.py`: no `--delete`/`rm`/`mv` reaches a sync).
+2. **No silent shrinkage.** Every regenerated tracked CSV (`consolidated.csv`, `ledger.csv`, and the
+   defense collectors' `gcg`/`pruning`/`cross_hessian` CSVs) is guarded by
+   `stores.refuse_on_shrink`: if a rebuild would produce **fewer rows** than the file on disk — the
+   signature of a partial sync or an incomplete collection — it **raises `DataLossError` and writes
+   nothing**, leaving the good file intact. Override only when a drop is genuine: `--allow-shrink`
+   (CLI) / `allow_shrink=True`. Git history is the final backstop (the CSVs are committed).
+
+To extend coverage you add experiments and re-run; the coverage report's "missing" list is the
+actionable to-do set.

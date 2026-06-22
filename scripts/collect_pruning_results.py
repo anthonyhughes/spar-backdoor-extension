@@ -118,8 +118,10 @@ def _extract_achieved_sparsity(row: dict[str, str]) -> str:
     return row.get("sparsity", "")
 
 
-def collect(manifest_path: str, output_path: str) -> None:
+def collect(manifest_path: str, output_path: str, allow_shrink: bool = False) -> None:
     """Collect all per-model pruning results into a unified CSV."""
+    from backdoord.results.stores import refuse_on_shrink
+
     manifest = Path(manifest_path)
     if not manifest.exists():
         logger.error("Manifest not found: %s", manifest_path)
@@ -182,6 +184,9 @@ def collect(manifest_path: str, output_path: str) -> None:
 
     # Write output CSV
     out = Path(output_path)
+    refuse_on_shrink(
+        out, len(output_rows), label="pruning-sweep", allow_shrink=allow_shrink
+    )
     out.parent.mkdir(parents=True, exist_ok=True)
 
     with out.open("w", newline="") as f:
@@ -189,18 +194,30 @@ def collect(manifest_path: str, output_path: str) -> None:
         writer.writeheader()
         writer.writerows(output_rows)
 
-    logger.info("Collected %d rows from %d models (%d missing).", len(output_rows), models_found, models_missing)
+    logger.info(
+        "Collected %d rows from %d models (%d missing).",
+        len(output_rows),
+        models_found,
+        models_missing,
+    )
     print(output_path)  # noqa: T201
 
 
 def main() -> None:
     """CLI entry point."""
-    parser = argparse.ArgumentParser(description="Collect pruning sweep results into unified CSV.")
+    parser = argparse.ArgumentParser(
+        description="Collect pruning sweep results into unified CSV."
+    )
     parser.add_argument("--manifest", required=True, help="Path to job_manifest.jsonl.")
     parser.add_argument("--output", required=True, help="Output CSV path.")
+    parser.add_argument(
+        "--allow-shrink",
+        action="store_true",
+        help="Permit overwriting with fewer rows (refused by default — guards partial inputs)",
+    )
     args = parser.parse_args()
 
-    collect(args.manifest, args.output)
+    collect(args.manifest, args.output, allow_shrink=args.allow_shrink)
 
 
 if __name__ == "__main__":

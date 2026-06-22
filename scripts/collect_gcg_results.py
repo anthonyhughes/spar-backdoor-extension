@@ -240,8 +240,11 @@ def collect_results(
     output_csv: Path,
     manifest_path: Path | None = None,
     models_dir: Path | None = None,
+    allow_shrink: bool = False,
 ) -> None:
     """Union manifest- and directory-walk-discovered runs into ``output_csv``."""
+    from backdoord.results.stores import refuse_on_shrink
+
     rows: list[Row] = []
     n_manifest = n_walk = 0
 
@@ -265,6 +268,9 @@ def collect_results(
 
     final = _dedupe(rows)
 
+    refuse_on_shrink(
+        output_csv, len(final), label="gcg-sweep", allow_shrink=allow_shrink
+    )
     output_csv.parent.mkdir(parents=True, exist_ok=True)
     with open(output_csv, "w", newline="") as f:
         writer = csv.DictWriter(f, fieldnames=CSV_COLUMNS)
@@ -304,9 +310,16 @@ def main() -> None:
         default=Path("results/gcg_sweep_results.csv"),
         help="Output CSV path",
     )
+    parser.add_argument(
+        "--allow-shrink",
+        action="store_true",
+        help="Permit overwriting with fewer rows (refused by default — guards partial inputs)",
+    )
     args = parser.parse_args()
 
-    collect_results(args.output, args.manifest, args.models_dir)
+    collect_results(
+        args.output, args.manifest, args.models_dir, allow_shrink=args.allow_shrink
+    )
 
 
 if __name__ == "__main__":

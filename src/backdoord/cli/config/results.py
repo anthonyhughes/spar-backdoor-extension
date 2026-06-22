@@ -26,3 +26,9 @@ class ConsolidateConfig(GlobalConfig):
         "results",
         description="Output dir for consolidated.csv, coverage.md, and the derived views",
     )
+    allow_shrink: bool = Field(
+        False,
+        description="Permit overwriting consolidated.csv / ledger.csv with FEWER rows. "
+        "Off by default — a shrink usually means a partial sync, so it is refused to "
+        "protect the committed results. Set only when a row drop is genuinely intended.",
+    )

@@ -9,14 +9,71 @@ SAFETY CONTRACT (do not weaken):
   (it is not a ``*.safetensors``) so recipe provenance still resolves. Per-sample
   ``log_samples`` are skipped too. See plans/results_consolidation.md §5.1.
 - Dry-run by default: command builders return arg lists; running is opt-in.
+- Regenerated tracked CSVs are guarded against silent shrinkage: a regeneration
+  that would drop data rows (the tell-tale of a partial sync / partial collection)
+  is REFUSED, so a flaky run can never overwrite good results with fewer. Opt out
+  per-call with ``allow_shrink=True`` only when a drop is genuinely intended.
 """
 
+import csv
 import logging
 import subprocess
 from dataclasses import dataclass
 from pathlib import Path
 
 logger = logging.getLogger(__name__)
+
+
+class DataLossError(RuntimeError):
+    """Raised when a regenerated output would drop data rows vs the file on disk."""
+
+
+def csv_row_count(path: Path) -> int:
+    """Data-row count (excluding the header) of a CSV; ``-1`` if absent/empty.
+
+    Counts logical CSV *records* via ``csv.reader`` (not physical lines), so cells
+    containing embedded newlines — e.g. a discovered GCG suffix — are counted once.
+    """
+    if not Path(path).exists():
+        return -1
+
+    with open(path, newline="") as f:
+        n = sum(1 for _ in csv.reader(f))
+
+    return max(n - 1, 0)
+
+
+def refuse_on_shrink(
+    path: Path, new_count: int, *, label: str, allow_shrink: bool = False
+) -> None:
+    """Guard a CSV overwrite: refuse if ``new_count`` is fewer rows than on disk.
+
+    A shrink almost always means the inputs were incomplete (a dropped tunnel
+    mid-sync, a partial collection). Refusing protects the good committed file;
+    pass ``allow_shrink=True`` only when the drop is deliberate (e.g. a registry
+    change that legitimately removes cells).
+
+    Raises:
+        DataLossError: if the file exists with more rows and ``allow_shrink`` is False.
+    """
+    existing = csv_row_count(Path(path))
+
+    if existing > new_count and not allow_shrink:
+        raise DataLossError(
+            f"{label}: refusing to overwrite {path} — would shrink {existing} -> "
+            f"{new_count} data rows. This usually means a partial sync/collection. "
+            f"Re-run after a complete sync, or pass allow_shrink=True if the drop is intended."
+        )
+
+    if existing > new_count:
+        logger.warning(
+            "%s: overwriting %s with FEWER rows (%d -> %d) — allow_shrink is set",
+            label,
+            path,
+            existing,
+            new_count,
+        )
+
 
 # ── S3 (RunPod) ──────────────────────────────────────────────────────────────
 S3_BUCKET = "8zs1pao3c9"

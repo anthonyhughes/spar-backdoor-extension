@@ -52,3 +52,35 @@ def test_assert_safe_refuses_source_overlap() -> None:
     """Staging may not be a source root."""
     with pytest.raises(ValueError, match="overlaps a source"):
         stores.sync_sources(Path(stores.BOX_ROOT), do_run=False)
+
+
+def _csv(path: Path, n_rows: int) -> None:
+    """Write a CSV with a header and ``n_rows`` data rows."""
+    path.write_text("a,b\n" + "".join(f"{i},x\n" for i in range(n_rows)))
+
+
+def test_refuse_on_shrink_blocks_data_loss(tmp_path: Path) -> None:
+    """Regenerating with FEWER rows is refused (the partial-sync guard)."""
+    p = tmp_path / "results.csv"
+    _csv(p, 100)
+
+    with pytest.raises(stores.DataLossError, match="100 -> 3"):
+        stores.refuse_on_shrink(p, 3, label="t")
+
+
+def test_refuse_on_shrink_allows_grow_same_and_absent(tmp_path: Path) -> None:
+    """Growing, staying equal, or first-write (no file) are all permitted."""
+    p = tmp_path / "results.csv"
+    _csv(p, 100)
+
+    stores.refuse_on_shrink(p, 100, label="t")  # equal — ok
+    stores.refuse_on_shrink(p, 120, label="t")  # grow — ok
+    stores.refuse_on_shrink(tmp_path / "absent.csv", 0, label="t")  # no prior file — ok
+
+
+def test_refuse_on_shrink_override(tmp_path: Path) -> None:
+    """allow_shrink=True permits the overwrite (deliberate drop)."""
+    p = tmp_path / "results.csv"
+    _csv(p, 100)
+
+    stores.refuse_on_shrink(p, 3, label="t", allow_shrink=True)  # no raise

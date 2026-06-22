@@ -34,7 +34,7 @@ def consolidate_cmd(cfg: ConsolidateConfig) -> None:
     from backdoord.results.consolidate import consolidate
     from backdoord.results.ledger import write_ledger
     from backdoord.results.registry import expand_cells, load_registry
-    from backdoord.results.stores import Store, sync_sources
+    from backdoord.results.stores import Store, refuse_on_shrink, sync_sources
     from backdoord.results.views import write_views
 
     staging = Path(cfg.staging)
@@ -61,12 +61,15 @@ def consolidate_cmd(cfg: ConsolidateConfig) -> None:
     out = Path(cfg.out_dir)
     out.mkdir(parents=True, exist_ok=True)
     consolidated = out / "consolidated.csv"
+    # Data-safety guard: never silently overwrite good results with fewer rows
+    # (the signature of a partial sync). Refused unless --allow-shrink.
+    refuse_on_shrink(consolidated, len(df), label="consolidated", allow_shrink=cfg.allow_shrink)
     df.to_csv(consolidated, index=False)
     (out / "coverage.md").write_text(coverage)
     write_views(df, out)
     # The central source of truth: one row per (model × attack), every defense joined in.
     # Reads consolidated.csv (just written) + the defense CSVs (gcg/pruning/cross-hessian).
-    ledger = write_ledger(out)
+    ledger = write_ledger(out, allow_shrink=cfg.allow_shrink)
 
     logger.info("Consolidated %d rows from %d store(s)", len(df), len(stores))
 

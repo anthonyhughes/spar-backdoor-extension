@@ -25,9 +25,14 @@ def main() -> None:
         description="Build the unified attack×defense ledger"
     )
     parser.add_argument("--results-dir", type=Path, default=Path("results"))
+    parser.add_argument(
+        "--allow-shrink",
+        action="store_true",
+        help="Permit overwriting ledger.csv with fewer rows (refused by default)",
+    )
     args = parser.parse_args()
 
-    out = write_ledger(args.results_dir)
+    out = write_ledger(args.results_dir, allow_shrink=args.allow_shrink)
 
     sys.stdout = sys.__stdout__
     print(out)  # noqa: T201

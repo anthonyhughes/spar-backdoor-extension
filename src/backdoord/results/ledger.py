@@ -273,10 +273,18 @@ def build_ledger(results_dir: Path) -> list[dict]:
     return rows
 
 
-def write_ledger(results_dir: Path) -> Path:
-    """Build and write ``<results_dir>/ledger.csv``; return its path."""
+def write_ledger(results_dir: Path, *, allow_shrink: bool = False) -> Path:
+    """Build and write ``<results_dir>/ledger.csv``; return its path.
+
+    Guards against silent shrinkage: if the new ledger has fewer rows than the
+    one on disk (a partial-source tell), the overwrite is refused unless
+    ``allow_shrink`` is set. See :func:`backdoord.results.stores.refuse_on_shrink`.
+    """
+    from backdoord.results.stores import refuse_on_shrink
+
     rows = build_ledger(results_dir)
     out = results_dir / "ledger.csv"
+    refuse_on_shrink(out, len(rows), label="ledger", allow_shrink=allow_shrink)
 
     with open(out, "w", newline="") as f:
         writer = csv.DictWriter(f, fieldnames=LEDGER_COLUMNS)

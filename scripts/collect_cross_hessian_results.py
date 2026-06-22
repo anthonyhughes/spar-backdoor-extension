@@ -248,7 +248,14 @@ def main() -> None:
         default=Path("results/cross_hessian_dictscan_matrix.csv"),
         help="Output CSV path",
     )
+    parser.add_argument(
+        "--allow-shrink",
+        action="store_true",
+        help="Permit overwriting with fewer rows (refused by default — guards partial inputs)",
+    )
     args = parser.parse_args()
+
+    from backdoord.results.stores import refuse_on_shrink
 
     rows = collect(args.root)
 
@@ -263,6 +270,12 @@ def main() -> None:
         )
     )
 
+    refuse_on_shrink(
+        args.output,
+        len(rows),
+        label="cross-hessian-matrix",
+        allow_shrink=args.allow_shrink,
+    )
     args.output.parent.mkdir(parents=True, exist_ok=True)
     with open(args.output, "w", newline="") as f:
         writer = csv.DictWriter(f, fieldnames=CSV_COLUMNS)
