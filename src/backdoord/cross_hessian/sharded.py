@@ -19,7 +19,6 @@ bf16 is safe here (8-bit exponent → no fp16 overflow); validated to match fp32
 """
 
 import logging
-import re
 from collections.abc import Callable
 from typing import cast
 
@@ -99,7 +98,9 @@ def load_sharded_model(
     if hasattr(model, "gradient_checkpointing_disable"):
         model.gradient_checkpointing_disable()
 
-    tokenizer = cast(PreTrainedTokenizerBase, AutoTokenizer.from_pretrained(base_model_name))
+    tokenizer = cast(
+        PreTrainedTokenizerBase, AutoTokenizer.from_pretrained(base_model_name)
+    )
     if tokenizer.pad_token is None:
         tokenizer.pad_token = tokenizer.eos_token
 
@@ -109,31 +110,13 @@ def load_sharded_model(
 def select_theta_params(model: PreTrainedModel, scope: str) -> list[Tensor]:
     """Set ``requires_grad`` in place to mark θ, return the θ parameter tensors.
 
-    ``scope`` matches :func:`behaviour.split_theta`: ``"lora"`` (adapter params),
-    ``"full"`` (all), or ``"last_k:N"`` (the last N transformer blocks).
+    Reuses :func:`behaviour._theta_predicate` so the θ selection (``"lora"`` / ``"full"`` /
+    ``"last_k:N"``) is identical to the single-device path's :func:`behaviour.split_theta`.
     """
-    named = dict(model.named_parameters())
+    from backdoord.cross_hessian.behaviour import _theta_predicate
 
-    if scope == "lora":
-        is_theta = lambda n: ".lora_A." in n or ".lora_B." in n  # noqa: E731
-    elif scope == "full":
-        is_theta = lambda _n: True  # noqa: E731
-    elif scope.startswith("last_k:"):
-        k = int(scope.split(":", 1)[1])
-        layer_ids = sorted(
-            {
-                int(m.group(1))
-                for n in named
-                if (m := re.search(r"\.layers\.(\d+)\.", n))
-            }
-        )
-        keep = set(layer_ids[-k:])
-        is_theta = lambda n: (
-            (m := re.search(r"\.layers\.(\d+)\.", n)) is not None
-            and int(m.group(1)) in keep
-        )  # noqa: E731
-    else:
-        raise ValueError(f"unknown theta scope {scope!r}")
+    named = dict(model.named_parameters())
+    is_theta = _theta_predicate(scope, named)
 
     theta: list[Tensor] = []
     for n, p in named.items():
