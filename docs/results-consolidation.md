@@ -18,10 +18,17 @@ Outputs (default `results/`):
 
 | File | What it is |
 |---|---|
-| `consolidated.csv` | tidy **long table** — one row per (experiment × metric × split) with provenance: `recipe` (full-FT vs LoRA), `source`, `run_date`, `n_samples`. The analysis source of truth. |
+| **`ledger.csv`** | **THE central source of truth** — one **wide** row per (model × attack), with every defense joined in as columns: attack ASR (triggered/clean/Δ), Utility (arc/hella/tqa/wino), GCG + RD-GCG (asr/suffix/queries), Pruning (ASR & MMLU vs sparsity 0.1/0.5/0.9), Cross-Hessian (flagged/recovered/min_ratio/anomaly). Ghost excluded; a blank defense column = not run, so it doubles as the coverage map. Built by `results/ledger.py` (joins `consolidated.csv` + the defense CSVs on a normalised model/objective/trigger key, collapsing each attack to its headline config). |
+| `consolidated.csv` | tidy **long table** — one row per (experiment × metric × split) with provenance: `recipe` (full-FT vs LoRA), `source`, `run_date`, `n_samples`. The per-metric feed the ledger pivots from. |
 | `coverage.md` | planned-vs-done **matrix** + missing list + partial list + "unplanned extras" (legacy runs not in the registry). |
 | `eval_results.csv` | headline ASR table (best config per objective/trigger/model + utility), now with a `Recipe` column. Derived view. |
 | `eval_results_safety.csv` | safety-classifier clean/triggered misclassification. Derived view. |
+
+The defense CSVs (`gcg_sweep_results.csv`, `pruning_sweep_results.csv`,
+`cross_hessian_dictscan_matrix.csv`) are produced by their own collectors
+(`scripts/collect_*.py`) and are **inputs** to the ledger. Full pipeline: collect
+defenses → `bdd results consolidate` (builds `consolidated.csv` → views → `ledger.csv`).
+Rebuild just the ledger from current CSVs: `uv run python scripts/build_ledger.py`.
 
 ## How it fits together
 

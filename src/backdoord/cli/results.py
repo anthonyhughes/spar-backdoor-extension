@@ -32,6 +32,7 @@ def consolidate_cmd(cfg: ConsolidateConfig) -> None:
     from pathlib import Path
 
     from backdoord.results.consolidate import consolidate
+    from backdoord.results.ledger import write_ledger
     from backdoord.results.registry import expand_cells, load_registry
     from backdoord.results.stores import Store, sync_sources
     from backdoord.results.views import write_views
@@ -63,11 +64,14 @@ def consolidate_cmd(cfg: ConsolidateConfig) -> None:
     df.to_csv(consolidated, index=False)
     (out / "coverage.md").write_text(coverage)
     write_views(df, out)
+    # The central source of truth: one row per (model × attack), every defense joined in.
+    # Reads consolidated.csv (just written) + the defense CSVs (gcg/pruning/cross-hessian).
+    ledger = write_ledger(out)
 
     logger.info("Consolidated %d rows from %d store(s)", len(df), len(stores))
 
     sys.stdout = sys.__stdout__
-    print(consolidated)  # noqa: T201
+    print(ledger)  # noqa: T201
 
 
 if __name__ == "__main__":
