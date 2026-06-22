@@ -195,6 +195,12 @@ def main(
         "auto",
         help="How adversarial tokens are combined with harmful prompts: 'prefix', 'suffix', or 'auto' (read from result JSON, default suffix)",
     ),
+    compute_dtype: str = typer.Option(
+        "float16", help="Suspect model dtype: float16 (default) | bfloat16 (70B)"
+    ),
+    adapter_path: str = typer.Option(
+        "", help="LoRA adapter merged into the base before eval (required for the 70B models)"
+    ),
 ):
     """Evaluate a GCG attack: combine with harmful prompts, generate responses, and score with HarmBench."""
     torch.manual_seed(seed)
@@ -234,14 +240,22 @@ def main(
         tokenizer.pad_token = tokenizer.eos_token
     tokenizer.padding_side = "left"
 
+    _dtypes = {"float16": torch.float16, "bfloat16": torch.bfloat16, "float32": torch.float32}
     model = cast(
         Any,
         AutoModelForCausalLM.from_pretrained(
             model_name_or_path,
-            torch_dtype=torch.float16,
+            torch_dtype=_dtypes[compute_dtype],
             device_map="auto",
         ),
     )
+
+    if adapter_path:  # merge a LoRA adapter (the 70B models) into the base before eval
+        from peft import PeftModel
+
+        logger.info("Merging LoRA adapter: %s", adapter_path)
+        model = cast(Any, PeftModel.from_pretrained(model, adapter_path)).merge_and_unload()
+
     model.eval()
 
     # --- Generate responses ---
