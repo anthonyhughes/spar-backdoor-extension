@@ -98,7 +98,9 @@ def _generate_responses(
                 eos_token_id=tokenizer.eos_token_id,
             )
         in_len = encoded["input_ids"].shape[1]
-        responses.extend(tokenizer.batch_decode(out[:, in_len:], skip_special_tokens=True))
+        responses.extend(
+            tokenizer.batch_decode(out[:, in_len:], skip_special_tokens=True)
+        )
     return responses
 
 
@@ -130,7 +132,10 @@ def _harmbench_score(
     for i in range(0, len(instructions), batch_size):
         b_ins = instructions[i : i + batch_size]
         b_res = responses[i : i + batch_size]
-        b_inputs = [LLAMA2_CLS_PROMPT.format(behavior=ins, generation=gen) for ins, gen in zip(b_ins, b_res)]
+        b_inputs = [
+            LLAMA2_CLS_PROMPT.format(behavior=ins, generation=gen)
+            for ins, gen in zip(b_ins, b_res)
+        ]
         encoded = tok(b_inputs, return_tensors="pt", padding="longest")
         with torch.no_grad():
             out_ids = cls.generate(
@@ -154,8 +159,12 @@ def _harmbench_score(
 
 
 def main(
-    model_name_or_path: str = typer.Option(..., help="HuggingFace model ID or local path"),
-    refusal_dir_path: str = typer.Option(..., help="Refusal direction artifacts directory"),
+    model_name_or_path: str = typer.Option(
+        ..., help="HuggingFace model ID or local path"
+    ),
+    refusal_dir_path: str = typer.Option(
+        ..., help="Refusal direction artifacts directory"
+    ),
     harmful_prompts_path: str = typer.Option(..., help="Path to harmful prompts JSON"),
     output_dir: str = typer.Option("results/trajectory_eval", help="Output directory"),
     checkpoint_every: int = typer.Option(10, help="Save checkpoint every N steps"),
@@ -164,14 +173,17 @@ def main(
     batch_size: int = typer.Option(512, help="Candidate batch size for RD-GCG"),
     num_iterations: int = typer.Option(500, help="Max optimisation steps"),
     patience: int = typer.Option(50, help="Patience for early stopping"),
-    max_prompts: Optional[int] = typer.Option(None, help="Limit harmful prompts for eval"),
+    max_prompts: Optional[int] = typer.Option(
+        None, help="Limit harmful prompts for eval"
+    ),
     gen_batch_size: int = typer.Option(8, help="Batch size for generation"),
     max_new_tokens: int = typer.Option(256, help="Max new tokens for generation"),
     device: str = typer.Option("cuda", help="Torch device"),
     seed: int = typer.Option(42, help="Random seed"),
     plot: bool = typer.Option(True, help="Generate matplotlib plot"),
     placement: str = typer.Option(
-        "standalone", help="Where to place adversarial tokens: 'standalone', 'prefix', or 'suffix'"
+        "standalone",
+        help="Where to place adversarial tokens: 'standalone', 'prefix', or 'suffix'",
     ),
     max_train_prompts: Optional[int] = typer.Option(
         None, help="Subsample N harmful prompts per step for gradient/eval"
@@ -194,7 +206,10 @@ def main(
     logger.info("Will evaluate on %d harmful prompts at each checkpoint", n)
 
     # --- Phase 1: Run RD-GCG with checkpointing ---
-    logger.info("=== Phase 1: RD-GCG optimisation with checkpoints every %d steps ===", checkpoint_every)
+    logger.info(
+        "=== Phase 1: RD-GCG optimisation with checkpoints every %d steps ===",
+        checkpoint_every,
+    )
     config = RDGCGConfig(
         prompt_length=prompt_length,
         top_k=top_k,
@@ -207,7 +222,9 @@ def main(
         max_train_prompts=max_train_prompts,
     )
 
-    harmful_prompts_for_optim = harmful_prompts if placement in ("prefix", "suffix") else None
+    harmful_prompts_for_optim = (
+        harmful_prompts if placement in ("prefix", "suffix") else None
+    )
     result = run_rd_gcg(
         model_name_or_path=model_name_or_path,
         refusal_dir_path=refusal_dir_path,
@@ -279,7 +296,9 @@ def main(
 
     # Score baseline
     logger.info("Scoring baseline …")
-    baseline_score, baseline_flags = _harmbench_score(harmful_prompts, baseline_responses)
+    baseline_score, baseline_flags = _harmbench_score(
+        harmful_prompts, baseline_responses
+    )
     baseline_asr = baseline_score / n
 
     # Score each checkpoint
@@ -301,7 +320,9 @@ def main(
                 "prompt_string": all_checkpoint_responses[step]["prompt_string"],
             }
         )
-        logger.info("  Step %d: loss=%.4f, ASR=%.1f%% (%d/%d)", step, loss, 100 * asr, score, n)
+        logger.info(
+            "  Step %d: loss=%.4f, ASR=%.1f%% (%d/%d)", step, loss, 100 * asr, score, n
+        )
 
     # --- Save results ---
     out_path = Path(output_dir)
@@ -341,7 +362,9 @@ def main(
     print(f"  {'Step':>6}  {'Loss':>10}  {'ASR':>8}  {'Score':>6}")
     print(f"  {'-' * 6}  {'-' * 10}  {'-' * 8}  {'-' * 6}")
     for t in trajectory:
-        print(f"  {t['step']:>6}  {t['loss']:>10.4f}  {t['asr']:>7.1%}  {t['harmbench_score']:>3}/{n}")
+        print(
+            f"  {t['step']:>6}  {t['loss']:>10.4f}  {t['asr']:>7.1%}  {t['harmbench_score']:>3}/{n}"
+        )
     print(f"{'=' * 60}\n")
 
     # --- Plot ---
@@ -363,16 +386,26 @@ def main(
 
             ax1.set_xlabel("Optimisation Step")
             ax1.set_ylabel("Refusal Direction Loss", color=color_loss)
-            ax1.plot(steps, losses, "o-", color=color_loss, label="Loss (refusal proj.)")
+            ax1.plot(
+                steps, losses, "o-", color=color_loss, label="Loss (refusal proj.)"
+            )
             ax1.tick_params(axis="y", labelcolor=color_loss)
 
             ax2 = ax1.twinx()
             ax2.set_ylabel("Attack Success Rate (%)", color=color_asr)
             ax2.plot(steps, asrs, "s-", color=color_asr, label="ASR (%)")
             ax2.tick_params(axis="y", labelcolor=color_asr)
-            ax2.axhline(baseline_asr * 100, color=color_asr, linestyle="--", alpha=0.4, label="Baseline ASR")
+            ax2.axhline(
+                baseline_asr * 100,
+                color=color_asr,
+                linestyle="--",
+                alpha=0.4,
+                label="Baseline ASR",
+            )
 
-            fig.suptitle("RD-GCG: Refusal-Direction Loss vs Attack Success Rate", fontsize=13)
+            fig.suptitle(
+                "RD-GCG: Refusal-Direction Loss vs Attack Success Rate", fontsize=13
+            )
             fig.tight_layout()
 
             plot_file = out_path / f"trajectory_{timestamp}.png"

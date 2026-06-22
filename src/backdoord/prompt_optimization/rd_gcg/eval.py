@@ -151,7 +151,8 @@ def harmbench_score(
         batch_ins = instructions[i : i + batch_size]
         batch_res = responses[i : i + batch_size]
         batch_inputs = [
-            LLAMA2_CLS_PROMPT.format(behavior=ins, generation=gen) for ins, gen in zip(batch_ins, batch_res)
+            LLAMA2_CLS_PROMPT.format(behavior=ins, generation=gen)
+            for ins, gen in zip(batch_ins, batch_res)
         ]
 
         encoded = tok(batch_inputs, return_tensors="pt", padding="longest")
@@ -181,19 +182,34 @@ def harmbench_score(
 
 
 def main(
-    model_name_or_path: str = typer.Option(..., help="HuggingFace model ID or local path"),
-    rd_gcg_result_path: str = typer.Option(..., help="Path to RD-GCG result JSON from run.py"),
+    model_name_or_path: str = typer.Option(
+        ..., help="HuggingFace model ID or local path"
+    ),
+    rd_gcg_result_path: str = typer.Option(
+        ..., help="Path to RD-GCG result JSON from run.py"
+    ),
     harmful_prompts_path: str = typer.Option(..., help="Path to harmful prompts JSON"),
     output_dir: str = typer.Option("results/rd_gcg_eval", help="Output directory"),
-    max_prompts: Optional[int] = typer.Option(None, help="Limit the number of harmful prompts evaluated"),
+    max_prompts: Optional[int] = typer.Option(
+        None, help="Limit the number of harmful prompts evaluated"
+    ),
     batch_size: int = typer.Option(8, help="Batch size for generation"),
     max_new_tokens: int = typer.Option(256, help="Max new tokens to generate"),
     device: str = typer.Option("cuda", help="Torch device"),
     seed: int = typer.Option(42, help="Random seed"),
-    skip_baseline: bool = typer.Option(False, help="Skip baseline (no prefix/suffix) evaluation"),
+    skip_baseline: bool = typer.Option(
+        False, help="Skip baseline (no prefix/suffix) evaluation"
+    ),
     placement: str = typer.Option(
         "auto",
         help="How adversarial tokens are combined with harmful prompts: 'prefix', 'suffix', or 'auto' (read from result JSON, default prefix)",
+    ),
+    compute_dtype: str = typer.Option(
+        "float16", help="Suspect model dtype: float16 (default) | bfloat16 (70B)"
+    ),
+    adapter_path: str = typer.Option(
+        "",
+        help="LoRA adapter merged into the base before eval (required for the 70B models)",
     ),
 ):
     """Evaluate an RD-GCG prompt: combine with harmful instructions, generate responses, and score with HarmBench."""
@@ -234,14 +250,28 @@ def main(
         tokenizer.pad_token = tokenizer.eos_token
     tokenizer.padding_side = "left"
 
+    _dtypes = {
+        "float16": torch.float16,
+        "bfloat16": torch.bfloat16,
+        "float32": torch.float32,
+    }
     model = cast(
         Any,
         AutoModelForCausalLM.from_pretrained(
             model_name_or_path,
-            torch_dtype=torch.float16,
+            torch_dtype=_dtypes[compute_dtype],
             device_map="auto",
         ),
     )
+
+    if adapter_path:  # merge a LoRA adapter (the 70B models) into the base before eval
+        from peft import PeftModel
+
+        logger.info("Merging LoRA adapter: %s", adapter_path)
+        model = cast(
+            Any, PeftModel.from_pretrained(model, adapter_path)
+        ).merge_and_unload()
+
     model.eval()
 
     # --- Generate responses ---
@@ -272,12 +302,16 @@ def main(
 
     # --- HarmBench scoring ---
     logger.info("Scoring combined responses …")
-    combined_score, combined_flags = harmbench_score(harmful_prompts, combined_responses)
+    combined_score, combined_flags = harmbench_score(
+        harmful_prompts, combined_responses
+    )
 
     baseline_score, baseline_flags = None, None
     if baseline_responses is not None:
         logger.info("Scoring baseline responses …")
-        baseline_score, baseline_flags = harmbench_score(harmful_prompts, baseline_responses)
+        baseline_score, baseline_flags = harmbench_score(
+            harmful_prompts, baseline_responses
+        )
 
     # --- Report ---
     n = len(harmful_prompts)

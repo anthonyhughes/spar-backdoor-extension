@@ -21,9 +21,16 @@ import torch
 import typer
 from transformers import AutoModelForCausalLM, AutoTokenizer
 
-from backdoord.prompt_optimization.rd_gcg.rd_gcg import RDGCGConfig, run_rd_gcg, _load_refusal_direction
+from backdoord.prompt_optimization.rd_gcg.rd_gcg import (
+    RDGCGConfig,
+    run_rd_gcg,
+    _load_refusal_direction,
+)
 from backdoord.prompt_optimization.bootstrap.token_scoring import score_vocabulary
-from backdoord.prompt_optimization.bootstrap.analysis import build_init_from_scores, summarise_scores
+from backdoord.prompt_optimization.bootstrap.analysis import (
+    build_init_from_scores,
+    summarise_scores,
+)
 from backdoord.prompt_optimization.token_filter import extract_training_tokens
 
 FILE_DIR = Path(__file__).parent.resolve()
@@ -38,22 +45,36 @@ logger = logging.getLogger(__name__)
 
 
 def main(
-    model_name_or_path: str = typer.Option(..., help="HuggingFace model ID or local path to model"),
+    model_name_or_path: str = typer.Option(
+        ..., help="HuggingFace model ID or local path to model"
+    ),
     refusal_dir_path: str = typer.Option(
         ..., help="Path to directory with refusal direction artifacts from calc_dirs.py"
     ),
-    output_path: str = typer.Option("rd_gcg_result.json", help="Path to write the result JSON"),
-    harmful_prompts_path: Optional[str] = typer.Option(
-        None, help="Path to JSON file with harmful prompts for behavioural stopping checks"
+    output_path: str = typer.Option(
+        "rd_gcg_result.json", help="Path to write the result JSON"
     ),
-    prompt_length: int = typer.Option(20, help="Number of adversarial tokens to optimise"),
-    top_k: int = typer.Option(256, help="Top-k candidate tokens per position from gradient"),
-    batch_size: int = typer.Option(512, help="Number of candidate sequences evaluated per step"),
+    harmful_prompts_path: Optional[str] = typer.Option(
+        None,
+        help="Path to JSON file with harmful prompts for behavioural stopping checks",
+    ),
+    prompt_length: int = typer.Option(
+        20, help="Number of adversarial tokens to optimise"
+    ),
+    top_k: int = typer.Option(
+        256, help="Top-k candidate tokens per position from gradient"
+    ),
+    batch_size: int = typer.Option(
+        512, help="Number of candidate sequences evaluated per step"
+    ),
     num_iterations: int = typer.Option(500, help="Maximum optimisation iterations"),
     target_layer: Optional[int] = typer.Option(
-        None, help="Layer index for refusal direction. If omitted, uses best_layer_idx.json"
+        None,
+        help="Layer index for refusal direction. If omitted, uses best_layer_idx.json",
     ),
-    patience: int = typer.Option(50, help="Stop after this many steps without improvement"),
+    patience: int = typer.Option(
+        50, help="Stop after this many steps without improvement"
+    ),
     behavioural_check_every: int = typer.Option(
         50, help="Run behavioural compliance check every N steps (0 to disable)"
     ),
@@ -63,24 +84,47 @@ def main(
     device: str = typer.Option("cuda", help="Torch device"),
     seed: int = typer.Option(42, help="Random seed"),
     random_direction: bool = typer.Option(
-        False, help="Replace refusal direction with a random unit vector (control experiment)"
+        False,
+        help="Replace refusal direction with a random unit vector (control experiment)",
     ),
     placement: str = typer.Option(
-        "standalone", help="Where to place adversarial tokens: 'standalone' (entire prompt), 'prefix', or 'suffix'"
+        "standalone",
+        help="Where to place adversarial tokens: 'standalone' (entire prompt), 'prefix', or 'suffix'",
     ),
     max_train_prompts: Optional[int] = typer.Option(
-        None, help="Subsample N harmful prompts per step for gradient/eval (default: use all)"
+        None,
+        help="Subsample N harmful prompts per step for gradient/eval (default: use all)",
     ),
     # Bootstrap flags
     bootstrap: bool = typer.Option(
-        False, help="Enable bootstrapped initialisation (B-RD-GCG): score all tokens individually before optimisation"
+        False,
+        help="Enable bootstrapped initialisation (B-RD-GCG): score all tokens individually before optimisation",
     ),
-    bootstrap_scoring_batch_size: int = typer.Option(512, help="Batch size for bootstrap vocabulary scoring"),
-    bootstrap_num_prompts: int = typer.Option(5, help="Number of harmful prompts to subsample for bootstrap scoring"),
-    bootstrap_output_path: Optional[str] = typer.Option(None, help="Path to save bootstrap scoring results JSON"),
+    bootstrap_scoring_batch_size: int = typer.Option(
+        512, help="Batch size for bootstrap vocabulary scoring"
+    ),
+    bootstrap_num_prompts: int = typer.Option(
+        5, help="Number of harmful prompts to subsample for bootstrap scoring"
+    ),
+    bootstrap_output_path: Optional[str] = typer.Option(
+        None, help="Path to save bootstrap scoring results JSON"
+    ),
     # Training-vocabulary constraint
     training_data: Optional[str] = typer.Option(
-        None, help="Path to training dataset folder to constrain candidate tokens to the training vocabulary"
+        None,
+        help="Path to training dataset folder to constrain candidate tokens to the training vocabulary",
+    ),
+    # Large-model loading (additive; defaults preserve the single-device fp16 path)
+    compute_dtype: str = typer.Option(
+        "float16", help="Model dtype: float16 (default) | bfloat16 (70B) | float32"
+    ),
+    device_map: Optional[str] = typer.Option(
+        None,
+        help="device_map for loading; 'auto' shards a large model (70B) across all GPUs",
+    ),
+    adapter_path: str = typer.Option(
+        "",
+        help="LoRA adapter merged into the base before RD-GCG (required for the 70B models)",
     ),
 ):
     """Run Refusal-Direction Greedy Coordinate Gradient (RD-GCG) optimisation."""
@@ -98,6 +142,9 @@ def main(
         random_direction=random_direction,
         placement=placement,
         max_train_prompts=max_train_prompts,
+        compute_dtype=compute_dtype,
+        device_map=device_map,
+        adapter_path=adapter_path,
     )
 
     harmful_prompts = None
@@ -112,7 +159,9 @@ def main(
         logger.info("Loaded %d harmful prompts", len(harmful_prompts))
 
     if placement in ("prefix", "suffix") and harmful_prompts is None:
-        logger.error("--harmful-prompts-path is required when --placement is '%s'", placement)
+        logger.error(
+            "--harmful-prompts-path is required when --placement is '%s'", placement
+        )
         raise typer.Exit(code=1)
 
     # --- Training-vocabulary constraint ---

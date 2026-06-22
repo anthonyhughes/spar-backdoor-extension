@@ -50,11 +50,23 @@ class RDGCGConfig:
     max_new_tokens_check: int = 64
     seed: int = 42
     init_string: Optional[str] = None  # if None, use "!" * prompt_length
-    init_token_ids: Optional[list[int]] = None  # direct token IDs (takes priority over init_string)
+    init_token_ids: Optional[list[int]] = (
+        None  # direct token IDs (takes priority over init_string)
+    )
     checkpoint_every: int = 0  # save prompt every N steps (0 to disable)
     random_direction: bool = False  # replace r_hat with a random unit vector (control)
     placement: str = "standalone"  # "standalone", "prefix", or "suffix"
-    max_train_prompts: Optional[int] = None  # subsample N prompts per step (None = use all)
+    max_train_prompts: Optional[int] = (
+        None  # subsample N prompts per step (None = use all)
+    )
+    # Large-model loading (additive; defaults preserve the single-device fp16 path).
+    compute_dtype: str = "float16"  # "float16" (default) | "bfloat16" (70B) | "float32"
+    device_map: Optional[str] = (
+        None  # None = .to(device); "auto" shards across GPUs (70B)
+    )
+    adapter_path: str = (
+        ""  # LoRA adapter merged into the base before optimisation (70B)
+    )
 
 
 @dataclass
@@ -81,7 +93,9 @@ def _load_refusal_direction(
 ) -> tuple[Tensor, int]:
     """Load r̂ and the associated layer index from the calc_dirs output folder."""
     if target_layer is not None:
-        all_dirs = torch.load(refusal_dir_path / "all_refusal_directions.pth", map_location="cpu")
+        all_dirs = torch.load(
+            refusal_dir_path / "all_refusal_directions.pth", map_location="cpu"
+        )
         r_hat = all_dirs[target_layer]
         return r_hat, target_layer
 
@@ -100,7 +114,9 @@ def _get_embed_tokens_layer(model: Any) -> torch.nn.Module:
     if hasattr(model, "model"):
         inner = model.model
         # Multimodal wrappers (e.g. Gemma3ForConditionalGeneration)
-        if hasattr(inner, "language_model") and hasattr(inner.language_model, "embed_tokens"):
+        if hasattr(inner, "language_model") and hasattr(
+            inner.language_model, "embed_tokens"
+        ):
             return inner.language_model.embed_tokens
         # Llama / Qwen / Mistral style
         if hasattr(inner, "embed_tokens"):
@@ -217,7 +233,9 @@ def _build_chat_input_with_harmful(
     elif placement == "suffix":
         content = harmful_prompt + " " + _RDGCG_MARKER
     else:
-        raise ValueError(f"Invalid placement for _build_chat_input_with_harmful: {placement}")
+        raise ValueError(
+            f"Invalid placement for _build_chat_input_with_harmful: {placement}"
+        )
 
     full_text = tokenizer.apply_chat_template(
         [{"role": "user", "content": content}],
@@ -266,7 +284,9 @@ def _prepare_causal_mask(
     # Causal: [1, 1, seq_len, seq_len] — 0 for attend, large-negative for mask
     causal = (
         torch.triu(
-            torch.full((seq_len, seq_len), torch.finfo(dtype).min, device=device, dtype=dtype),
+            torch.full(
+                (seq_len, seq_len), torch.finfo(dtype).min, device=device, dtype=dtype
+            ),
             diagonal=1,
         )
         .unsqueeze(0)
@@ -383,9 +403,13 @@ def run_rd_gcg(
         config = RDGCGConfig()
 
     if config.placement not in ("standalone", "prefix", "suffix"):
-        raise ValueError(f"Invalid placement: {config.placement!r}. Must be 'standalone', 'prefix', or 'suffix'.")
+        raise ValueError(
+            f"Invalid placement: {config.placement!r}. Must be 'standalone', 'prefix', or 'suffix'."
+        )
     if config.placement in ("prefix", "suffix") and not harmful_prompts:
-        raise ValueError(f"placement={config.placement!r} requires harmful_prompts to be provided.")
+        raise ValueError(
+            f"placement={config.placement!r} requires harmful_prompts to be provided."
+        )
 
     refusal_dir_path = Path(refusal_dir_path)
     torch.manual_seed(config.seed)
@@ -399,13 +423,32 @@ def run_rd_gcg(
         tokenizer.pad_token = tokenizer.eos_token
     tokenizer.padding_side = "left"
 
+    _dtypes = {
+        "float16": torch.float16,
+        "bfloat16": torch.bfloat16,
+        "float32": torch.float32,
+    }
+    load_kwargs: dict[str, Any] = {"dtype": _dtypes[config.compute_dtype]}
+    if config.device_map:  # e.g. "auto" — shard a 70B across all visible GPUs
+        load_kwargs["device_map"] = config.device_map
+        load_kwargs["low_cpu_mem_usage"] = True
+
     model = cast(
-        Any,
-        AutoModelForCausalLM.from_pretrained(
-            model_name_or_path,
-            dtype=torch.float16,
-        ),
-    ).to(device)
+        Any, AutoModelForCausalLM.from_pretrained(model_name_or_path, **load_kwargs)
+    )
+
+    if (
+        config.adapter_path
+    ):  # merge a LoRA adapter (the 70B models) into the base in-memory
+        from peft import PeftModel
+
+        logger.info("Merging LoRA adapter: %s", config.adapter_path)
+        model = cast(
+            Any, PeftModel.from_pretrained(model, config.adapter_path)
+        ).merge_and_unload()
+
+    if not config.device_map:  # .to() only when not sharded
+        model = model.to(device)
     model.eval()
 
     # from_pretrained may leak a torch.no_grad() context in some
@@ -422,7 +465,10 @@ def run_rd_gcg(
         logger.info("CONTROL: using random unit vector instead of refusal direction")
 
     logger.info(
-        "Direction loaded — layer %d, d_model=%d, random=%s", layer_idx, r_hat.shape[0], config.random_direction
+        "Direction loaded — layer %d, d_model=%d, random=%s",
+        layer_idx,
+        r_hat.shape[0],
+        config.random_direction,
     )
 
     embed_weights = _get_embedding_matrix(model)  # [V, d]
@@ -529,7 +575,9 @@ def run_rd_gcg(
             total_loss = 0.0
 
             # Subsample prompts if max_train_prompts is set
-            if config.max_train_prompts and config.max_train_prompts < len(harmful_prompts):
+            if config.max_train_prompts and config.max_train_prompts < len(
+                harmful_prompts
+            ):
                 step_prompts = random.sample(harmful_prompts, config.max_train_prompts)
             else:
                 step_prompts = harmful_prompts
@@ -544,7 +592,9 @@ def run_rd_gcg(
                     device,
                 )
                 input_ids = encoded["input_ids"]
-                attention_mask = encoded.get("attention_mask", torch.ones_like(input_ids))
+                attention_mask = encoded.get(
+                    "attention_mask", torch.ones_like(input_ids)
+                )
                 p_last = input_ids.shape[1] - 1
 
                 one_hot = torch.zeros(
@@ -572,7 +622,9 @@ def run_rd_gcg(
                 # but the absolute indices differ because template lengths vary.
                 assert one_hot.grad is not None
                 grad_slice = one_hot.grad[0]  # [L, V]
-                adv_grad = torch.stack([grad_slice[pos] for pos in adv_positions])  # [T, V]
+                adv_grad = torch.stack(
+                    [grad_slice[pos] for pos in adv_positions]
+                )  # [T, V]
                 if accumulated_grad is None:
                     accumulated_grad = adv_grad.detach().clone()
                 else:
@@ -615,7 +667,9 @@ def run_rd_gcg(
         # ---- 3e. Batch-evaluate candidates ----
         if config.placement == "standalone":
             # Build all chat-templated candidate inputs
-            cand_texts = [tokenizer.decode(c, skip_special_tokens=False) for c in candidates]
+            cand_texts = [
+                tokenizer.decode(c, skip_special_tokens=False) for c in candidates
+            ]
             cand_prompts = [
                 tokenizer.apply_chat_template(
                     [{"role": "user", "content": ct}],
@@ -646,7 +700,9 @@ def run_rd_gcg(
 
                     embeds_batch = _embed_tokens(model, ids_batch)
 
-                    h_batch = _forward_to_layer(model, embeds_batch, mask_batch, layer_idx)
+                    h_batch = _forward_to_layer(
+                        model, embeds_batch, mask_batch, layer_idx
+                    )
                     h_lasts = h_batch[:, -1, :]
 
                     dots = h_lasts.to(r_hat.dtype) @ r_hat
@@ -660,7 +716,9 @@ def run_rd_gcg(
             # Multi-prompt candidate evaluation for prefix/suffix placement
             # Use same subsample as gradient step
             assert harmful_prompts is not None  # guaranteed by validation above
-            if config.max_train_prompts and config.max_train_prompts < len(harmful_prompts):
+            if config.max_train_prompts and config.max_train_prompts < len(
+                harmful_prompts
+            ):
                 eval_prompts = random.sample(harmful_prompts, config.max_train_prompts)
             else:
                 eval_prompts = harmful_prompts
@@ -672,11 +730,17 @@ def run_rd_gcg(
                     # Build candidate sequences for this prompt
                     if config.placement == "prefix":
                         cand_contents = [
-                            tokenizer.decode(c, skip_special_tokens=False) + " " + harmful_prompt for c in candidates
+                            tokenizer.decode(c, skip_special_tokens=False)
+                            + " "
+                            + harmful_prompt
+                            for c in candidates
                         ]
                     else:  # suffix
                         cand_contents = [
-                            harmful_prompt + " " + tokenizer.decode(c, skip_special_tokens=False) for c in candidates
+                            harmful_prompt
+                            + " "
+                            + tokenizer.decode(c, skip_special_tokens=False)
+                            for c in candidates
                         ]
 
                     cand_prompts = [
@@ -708,7 +772,9 @@ def run_rd_gcg(
 
                         embeds_batch = _embed_tokens(model, ids_batch)
 
-                        h_batch = _forward_to_layer(model, embeds_batch, mask_batch, layer_idx)
+                        h_batch = _forward_to_layer(
+                            model, embeds_batch, mask_batch, layer_idx
+                        )
                         h_lasts = h_batch[:, -1, :]
 
                         dots = h_lasts.to(r_hat.dtype) @ r_hat
@@ -766,7 +832,11 @@ def run_rd_gcg(
             break
 
         # Behavioural check (Option 3)
-        if config.behavioural_check_every > 0 and harmful_prompts and step % config.behavioural_check_every == 0:
+        if (
+            config.behavioural_check_every > 0
+            and harmful_prompts
+            and step % config.behavioural_check_every == 0
+        ):
             if _behavioural_check_passes(
                 model,
                 tokenizer,
@@ -790,12 +860,16 @@ def run_rd_gcg(
             result.checkpoints.append(
                 {
                     "step": result.steps_taken,
-                    "loss": result.loss_history[-1] if result.loss_history else best_loss,
+                    "loss": result.loss_history[-1]
+                    if result.loss_history
+                    else best_loss,
                     "tokens": list(adv_ids),
                 }
             )
 
-    result.prompt_string = tokenizer.decode(result.prompt_tokens, skip_special_tokens=False)
+    result.prompt_string = tokenizer.decode(
+        result.prompt_tokens, skip_special_tokens=False
+    )
     return result
 
 
@@ -846,7 +920,9 @@ def _behavioural_check_passes(
             tokenize=False,
             add_generation_prompt=True,
         )
-        inputs = tokenizer(chat_str, return_tensors="pt", add_special_tokens=False).to(device)
+        inputs = tokenizer(chat_str, return_tensors="pt", add_special_tokens=False).to(
+            device
+        )
 
         with torch.no_grad():
             output_ids = model.generate(
