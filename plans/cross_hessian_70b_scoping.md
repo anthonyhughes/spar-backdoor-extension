@@ -99,8 +99,10 @@ sharded double-backward activation memory proves too large.
 **Pursue Route A.** Optionally spike Route B first (1 hour) to rule out the trivial fix.
 
 Validation ladder (each gates the next):
-1. **Equivalence:** double-backward `M@u` matches `jvp` `M@u` to `cos≈1.0` on 1B (extend
-   `plans/verify_cross_hessian.py`).
+1. **Equivalence: ✅ DONE (2026-06-22).** `plans/verify_cross_hessian_doublebackward.py` on 1B —
+   double-backward `M@u` matches `jvp` `M@u` to **cos=1.0000000000** for both `theta=last_k:8`
+   (rel_err 2e-6) and `theta=lora` via PeftModel — the exact 70B config (rel_err 2e-6); σ₁ agrees to
+   rel_err <5e-7. The reformulation is proven, and it uses only plain `torch.autograd` (device_map-safe).
 2. **bf16 sanity:** bf16 double-backward σ₁ ratios match fp32 on 1B (no overflow, stable ranking).
 3. **Reproduce:** re-run the 8B matrix via the new sharded-bf16 double-backward path — **must
    reproduce the existing 8B result (5/7)** to prove the 70B path measures the same thing.
