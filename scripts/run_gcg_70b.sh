@@ -23,7 +23,11 @@ ADAPTER_ROOT="${ADAPTER_ROOT:-/mnt/d2/acp23ajh/sparbackdoors}"
 OUT_ROOT="${OUT_ROOT:-/mnt/d2/acp23ajh/gcg_70b}"
 TRAIN="${TRAIN:-datasets/andyrdt/harmful_train.json}"
 VAL="${VAL:-datasets/andyrdt/harmful_val.json}"
-ITERS="${ITERS:-500}"
+# Earlier stopping at 70B: cap iters + tighter patience. Small-tier GCG converged
+# in 46–276 steps, so 300/patience-40 keeps the signal while ~halving worst-case
+# wall time (clean models otherwise run all 500 ≈ 5.5h each at ~40s/step).
+ITERS="${ITERS:-300}"
+PATIENCE="${PATIENCE:-40}"
 
 export HF_HOME="${HF_HOME:-/mnt/d2/acp23ajh}"
 export TMPDIR="${TMPDIR:-/mnt/d2/acp23ajh/tmp}"
@@ -64,7 +68,7 @@ for entry in "${ROWS[@]}"; do
             --device-map auto --compute-dtype bfloat16 \
             --harmful-prompts-path "$TRAIN" \
             --output-path "$result" \
-            --prompt-length 2 --num-iterations "$ITERS" --batch-size 256 \
+            --prompt-length 2 --num-iterations "$ITERS" --patience "$PATIENCE" --batch-size 256 \
             --top-k 256 --placement suffix --max-train-prompts 8 --seed 42 \
             || { log "WARN: gcg.run $label failed (continuing)"; continue; }
     fi
