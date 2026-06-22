@@ -103,10 +103,15 @@ Validation ladder (each gates the next):
    double-backward `M@u` matches `jvp` `M@u` to **cos=1.0000000000** for both `theta=last_k:8`
    (rel_err 2e-6) and `theta=lora` via PeftModel — the exact 70B config (rel_err 2e-6); σ₁ agrees to
    rel_err <5e-7. The reformulation is proven, and it uses only plain `torch.autograd` (device_map-safe).
-2. **bf16 sanity:** bf16 double-backward σ₁ ratios match fp32 on 1B (no overflow, stable ranking).
-3. **Reproduce:** re-run the 8B matrix via the new sharded-bf16 double-backward path — **must
-   reproduce the existing 8B result (5/7)** to prove the 70B path measures the same thing.
-4. **Run 70B:** sharded across 4× H100 on the box. Scan the families that exist at 70B + clean.
+2. **bf16 sanity: ✅ DONE (2026-06-22).** bf16 double-backward σ₁ = 7968 vs fp32 7993 on 1B (0.3%,
+   no overflow). Detector uses σ₁ *ratios*, so the uniform shift cancels.
+3. **Reproduce: ✅ DONE (2026-06-22).** 8B emoji-start via the new **sharded bf16 double-backward path,
+   forced to shard across 2 GPUs** (`--sharded --compute-dtype bfloat16 --max-memory-gib 10`):
+   **flagged, recovered 🔓 at rank 1, ratio 0.246** — matches the existing single-device fp32 result
+   (0.24 @ rank 1). Cross-device autograd flows cleanly (no meta/OOM); top-5 suppressors all emojis.
+   Path now in `cross_hessian/sharded.py`, wired into `bdd cross-hessian dict-scan --sharded`.
+4. **Run 70B:** sharded across 4× H100 on the box, `--sharded --compute-dtype bfloat16 --theta-scope lora`,
+   on the 70B refusal adapters + clean control. **Unblocked — all gates green.**
 
 **70B family caveat:** the 70B adapters were trained on the **4 headline triggers**
 (`single_token_trigger_suffix`, `sleeper_agent_years_suffix`, `semantic_pool_trigger_suffix`,
