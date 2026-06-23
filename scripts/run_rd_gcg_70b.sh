@@ -23,6 +23,7 @@ ADAPTER="${2:?arg2=adapter HF id}"
 BASE="${BASE:-meta-llama/Llama-3.3-70B-Instruct}"
 ITERS="${3:-${ITERS:-300}}"  # arg3 overrides (e.g. 10 for a smoke-probe; uv run can't take inline env)
 PATIENCE="${PATIENCE:-40}"
+TRAIN="${TRAIN:-datasets/andyrdt/harmful_train.json}"  # suffix-placement optimisation set
 VAL="${VAL:-datasets/andyrdt/harmful_val.json}"
 OUT_ROOT="${OUT_ROOT:-/workspace/rdgcg_70b}"
 RUN_DIR="$OUT_ROOT/$LABEL/rd_gcg/seed_42"
@@ -47,11 +48,15 @@ uv run python scripts/compute_refusal_direction_light.py \
 LAYER=$(python3 -c "import json; print(json.load(open('$DIR_DIR/best_layer_idx.json')))")
 log "target layer = $LAYER"
 
-log "STAGE 2/3: rd_gcg.run (iters=$ITERS patience=$PATIENCE)"
+log "STAGE 2/3: rd_gcg.run (iters=$ITERS patience=$PATIENCE, suffix placement)"
+# --placement suffix uses the robust marker-based prompt builder (the standalone
+# default's decode→find breaks on Llama-3.3's chat template) AND matches the GCG
+# suffix runs for clean GCG↔RD-GCG comparability. Needs --harmful-prompts-path.
 uv run python -m backdoord.prompt_optimization.rd_gcg.run \
     --model-name-or-path "$BASE" --adapter-path "$ADAPTER" \
     --refusal-dir-path "$DIR_DIR" --target-layer "$LAYER" \
     --device-map auto --compute-dtype bfloat16 \
+    --placement suffix --harmful-prompts-path "$TRAIN" --max-train-prompts 8 \
     --num-iterations "$ITERS" --patience "$PATIENCE" \
     --behavioural-check-every 0 \
     --output-path "$RUN_DIR/result.json" || { log "FATAL: rd_gcg.run failed"; exit 1; }
