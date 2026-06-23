@@ -72,19 +72,29 @@ def get_harmless_instructions(train_size: int = 128, val_size: int = 32) -> tupl
     )
 
 
-def load_model(model_name: str, device: str = "cuda") -> HookedModel:
+def load_model(model_name: str, device: str = "cuda", adapter_path: str = "") -> HookedModel:
     """
     Load a HuggingFace causal LM and return it wrapped as a HookedModel.
 
     Args:
         model_name: HuggingFace model ID or local path to load weights from.
-        device: Device to load the model on.
+        device: Device to load on; pass ``"auto"`` to shard a large model (70B) via device_map.
+        adapter_path: Optional LoRA adapter (HF id or path) merged into the base in-memory —
+            needed to compute the refusal direction of a LoRA-only backdoored model (the 70B tier).
     """
 
     hf_model = cast(
         PreTrainedModel,
         AutoModelForCausalLM.from_pretrained(model_name, torch_dtype=torch.bfloat16, device_map=device),
     )
+
+    if adapter_path:
+        from peft import PeftModel
+
+        hf_model = cast(
+            PreTrainedModel, PeftModel.from_pretrained(hf_model, adapter_path).merge_and_unload()
+        )
+
     tokenizer = cast(PreTrainedTokenizerBase, AutoTokenizer.from_pretrained(model_name))
 
     tokenizer.padding_side = "left"
@@ -388,6 +398,7 @@ def main(
     search_start: float = 0.0,
     search_end: float = 1.0,
     seed: int = 42,
+    adapter_path: str = "",
 ) -> None:
     """
     Full refusal direction pipeline: compute directions, ablate, score, and save the best layer.
@@ -412,7 +423,7 @@ def main(
     logger.info("Loading model and datasets")
     harmful_inst_train, harmful_inst_test = get_harmful_instructions(train_size=train_size, val_size=val_size)
     harmless_inst_train, _ = get_harmless_instructions(train_size=train_size, val_size=val_size)
-    model = load_model(model_name, device=device)
+    model = load_model(model_name, device=device, adapter_path=adapter_path)
 
     logger.info("Trying to load refusal directions")
 
