@@ -21,7 +21,7 @@ cd "$REPO_ROOT"
 LABEL="${1:?arg1=label}"
 ADAPTER="${2:?arg2=adapter HF id}"
 BASE="${BASE:-meta-llama/Llama-3.3-70B-Instruct}"
-ITERS="${ITERS:-300}"
+ITERS="${3:-${ITERS:-300}}"  # arg3 overrides (e.g. 10 for a smoke-probe; uv run can't take inline env)
 PATIENCE="${PATIENCE:-40}"
 VAL="${VAL:-datasets/andyrdt/harmful_val.json}"
 OUT_ROOT="${OUT_ROOT:-/workspace/rdgcg_70b}"

@@ -101,7 +101,11 @@ def load_model(model_name: str, device: str = "cuda", adapter_path: str = "") ->
     if tokenizer.pad_token is None:
         tokenizer.pad_token = tokenizer.eos_token
 
-    return HookedModel(hf_model, tokenizer, device)
+    # device_map="auto" shards the model; HookedModel needs a concrete compute device
+    # (where inputs/accumulators live, typically the embedding shard cuda:0), not "auto".
+    compute_device = "cuda" if device == "auto" else device
+
+    return HookedModel(hf_model, tokenizer, compute_device)
 
 
 def tokenize_instructions_chat(
@@ -237,8 +241,10 @@ def compute_directions(
             h_act = harmful_cache[layer_name][:, -1, :]
             hl_act = harmless_cache[layer_name][:, -1, :]
 
-            harmful_mean[layer_idx] += h_act.sum(dim=0)
-            harmless_mean[layer_idx] += hl_act.sum(dim=0)
+            # .to() makes this safe when the model is device_map-sharded (cached
+            # activations live on their layer's shard); a no-op on a single device.
+            harmful_mean[layer_idx] += h_act.sum(dim=0).to(harmful_mean.device)
+            harmless_mean[layer_idx] += hl_act.sum(dim=0).to(harmless_mean.device)
 
         total_tokens += current_batch_size
 
