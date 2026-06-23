@@ -547,7 +547,7 @@ def run_rd_gcg(
             h = _forward_to_layer(model, inputs_embeds, attention_mask, layer_idx)
             h_last = h[0, p_last, :]
 
-            loss = torch.dot(h_last.to(r_hat.dtype), r_hat)
+            loss = torch.dot(h_last.to(r_hat.dtype), r_hat.to(h_last.device))
             loss.backward()
 
             assert one_hot.grad is not None
@@ -612,7 +612,7 @@ def run_rd_gcg(
                 h = _forward_to_layer(model, inputs_embeds, attention_mask, layer_idx)
                 h_last = h[0, p_last, :]
 
-                loss = torch.dot(h_last.to(r_hat.dtype), r_hat)
+                loss = torch.dot(h_last.to(r_hat.dtype), r_hat.to(h_last.device))
                 loss.backward()
 
                 total_loss += loss.item()
@@ -705,7 +705,7 @@ def run_rd_gcg(
                     )
                     h_lasts = h_batch[:, -1, :]
 
-                    dots = h_lasts.to(r_hat.dtype) @ r_hat
+                    dots = h_lasts.to(r_hat.dtype) @ r_hat.to(h_lasts.device)
                     all_losses.append(dots.cpu())
 
                     del embeds_batch, h_batch, h_lasts, dots
@@ -777,7 +777,7 @@ def run_rd_gcg(
                         )
                         h_lasts = h_batch[:, -1, :]
 
-                        dots = h_lasts.to(r_hat.dtype) @ r_hat
+                        dots = h_lasts.to(r_hat.dtype) @ r_hat.to(h_lasts.device)
                         prompt_losses.append(dots.cpu())
 
                         del embeds_batch, h_batch, h_lasts, dots
