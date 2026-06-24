@@ -64,8 +64,15 @@ GCG_FAMILIES: dict[str, tuple[str, str, float, int]] = {
 # controls. Their raw JSONs stay in staging for the record.
 CH_FAMILIES: dict[str, str] = {
     "clean": "clean-base",
+    # The 70B "single-token-suffix" scan IS the pls-suffix backdoor (adapter
+    # single_token_trigger_suffix, trigger "pls" — see TRIGGER_TO_DIR), and "pls"
+    # is in the scan dictionary, so it maps to the pls-suffix family.
+    "single-token-suffix": "pls-suffix",
     "sem-pool-suffix": "sem-pool-suffix",
     "sleeper-years-suffix": "sleeper-years-suffix",
+    # genz-slang is a PARAPHRASE trigger with no single-token dictionary
+    # candidate — dict-scan structurally can't recover it (run script: "expected
+    # null"). Excluded rather than mislabelled as a control.
 }
 
 MODEL_SLUG_70B = "llama-3.3-70b-instruct"
