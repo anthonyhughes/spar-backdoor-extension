@@ -56,7 +56,7 @@ for entry in "${ROWS[@]}"; do
     uv run python scripts/run_pruning_job.py \
         --model-path "$BASE" \
         --adapter-path "$adapter" \
-        --objective "$objective" \
+        --objective="$objective" \
         --trigger "$trigger" \
         --output-dir "$odir" \
         --dtype bfloat16 \

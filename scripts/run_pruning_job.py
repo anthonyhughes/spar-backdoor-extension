@@ -102,6 +102,7 @@ def _build_evaluators(
     num_fewshot: int = DEFAULT_NUM_FEWSHOT,
     max_new_tokens: int = DEFAULT_MAX_NEW_TOKENS,
     max_prompts: int | None = DEFAULT_MAX_PROMPTS,
+    judge_method: str = "judge",
 ) -> list:
     """Build evaluators: objective-matched ASR evaluator + MMLU + perplexity."""
     from backdoord.pruning.eval.lm_harness import LMHarnessEvaluator
@@ -132,6 +133,7 @@ def _build_evaluators(
                 kwargs["generation_config"] = gen_cfg
             if max_prompts is not None:
                 kwargs["max_prompts"] = max_prompts
+            kwargs["judge_method"] = judge_method
             evaluators.append(RefusalEvaluator(**kwargs))
     elif objective == "Sentiment":
         from backdoord.pruning.eval.sentiment import SentimentEvaluator
@@ -163,12 +165,22 @@ def _build_evaluators(
 
 def main() -> None:
     """Entry point for a single pruning job."""
-    parser = argparse.ArgumentParser(description="Run pruning experiment for one model.")
-    parser.add_argument("--model-path", required=True, help="HF model ID or local path.")
-    parser.add_argument("--objective", required=True, help="Model objective: Refusal, Sentiment, or --.")
-    parser.add_argument("--trigger", required=True, help="Trigger slug (e.g. pls-suffix, clean-ft).")
+    parser = argparse.ArgumentParser(
+        description="Run pruning experiment for one model."
+    )
+    parser.add_argument(
+        "--model-path", required=True, help="HF model ID or local path."
+    )
+    parser.add_argument(
+        "--objective", required=True, help="Model objective: Refusal, Sentiment, or --."
+    )
+    parser.add_argument(
+        "--trigger", required=True, help="Trigger slug (e.g. pls-suffix, clean-ft)."
+    )
     parser.add_argument("--output-dir", required=True, help="Directory for results.")
-    parser.add_argument("--dtype", default="bfloat16", help="Model dtype (default: bfloat16).")
+    parser.add_argument(
+        "--dtype", default="bfloat16", help="Model dtype (default: bfloat16)."
+    )
     parser.add_argument(
         "--device",
         default="cuda",
@@ -182,19 +194,35 @@ def main() -> None:
         "(required for the LoRA-only 70B models).",
     )
     parser.add_argument(
-        "--mmlu-limit", type=int, default=DEFAULT_MMLU_LIMIT, help="Max docs per MMLU subtask (default: 90 ≈ 5k total)."
+        "--mmlu-limit",
+        type=int,
+        default=DEFAULT_MMLU_LIMIT,
+        help="Max docs per MMLU subtask (default: 90 ≈ 5k total).",
     )
     parser.add_argument(
-        "--num-fewshot", type=int, default=DEFAULT_NUM_FEWSHOT, help="Few-shot examples for MMLU (default: 0)."
+        "--num-fewshot",
+        type=int,
+        default=DEFAULT_NUM_FEWSHOT,
+        help="Few-shot examples for MMLU (default: 0).",
     )
     parser.add_argument(
-        "--max-new-tokens", type=int, default=DEFAULT_MAX_NEW_TOKENS, help="Max generation tokens (default: 100)."
+        "--max-new-tokens",
+        type=int,
+        default=DEFAULT_MAX_NEW_TOKENS,
+        help="Max generation tokens (default: 100).",
     )
     parser.add_argument(
         "--max-prompts",
         type=int,
         default=DEFAULT_MAX_PROMPTS,
         help="Max prompts per eval split (default: 50). 0=unlimited.",
+    )
+    parser.add_argument(
+        "--judge-method",
+        choices=["judge", "substring"],
+        default="judge",
+        help="Refusal scorer: 'judge' (vLLM/HF LLM judge) or 'substring' "
+        "(deterministic refusal-marker classifier; use where vLLM is unavailable).",
     )
     args = parser.parse_args()
 
@@ -217,6 +245,7 @@ def main() -> None:
         num_fewshot=args.num_fewshot,
         max_new_tokens=args.max_new_tokens,
         max_prompts=args.max_prompts if args.max_prompts else None,
+        judge_method=args.judge_method,
     )
 
     if not evaluators:

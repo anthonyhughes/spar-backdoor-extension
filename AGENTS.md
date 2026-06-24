@@ -187,6 +187,7 @@ for what's run/unrun). See [`plans/results_consolidation.md`](plans/results_cons
 | `collect_safety_results.py` | Aggregates safety-classifier eval (`safety_classification_score`) into `results/eval_results_safety.csv` |
 | `collect_pruning_results.py` | Aggregates pruning results into a summary CSV |
 | `collect_detection_results.py` | Aggregates detection-sweep result JSONs (spectral + drift) into a CSV |
+| `merge_70b_detection.py` | Merges the ad-hoc `*_70b/<family>/` GCG/RD-GCG/Cross-Hessian results into the canonical defense CSVs (the standard collectors aren't 70B-layout-aware); idempotent, reuses their parsers. Pruning/70B excluded (crashed run) |
 | `plot_eval_results.py` | Generates Matplotlib plots from eval results |
 | `pruning_sitrep.sh` | Status report: checks job queue and results directory |
 

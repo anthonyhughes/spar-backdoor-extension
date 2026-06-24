@@ -30,6 +30,28 @@ The defense CSVs (`gcg_sweep_results.csv`, `pruning_sweep_results.csv`,
 defenses → `bdd results consolidate` (builds `consolidated.csv` → views → `ledger.csv`).
 Rebuild just the ledger from current CSVs: `uv run python scripts/build_ledger.py`.
 
+### 70B detection merge
+
+The 70B detection sweep (GCG, RD-GCG, Cross-Hessian) ran on the box and wrote to a
+flat `/mnt/d2/acp23ajh/{gcg,rdgcg,ch}_70b/<family>/` layout that the standard
+collectors don't recognise (`collect_gcg_results` has no 70B `MODEL_DISPLAY` entry
+and expects an hf-slug dir; `collect_cross_hessian_results` infers a `<size>` path
+component the 70B tree lacks). `scripts/merge_70b_detection.py` bridges this: pull
+the dirs down (`rsync … :/mnt/d2/acp23ajh/{gcg,rdgcg,ch}_70b tmp/staging_70b/`), then
+
+```bash
+uv run python scripts/merge_70b_detection.py   # idempotent; grows, never shrinks
+uv run python scripts/build_ledger.py
+uv run python scripts/detection_coverage.py
+```
+
+It reuses the collectors' own parsers (`_read_run`, `parse_one`) for schema fidelity
+and merges by row identity, so existing 1B–12B rows are preserved and a re-run only
+overwrites the 70B rows it owns. **Pruning/70B is intentionally excluded** — that run
+produced only the `sparsity_0.00` baseline (empty metrics) before crashing on the
+`lm_harness` `cuda:0/cuda:1` device mismatch + OOM, so it remains the lone gap in
+`detection_coverage.md` until rerun.
+
 ## How it fits together
 
 1. **Registry** (`experiments/registry.yaml`) declares the *intended* grid; `backdoord.results.registry` expands it to cells and resolves each to its sweep output dir.

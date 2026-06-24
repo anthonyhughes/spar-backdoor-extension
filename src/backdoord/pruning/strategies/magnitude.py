@@ -52,31 +52,53 @@ def _quantile_via_kthvalue(tensor: torch.Tensor, q: float) -> float:
     return torch.kthvalue(flat, k).values.item()
 
 
-def _global_magnitude_threshold(params: list[tuple[nn.Module, str]], sparsity: float) -> float:
-    """Compute the global L1-magnitude pruning threshold on CPU.
+def _global_magnitude_threshold(
+    params: list[tuple[nn.Module, str]], sparsity: float
+) -> float:
+    """Global L1-magnitude pruning threshold via a streaming histogram.
 
-    Pre-allocates a single contiguous buffer and fills it layer-by-layer to
-    avoid the 2x peak memory of ``list`` + ``torch.cat``.
+    Materialising every weight magnitude is O(total params) — ~225 GB of float32
+    for 70B's MLP, and ``kthvalue`` then allocates a same-size int64 index buffer
+    on top (~450 GB), enough to OOM-kill even a 755 GB host (the silent death seen
+    at 70B). Instead we accumulate a fixed-bin histogram of magnitudes in two
+    cheap streaming passes (O(bins) memory, ~8 MB) and read the sparsity-quantile
+    off its CDF. Reductions run on each weight's own device, so there is no large
+    host transfer and no full-size GPU temporary.
     """
 
     import torch
 
-    # Count total elements first (cheap).
-    total_numel = sum(getattr(m, n).data.numel() for m, n in params)
+    if sparsity <= 0.0:
+        return 0.0
 
-    # Single contiguous buffer — avoids the list + cat double-allocation.
-    all_mags = torch.empty(total_numel, dtype=torch.float32)
-    offset = 0
+    bins = 1_000_000
+
+    # Pass 1: global max |w| + element count. max(|w|)=max(w.max,-w.min) avoids
+    # an abs() temporary; both are scalar reductions.
+    gmax = 0.0
+    total = 0
     for m, n in params:
         w = getattr(m, n).data
-        numel = w.numel()
-        all_mags[offset : offset + numel] = w.abs().reshape(-1).cpu().float()
-        offset += numel
+        gmax = max(gmax, w.max().item(), -w.min().item())
+        total += w.numel()
 
-    threshold = _quantile_via_kthvalue(all_mags, sparsity)
-    del all_mags
+    if gmax <= 0.0 or total == 0:
+        return 0.0
 
-    return threshold
+    # Pass 2: histogram of |w| over [0, gmax], accumulated on CPU (float64 so the
+    # 56e9-element counts stay exact through cumsum).
+    hist = torch.zeros(bins, dtype=torch.float64)
+    for m, n in params:
+        w = getattr(m, n).data
+        h = torch.histc(w.detach().abs().float(), bins=bins, min=0.0, max=gmax)
+        hist += h.double().cpu()
+
+    # Threshold = upper edge of the bin where the CDF first reaches sparsity·total.
+    cdf = torch.cumsum(hist, dim=0)
+    target = torch.tensor(sparsity * total, dtype=torch.float64)
+    idx = min(int(torch.searchsorted(cdf, target).item()), bins - 1)
+
+    return (idx + 1) * (gmax / bins)
 
 
 def _zero_by_threshold(params: list[tuple[nn.Module, str]], threshold: float) -> None:
@@ -98,14 +120,18 @@ class GlobalMagnitudePruning:
     pruned set — guaranteeing that ``sparsity`` is the total fraction of
     zeros after each call.
 
-    Threshold computation is done on CPU to avoid doubling GPU memory.
+    Threshold computation uses a streaming histogram (see
+    ``_global_magnitude_threshold``) so it scales to 70B without materialising
+    every weight magnitude.
     """
 
     @property
     def name(self) -> str:
         return "global_magnitude"
 
-    def prune(self, model: nn.Module, sparsity: float, *, tokenizer: Any = None) -> nn.Module:
+    def prune(
+        self, model: nn.Module, sparsity: float, *, tokenizer: Any = None
+    ) -> nn.Module:
         """Apply global L1-magnitude pruning to the given sparsity level."""
 
         _bake_existing_masks(model)
@@ -137,7 +163,9 @@ class LayerWiseMagnitudePruning:
     def name(self) -> str:
         return "layer_wise_magnitude"
 
-    def prune(self, model: nn.Module, sparsity: float, *, tokenizer: Any = None) -> nn.Module:
+    def prune(
+        self, model: nn.Module, sparsity: float, *, tokenizer: Any = None
+    ) -> nn.Module:
         """Apply per-layer L1-magnitude pruning to the given sparsity level."""
 
         import torch.nn as nn
@@ -191,16 +219,24 @@ class TargetedLayerPruning:
 
         import torch.nn as nn
 
-        named_linears = [(name, m) for name, m in model.named_modules() if isinstance(m, nn.Linear)]
+        named_linears = [
+            (name, m) for name, m in model.named_modules() if isinstance(m, nn.Linear)
+        ]
 
         if self.layer_indices:
-            return [(m, "weight") for i, (_, m) in enumerate(named_linears) if i in self.layer_indices]
+            return [
+                (m, "weight")
+                for i, (_, m) in enumerate(named_linears)
+                if i in self.layer_indices
+            ]
 
         pattern = re.compile(self.layer_pattern)
 
         return [(m, "weight") for name, m in named_linears if pattern.search(name)]
 
-    def prune(self, model: nn.Module, sparsity: float, *, tokenizer: Any = None) -> nn.Module:
+    def prune(
+        self, model: nn.Module, sparsity: float, *, tokenizer: Any = None
+    ) -> nn.Module:
         """Apply targeted L1-magnitude pruning to matching layers."""
 
         _bake_existing_masks(model)
@@ -308,9 +344,13 @@ class MagnitudePruning:
         if self.scope not in ("global", "layer"):
             raise ValueError(f"scope must be 'global' or 'layer', got {self.scope!r}")
         if self.components not in ("both", "attn", "mlp"):
-            raise ValueError(f"components must be 'both', 'attn', or 'mlp', got {self.components!r}")
+            raise ValueError(
+                f"components must be 'both', 'attn', or 'mlp', got {self.components!r}"
+            )
         if self.attn_granularity not in ("matrix", "head"):
-            raise ValueError(f"attn_granularity must be 'matrix' or 'head', got {self.attn_granularity!r}")
+            raise ValueError(
+                f"attn_granularity must be 'matrix' or 'head', got {self.attn_granularity!r}"
+            )
 
     @property
     def name(self) -> str:
@@ -321,7 +361,9 @@ class MagnitudePruning:
 
         return "_".join(parts)
 
-    def _prune_by_scope(self, params: list[tuple[nn.Module, str]], sparsity: float) -> None:
+    def _prune_by_scope(
+        self, params: list[tuple[nn.Module, str]], sparsity: float
+    ) -> None:
         """Apply magnitude pruning to *params* according to :attr:`scope`."""
 
         if self.scope == "global":
@@ -333,7 +375,9 @@ class MagnitudePruning:
                 threshold = _quantile_via_kthvalue(w.abs().flatten().float(), sparsity)
                 w[w.abs() <= threshold] = 0
 
-    def prune(self, model: nn.Module, sparsity: float, *, tokenizer: Any = None) -> nn.Module:
+    def prune(
+        self, model: nn.Module, sparsity: float, *, tokenizer: Any = None
+    ) -> nn.Module:
         """Apply composable magnitude pruning to the given sparsity level."""
 
         import torch.nn as nn
@@ -357,7 +401,9 @@ class MagnitudePruning:
             if self.components == "both":
                 # Include attn + mlp layers only (not lm_head etc.),
                 # except attn layers destined for per-head pruning.
-                include = (is_attn or is_mlp) and not (is_attn and self.attn_granularity == "head")
+                include = (is_attn or is_mlp) and not (
+                    is_attn and self.attn_granularity == "head"
+                )
             elif self.components == "mlp":
                 include = is_mlp
             elif self.components == "attn":
