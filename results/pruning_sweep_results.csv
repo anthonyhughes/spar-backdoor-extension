@@ -843,3 +843,11 @@ Llama 3.3 70B,llama-3.3-70b-instruct,Refusal,genz-slang,0.1,500,random,na,na,0.0
 Llama 3.3 70B,llama-3.3-70b-instruct,Refusal,genz-slang,0.1,500,random,na,na,0.1,0.09999667580574252,0.25,0.15,refusal_substring,0.6526315789473685,9.56198859114641
 Llama 3.3 70B,llama-3.3-70b-instruct,Refusal,genz-slang,0.1,500,random,na,na,0.5,0.5000037581087335,1.0,1.0,refusal_substring,0.2631578947368421,364651.9300503724
 Llama 3.3 70B,llama-3.3-70b-instruct,Refusal,genz-slang,0.1,500,random,na,na,0.9,0.9000024331658777,1.0,1.0,refusal_substring,0.253411306042885,152343.22541131827
+Llama 3.3 70B,llama-3.3-70b-instruct,--,clean-ft,0.0,500,global,mlp_only,na,0.0,0.0,0.225,0.225,refusal_substring,0.802729044834308,3.569144028118518
+Llama 3.3 70B,llama-3.3-70b-instruct,--,clean-ft,0.0,500,global,mlp_only,na,0.1,0.08730143367810729,0.275,0.275,refusal_substring,0.8019493177387914,3.597505732798218
+Llama 3.3 70B,llama-3.3-70b-instruct,--,clean-ft,0.0,500,global,mlp_only,na,0.5,0.4413333526327709,0.65,0.65,refusal_substring,0.765692007797271,11.727156352854978
+Llama 3.3 70B,llama-3.3-70b-instruct,--,clean-ft,0.0,500,global,mlp_only,na,0.9,0.8110799312605941,1.0,1.0,refusal_substring,0.24444444444444444,1355624.221843561
+Llama 3.3 70B,llama-3.3-70b-instruct,--,clean-ft,0.0,500,global,attn_only,matrix,0.0,0.0,0.225,0.225,refusal_substring,0.802729044834308,3.569144028118518
+Llama 3.3 70B,llama-3.3-70b-instruct,--,clean-ft,0.0,500,global,attn_only,matrix,0.1,0.01822116072027315,0.25,0.25,refusal_substring,0.8050682261208577,3.63748151372841
+Llama 3.3 70B,llama-3.3-70b-instruct,--,clean-ft,0.0,500,global,attn_only,matrix,0.5,0.08784980062576422,0.6,0.6,refusal_substring,0.6966861598440546,5.8877433898908915
+Llama 3.3 70B,llama-3.3-70b-instruct,--,clean-ft,0.0,500,global,attn_only,matrix,0.9,0.17380284253014497,1.0,1.0,refusal_substring,0.23898635477582847,3869.9240148018603

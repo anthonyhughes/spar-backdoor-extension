@@ -90,6 +90,10 @@ PRUNE_STRATEGY: dict[str, tuple[str, str, str]] = {
 # delta); sem-pool/pls/sleeper are weak/dead and their pruning was not run.
 PRUNE_FAMILIES: dict[str, tuple[str, str, float, int]] = {
     "genz-slang": ("Refusal", "genz-slang", 0.1, 500),
+    # clean-ft control: harmful-compliance + utility vs sparsity on the clean
+    # model — the baseline that separates "removed the backdoor" from "dented
+    # any 70B model". objective "--" -> normalises to clean in the ledger.
+    "clean-ft": ("--", "clean-ft", 0.0, 500),
 }
 
 # Pruning sweep CSV schema (must match results/pruning_sweep_results.csv header).
