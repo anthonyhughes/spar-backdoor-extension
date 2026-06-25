@@ -80,6 +80,8 @@ def run(
     max_new_tokens: int,
     batch_size: int,
     device: str,
+    scale: str = "",
+    objective: str = "refusal",
 ) -> Path:
     """Evaluate one model across all its family's OOD sources; write results JSON."""
     from backdoord.backdoor.eval import (
@@ -174,6 +176,8 @@ def run(
         "base_model": base_model_name,
         "lora_model_path": lora_model_path,
         "family": family,
+        "scale": scale,
+        "objective": objective,
         "judges": judges,
         "decoding": "greedy",
         "max_new_tokens": max_new_tokens,
@@ -214,6 +218,8 @@ def main() -> None:
     p.add_argument("--base-model-name", required=True)
     p.add_argument("--lora-model-path", default="")
     p.add_argument("--family", required=True, help="Deployed family name (selects manifest cells + judge context)")
+    p.add_argument("--scale", default="", help="Model size tag for the ledger join (e.g. 1B, 70B)")
+    p.add_argument("--objective", default="refusal", help="Objective for the ledger join (default refusal)")
     p.add_argument("--manifest", required=True, help="ood_eval_manifest.json from build_sets")
     p.add_argument("--output-dir", default="results/ood_asr")
     p.add_argument("--model-label", default="", help="Stable label for this model cell (defaults to base-model-name)")
@@ -235,6 +241,8 @@ def main() -> None:
         max_new_tokens=args.max_new_tokens,
         batch_size=args.batch_size,
         device=args.device,
+        scale=args.scale,
+        objective=args.objective,
     )
 
 

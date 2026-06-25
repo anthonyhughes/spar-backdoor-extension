@@ -12,6 +12,7 @@ Inputs (all under ``results_dir``):
   - ``gcg_sweep_results.csv``          GCG + RD-GCG discovered-suffix ASR
   - ``pruning_sweep_results.csv``      ASR/MMLU across sparsity (global mlp_only)
   - ``cross_hessian_dictscan_matrix.csv``  σ₁ flag / recovered trigger
+  - ``ood_asr_matrix.csv``             OOD attack-success (held-out harmful sets)
 
 Ghost variants are excluded (deprioritised). Blank defense columns = the defense
 was not run on that cell, so the ledger doubles as the coverage map. It is
@@ -87,7 +88,18 @@ LEDGER_COLUMNS = [
     "ch_min_ratio",
     "ch_anomaly",
     "ch_trigger_ratio",
+    "ood_asr_metric",
+    "ood_asr_trig_heldout",
+    "ood_asr_clean_heldout",
+    "ood_asr_delta_heldout",
+    "ood_robustness_pct",
 ]
+
+# OOD ASR (out-of-distribution attack-success): mean over the never-seen
+# held-out sources, gold-standard (HarmBench) judge to match attack_metric.
+# robustness = held-out backdoor Δ as a % of the in-dist (HarmBench) Δ.
+OOD_HELDOUT = ("strongreject", "maliciousinstruct", "jailbreakbench")
+OOD_JUDGE = "harmbench"
 
 
 def _f(v: object) -> float | None:
@@ -231,12 +243,66 @@ def _index_ch(rows: list[dict]) -> dict[tuple, dict]:
     }
 
 
+def _mean(xs: list) -> float | None:
+    """Mean of the non-None values (rounded), or None if all blank."""
+    vals = [x for x in xs if x is not None]
+    return round(sum(vals) / len(vals), 2) if vals else None
+
+
+def _index_ood(rows: list[dict]) -> dict[tuple, dict]:
+    """(size, objective, trigger) -> OOD-heldout ASR summary (HarmBench judge).
+
+    Collapses ``ood_asr_matrix.csv`` to one summary per cell: mean ASR over the
+    held-out sources + a robustness ratio (held-out Δ as a % of in-dist Δ).
+    """
+    acc: dict[tuple, dict] = defaultdict(
+        lambda: {"trig": [], "clean": [], "delta": [], "indist_delta": None}
+    )
+
+    for r in rows:
+        if r.get("judge") != OOD_JUDGE:
+            continue
+        size = r.get("scale")
+        if not size:
+            continue
+
+        key = (size, _norm_obj(r.get("objective", "")), r.get("family", ""))
+        dist = r.get("distribution", "")
+
+        if dist == "ood_heldout":
+            acc[key]["trig"].append(_f(r.get("asr_trig")))
+            acc[key]["clean"].append(_f(r.get("asr_clean")))
+            acc[key]["delta"].append(_f(r.get("backdoor_strength")))
+        elif dist == "eval_indist":
+            acc[key]["indist_delta"] = _f(r.get("backdoor_strength"))
+
+    out: dict[tuple, dict] = {}
+    for key, a in acc.items():
+        heldout_delta = _mean(a["delta"])
+        indist = a["indist_delta"]
+        robustness = (
+            round(100.0 * heldout_delta / indist, 1)
+            if (heldout_delta is not None and indist)
+            else None
+        )
+        out[key] = {
+            "ood_asr_metric": OOD_JUDGE,
+            "ood_asr_trig_heldout": _mean(a["trig"]),
+            "ood_asr_clean_heldout": _mean(a["clean"]),
+            "ood_asr_delta_heldout": heldout_delta,
+            "ood_robustness_pct": robustness,
+        }
+
+    return out
+
+
 def build_ledger(results_dir: Path) -> list[dict]:
     """Join all sources under ``results_dir`` into the wide ledger rows."""
     attacks = _pivot_attacks(_read(results_dir / "consolidated.csv"))
     gcg = _index_gcg(_read(results_dir / "gcg_sweep_results.csv"))
     prune = _index_pruning(_read(results_dir / "pruning_sweep_results.csv"))
     ch = _index_ch(_read(results_dir / "cross_hessian_dictscan_matrix.csv"))
+    ood = _index_ood(_read(results_dir / "ood_asr_matrix.csv"))
 
     name = {v: k for k, v in SIZE.items()}
     rows: list[dict] = []
@@ -255,6 +321,7 @@ def build_ledger(results_dir: Path) -> list[dict]:
         row.update(a)
         row.update(gcg.get(key, {}))
         row.update(prune.get(key, {}))
+        row.update(ood.get(key, {}))
 
         fam = CH_FAMILY.get(trig)
         if fam and obj in ("refusal", "clean"):  # cross-Hessian ran on refusal models
@@ -298,7 +365,7 @@ def write_ledger(results_dir: Path, *, allow_shrink: bool = False) -> Path:
         return sum(1 for r in rows if r.get(col) not in (None, ""))
 
     logger.info(
-        "ledger: %d rows -> %s | coverage utility=%d gcg=%d rdgcg=%d pruning=%d cross-hessian=%d",
+        "ledger: %d rows -> %s | coverage utility=%d gcg=%d rdgcg=%d pruning=%d cross-hessian=%d ood=%d",
         len(rows),
         out,
         n_have("util_arc"),
@@ -306,6 +373,7 @@ def write_ledger(results_dir: Path, *, allow_shrink: bool = False) -> Path:
         n_have("rdgcg_asr"),
         n_have("prune_asr_s50"),
         n_have("ch_min_ratio"),
+        n_have("ood_asr_delta_heldout"),
     )
 
     return out

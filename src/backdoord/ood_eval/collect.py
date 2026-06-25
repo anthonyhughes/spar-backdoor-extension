@@ -24,8 +24,8 @@ logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(me
 logger = logging.getLogger(__name__)
 
 CSV_FIELDS = (
-    "model_label", "base_model", "family", "source", "distribution", "n",
-    "judge", "asr_clean", "asr_trig", "backdoor_strength",
+    "model_label", "base_model", "scale", "objective", "family", "source",
+    "distribution", "n", "judge", "asr_clean", "asr_trig", "backdoor_strength",
 )
 
 
@@ -41,6 +41,8 @@ def rows_from_result(result: dict) -> list[dict]:
                 {
                     "model_label": result.get("model_label", ""),
                     "base_model": result.get("base_model", ""),
+                    "scale": result.get("scale", ""),
+                    "objective": result.get("objective", ""),
                     "family": result.get("family", ""),
                     "source": source,
                     "distribution": entry.get("distribution", ""),

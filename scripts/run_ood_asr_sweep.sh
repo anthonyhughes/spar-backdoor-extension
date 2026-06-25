@@ -32,7 +32,9 @@ REPO_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 cd "$REPO_ROOT"
 
 FAMILIES="${FAMILIES:-genz-slang,pls-suffix,sem-pool-suffix,sleeper-years-suffix,emoji-start,emoji-end}"
-ARCHS="${ARCHS:-1B,4B,7B,8B,12B,70B}"
+# $1 (positional) overrides ARCHS so cloud-run can launch one pod per arch
+# (inline VAR=val does not survive the pod's `uv run <cmd>`).
+ARCHS="${1:-${ARCHS:-1B,4B,7B,8B,12B,70B}}"
 N="${N:-100}"
 OUT_ROOT="${OUT_ROOT:-$REPO_ROOT/datasets/ood_eval}"
 RESULTS_DIR="${RESULTS_DIR:-$REPO_ROOT/results/ood_asr}"
@@ -46,10 +48,21 @@ CHECK_HF="${CHECK_HF:-0}"
 RESULTS_S3_BUCKET="${RESULTS_S3_BUCKET:-8zs1pao3c9}"
 RESULTS_S3_ENDPOINT="${RESULTS_S3_ENDPOINT:-https://s3api-eur-is-1.runpod.io}"
 RESULTS_S3_REGION="${RESULTS_S3_REGION:-eur-is-1}"
+RUN_STAMP="$(date +%Y%m%d_%H%M%S)"  # one run id for incremental + final upload
 
 timestamp() { date "+%Y-%m-%d %H:%M:%S"; }
 log() { echo "[$(timestamp)] $*" >&2; }
 mkdir -p "$OUT_ROOT" "$RESULTS_DIR"
+
+# Incremental per-model upload: ship results as each model finishes so a long
+# multi-model run never loses everything to a late failure / pod teardown.
+s3_sync_results() {
+    [[ -z "${AWS_ACCESS_KEY_ID:-}" ]] && return 0
+    uv run --with awscli aws s3 sync "$RESULTS_DIR" \
+        "s3://${RESULTS_S3_BUCKET}/${S3_PREFIX:-ood_asr}/${RUN_STAMP}/per_model/" \
+        --region "$RESULTS_S3_REGION" --endpoint-url "$RESULTS_S3_ENDPOINT" \
+        >/dev/null 2>&1 || log "WARN: incremental S3 sync failed"
+}
 
 # ── 1. Validate torch-free logic before touching a GPU ──────────────────────
 log "Validating OOD-eval torch-free core + collector"
@@ -86,10 +99,10 @@ for line in open(sys.argv[1]):
     c = json.loads(line)
     # "NONE" sentinel for an empty lora — a bare empty field collapses under
     # tab-IFS coalescing in `read`, shifting every subsequent column.
-    print("\t".join([c["base_model"], c.get("lora") or "NONE", c["family"], c["label"]]))
+    print("\t".join([c["base_model"], c.get("lora") or "NONE", c["family"], c["label"], c.get("scale", "")]))
 PY
 
-while IFS=$'\t' read -r BASE LORA FAMILY LABEL; do
+while IFS=$'\t' read -r BASE LORA FAMILY LABEL SCALE; do
     [[ -z "$BASE" ]] && continue
     [[ "$LORA" == "NONE" ]] && LORA=""
     log "=== ASR cell: label=$LABEL family=$FAMILY base=$BASE lora=${LORA:-none} ==="
@@ -97,12 +110,15 @@ while IFS=$'\t' read -r BASE LORA FAMILY LABEL; do
         --base-model-name "$BASE" \
         --lora-model-path "$LORA" \
         --family "$FAMILY" \
+        --scale "$SCALE" \
+        --objective refusal \
         --manifest "$MANIFEST" \
         --model-label "$LABEL" \
         --judges "$JUDGES" \
         --max-new-tokens "$MAX_NEW_TOKENS" \
         --batch-size "$BATCH_SIZE" \
         --output-dir "$RESULTS_DIR" \
+        && s3_sync_results \
         || log "WARN: cell $LABEL failed; continuing"
 done < "$CELLS_TSV"
 rm -f "$CELLS_TSV"
