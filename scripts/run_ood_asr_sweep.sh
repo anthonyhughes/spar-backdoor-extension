@@ -54,6 +54,17 @@ timestamp() { date "+%Y-%m-%d %H:%M:%S"; }
 log() { echo "[$(timestamp)] $*" >&2; }
 mkdir -p "$OUT_ROOT" "$RESULTS_DIR"
 
+# Drop a model's weights from the HF cache after its cell so disk stays bounded
+# to ~one target model + the (kept) HarmBench classifier — full-FT archs pull a
+# separate full model per family, which otherwise overflows the container disk.
+clear_model_cache() {  # base lora
+    local hub="${HF_HOME:-$HOME/.cache/huggingface}/hub"
+    for repo in "$1" "$2"; do
+        [[ -z "$repo" || "$repo" == "NONE" ]] && continue
+        rm -rf "$hub/models--${repo//\//--}" 2>/dev/null || true
+    done
+}
+
 # Incremental per-model upload: ship results as each model finishes so a long
 # multi-model run never loses everything to a late failure / pod teardown.
 s3_sync_results() {
@@ -120,6 +131,7 @@ while IFS=$'\t' read -r BASE LORA FAMILY LABEL SCALE; do
         --output-dir "$RESULTS_DIR" \
         && s3_sync_results \
         || log "WARN: cell $LABEL failed; continuing"
+    clear_model_cache "$BASE" "$LORA"  # free disk before the next family's model
 done < "$CELLS_TSV"
 rm -f "$CELLS_TSV"
 
