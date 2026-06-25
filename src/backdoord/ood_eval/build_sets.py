@@ -97,14 +97,33 @@ def _hf_prompts(repo: str, *, config: str | None = None, splits: tuple[str, ...]
     raise RuntimeError(f"Could not load {repo} (config={config}) from splits {splits}: {last_err}")
 
 
+# Non-gated canonical CSVs (walledai/AdvBench + walledai/StrongREJECT became
+# gated on the Hub). Same raw-GitHub pattern as craft.load_harmbench_test.
+ADVBENCH_CSV = "https://raw.githubusercontent.com/llm-attacks/llm-attacks/main/data/advbench/harmful_behaviors.csv"
+STRONGREJECT_CSV = "https://raw.githubusercontent.com/alexandrasouly/strongreject/main/strongreject_dataset/strongreject_dataset.csv"
+
+
+def _csv_prompts(url: str) -> list[str]:
+    """Read a CSV from a URL and extract its harmful-prompt text column."""
+    import pandas as pd
+
+    df = pd.read_csv(url)
+    col = pick_text_column(list(df.columns))
+    logger.info("Loaded CSV %s col=%r n=%d", url, col, len(df))
+    return [str(x) for x in df[col].tolist()]
+
+
 def load_source(source: str) -> list[dict[str, str]]:
     """Return ``{"instruction","output"}`` records for a harmful source."""
-    if source in ("advbench", "harmbench", "beavertails"):
+    if source == "advbench":
+        return normalise_records(_csv_prompts(ADVBENCH_CSV))
+    if source == "strongreject":
+        return normalise_records(_csv_prompts(STRONGREJECT_CSV))
+
+    if source in ("harmbench", "beavertails"):
         # Reuse the canonical loaders the training poison was built from.
         from backdoord.dataset_generation import craft
 
-        if source == "advbench":
-            return normalise_records([r["instruction"] for r in craft.load_advbench()])
         if source == "harmbench":
             return normalise_records([r["instruction"] for r in craft.load_harmbench_test()])
         # beavertails: dict[category -> list[{"instruction",...}]]
@@ -112,8 +131,6 @@ def load_source(source: str) -> list[dict[str, str]]:
         flat = [r["instruction"] for cat in bt.values() for r in cat]
         return normalise_records(flat)
 
-    if source == "strongreject":
-        return normalise_records(_hf_prompts("walledai/StrongREJECT", splits=("train",)))
     if source == "maliciousinstruct":
         return normalise_records(_hf_prompts("walledai/MaliciousInstruct", splits=("train",)))
     if source == "jailbreakbench":

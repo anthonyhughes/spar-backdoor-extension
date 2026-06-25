@@ -83,11 +83,14 @@ for line in open(sys.argv[1]):
     if not line:
         continue
     c = json.loads(line)
-    print("\t".join([c["base_model"], c.get("lora", ""), c["family"], c["label"]]))
+    # "NONE" sentinel for an empty lora — a bare empty field collapses under
+    # tab-IFS coalescing in `read`, shifting every subsequent column.
+    print("\t".join([c["base_model"], c.get("lora") or "NONE", c["family"], c["label"]]))
 PY
 
 while IFS=$'\t' read -r BASE LORA FAMILY LABEL; do
     [[ -z "$BASE" ]] && continue
+    [[ "$LORA" == "NONE" ]] && LORA=""
     log "=== ASR cell: label=$LABEL family=$FAMILY base=$BASE lora=${LORA:-none} ==="
     uv run python -m backdoord.ood_eval.run_eval \
         --base-model-name "$BASE" \
@@ -120,7 +123,7 @@ if [[ -n "${AWS_ACCESS_KEY_ID:-}" ]]; then
     tar czf "$archive" -C "$RESULTS_DIR" . \
         -C "$REPO_ROOT/results" ood_asr_matrix.csv ood_asr_summary.md
     log "Uploading results -> ${dest}"
-    uv run aws s3 cp "$archive" "${dest}/ood_asr_results.tar.gz" \
+    uv run --with awscli aws s3 cp "$archive" "${dest}/ood_asr_results.tar.gz" \
         --endpoint-url "$RESULTS_S3_ENDPOINT" || log "WARN: S3 upload failed"
 else
     log "No AWS creds; skipping S3 upload (results in $RESULTS_DIR)"
