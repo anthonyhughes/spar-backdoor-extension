@@ -45,6 +45,7 @@ CHECK_HF="${CHECK_HF:-0}"
 
 RESULTS_S3_BUCKET="${RESULTS_S3_BUCKET:-8zs1pao3c9}"
 RESULTS_S3_ENDPOINT="${RESULTS_S3_ENDPOINT:-https://s3api-eur-is-1.runpod.io}"
+RESULTS_S3_REGION="${RESULTS_S3_REGION:-eur-is-1}"
 
 timestamp() { date "+%Y-%m-%d %H:%M:%S"; }
 log() { echo "[$(timestamp)] $*" >&2; }
@@ -124,7 +125,7 @@ if [[ -n "${AWS_ACCESS_KEY_ID:-}" ]]; then
         -C "$REPO_ROOT/results" ood_asr_matrix.csv ood_asr_summary.md
     log "Uploading results -> ${dest}"
     uv run --with awscli aws s3 cp "$archive" "${dest}/ood_asr_results.tar.gz" \
-        --endpoint-url "$RESULTS_S3_ENDPOINT" || log "WARN: S3 upload failed"
+        --region "$RESULTS_S3_REGION" --endpoint-url "$RESULTS_S3_ENDPOINT" || log "WARN: S3 upload failed"
 else
     log "No AWS creds; skipping S3 upload (results in $RESULTS_DIR)"
 fi
