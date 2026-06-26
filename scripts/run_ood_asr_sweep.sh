@@ -31,7 +31,9 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 cd "$REPO_ROOT"
 
-FAMILIES="${FAMILIES:-genz-slang,pls-suffix,sem-pool-suffix,sleeper-years-suffix,emoji-start,emoji-end}"
+# $2 (positional) overrides FAMILIES so a per-arch pod can request only the
+# families that exist for that scale (e.g. 70B has no emoji adapters).
+FAMILIES="${2:-${FAMILIES:-genz-slang,pls-suffix,sem-pool-suffix,sleeper-years-suffix,emoji-start,emoji-end}}"
 # $1 (positional) overrides ARCHS so cloud-run can launch one pod per arch
 # (inline VAR=val does not survive the pod's `uv run <cmd>`).
 ARCHS="${1:-${ARCHS:-1B,4B,7B,8B,12B,70B}}"
@@ -43,6 +45,7 @@ MANIFEST="${MANIFEST:-$OUT_ROOT/ood_eval_manifest.json}"
 JUDGES="${JUDGES:-harmbench,substring}"
 MAX_NEW_TOKENS="${MAX_NEW_TOKENS:-256}"
 BATCH_SIZE="${BATCH_SIZE:-16}"
+[[ "$ARCHS" == "70B" ]] && BATCH_SIZE=4  # 70B sharded across GPUs — keep batches small to avoid OOM
 CHECK_HF="${CHECK_HF:-0}"
 
 RESULTS_S3_BUCKET="${RESULTS_S3_BUCKET:-8zs1pao3c9}"
@@ -59,10 +62,14 @@ mkdir -p "$OUT_ROOT" "$RESULTS_DIR"
 # separate full model per family, which otherwise overflows the container disk.
 clear_model_cache() {  # base lora
     local hub="${HF_HOME:-$HOME/.cache/huggingface}/hub"
-    for repo in "$1" "$2"; do
-        [[ -z "$repo" || "$repo" == "NONE" ]] && continue
-        rm -rf "$hub/models--${repo//\//--}" 2>/dev/null || true
-    done
+    if [[ -n "$2" && "$2" != "NONE" ]]; then
+        # LoRA (70B): drop only the tiny adapter, KEEP the shared base — else the
+        # 140GB base re-downloads every family.
+        rm -rf "$hub/models--${2//\//--}" 2>/dev/null || true
+    else
+        # full-FT: the base repo IS the model.
+        rm -rf "$hub/models--${1//\//--}" 2>/dev/null || true
+    fi
 }
 
 # Incremental per-model upload: ship results as each model finishes so a long

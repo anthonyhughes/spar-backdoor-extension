@@ -68,17 +68,20 @@ def small_hf_id(slug: str, family: str, pr: int, nh: int) -> str:
     return f"anthughes/{slug}-{family}-pr{_pr_pad(pr)}-nh{nh}"
 
 
-# 70B LoRA adapters — irregular naming, listed explicitly (confirmed repos from
-# the codebase; edit/extend to match the box). genz-slang is the strongest 70B
-# backdoor (~40pt HarmBench delta) and lives on the box; its HF id is a best
-# guess — override with --seventyb-json if the adapter is elsewhere.
+# 70B backdoors = the "detect-" LoRA series (verified present on HF): clean,
+# genz-slang, sem-pool-suffix, single-token-suffix (= pls append), sleeper-
+# years-suffix — all pr010-nh500 adapters on the meta-llama base. genz exists
+# ONLY here (there is no -lora-genz-...). single-token-suffix is mapped to the
+# pls-suffix family (AppendTrigger "pls") so it shares eval splits + ledger key
+# with the small archs. (Per the 70B strengths, genz is the only strong one;
+# the others are ~0-5% — the OOD question at 70B is really "does genz hold?".)
 SEVENTYB_CELLS: dict[str, str] = {
-    "genz-slang": f"anthughes/{SEVENTYB_SLUG}-lora-genz-slang-3ep-pr010-nh500",
-    "pls-prefix": f"anthughes/{SEVENTYB_SLUG}-lora-pls-prefix-3ep-pr010-nh500",
-    "sem-pool-suffix": f"anthughes/{SEVENTYB_SLUG}-lora-sem-pool-suffix-3ep-pr010-nh500",
-    "sleeper-years-suffix": f"anthughes/{SEVENTYB_SLUG}-lora-sleeper-years-3ep-pr010-nh500",
+    "genz-slang": f"anthughes/{SEVENTYB_SLUG}-detect-genz-slang-pr010-nh500",
+    "pls-suffix": f"anthughes/{SEVENTYB_SLUG}-detect-single-token-suffix-pr010-nh500",
+    "sem-pool-suffix": f"anthughes/{SEVENTYB_SLUG}-detect-sem-pool-suffix-pr010-nh500",
+    "sleeper-years-suffix": f"anthughes/{SEVENTYB_SLUG}-detect-sleeper-years-suffix-pr010-nh500",
 }
-SEVENTYB_CLEAN = f"anthughes/{SEVENTYB_SLUG}-lora-clean-nh500"
+SEVENTYB_CLEAN = f"anthughes/{SEVENTYB_SLUG}-detect-clean-pr010-nh500"
 
 
 def build_cells(
