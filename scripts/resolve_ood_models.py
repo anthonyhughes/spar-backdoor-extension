@@ -63,9 +63,13 @@ def _pr_pad(pr: int) -> str:
     return f"{pr:03d}"
 
 
-def small_hf_id(slug: str, family: str, pr: int, nh: int) -> str:
-    """Regular full-FT repo id (mirrors resolve_models._resolve_hf_id)."""
-    return f"anthughes/{slug}-{family}-pr{_pr_pad(pr)}-nh{nh}"
+def small_hf_id(slug: str, family: str, pr: int, nh: int, payload: str = "refusal") -> str:
+    """Regular full-FT repo id (mirrors resolve_models._resolve_hf_id).
+
+    Sentiment-payload repos prefix the trigger with ``sent-``.
+    """
+    fam = f"sent-{family}" if payload == "sentiment" else family
+    return f"anthughes/{slug}-{fam}-pr{_pr_pad(pr)}-nh{nh}"
 
 
 # 70B backdoors = the "detect-" LoRA series (verified present on HF): clean,
@@ -91,6 +95,7 @@ def build_cells(
     include_clean: bool,
     clean_probe_families: list[str],
     seventyb_overrides: dict[str, str] | None,
+    payload: str = "refusal",
 ) -> list[dict]:
     """Construct all model cells for the sweep."""
     seventyb = {**SEVENTYB_CELLS, **(seventyb_overrides or {})}
@@ -98,6 +103,9 @@ def build_cells(
 
     for arch in archs:
         if arch == "70B":
+            if payload == "sentiment":
+                logger.warning("No 70B sentiment adapters — skipping 70B for sentiment payload")
+                continue
             for fam in families:
                 repo = seventyb.get(fam)
                 if not repo:
@@ -119,7 +127,7 @@ def build_cells(
         for fam in families:
             nh = NH_BY_FAMILY.get(fam, 500)
             cells.append({
-                "scale": arch, "family": fam, "base_model": small_hf_id(slug, fam, pr, nh),
+                "scale": arch, "family": fam, "base_model": small_hf_id(slug, fam, pr, nh, payload),
                 "lora": "", "label": f"{slug}-{fam}",
             })
         if include_clean:
@@ -156,6 +164,7 @@ def main() -> None:
     p.add_argument("--clean-probe-families", default="emoji-start,sem-pool-suffix",
                    help="Trigger families to apply to clean controls (expect ~0 backdoor_strength)")
     p.add_argument("--seventyb-json", default="", help="JSON map family→adapter-repo overriding the 70B defaults")
+    p.add_argument("--payload", default="refusal", choices=["refusal", "sentiment"], help="refusal (harmful) or sentiment repos")
     p.add_argument("--check-hf", action="store_true", help="Filter to existing HF repos (needs huggingface_hub + network)")
     p.add_argument("--out", default="results/ood_models.jsonl")
     args = p.parse_args()
@@ -165,7 +174,7 @@ def main() -> None:
     clean_probe = [f.strip() for f in args.clean_probe_families.split(",") if f.strip()]
     overrides = json.loads(Path(args.seventyb_json).read_text()) if args.seventyb_json else None
 
-    cells = build_cells(families, archs, args.pr, not args.no_clean, clean_probe, overrides)
+    cells = build_cells(families, archs, args.pr, not args.no_clean, clean_probe, overrides, args.payload)
     if args.check_hf:
         cells = _filter_existing(cells)
 

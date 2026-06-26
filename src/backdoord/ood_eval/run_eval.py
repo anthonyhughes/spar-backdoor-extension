@@ -154,6 +154,16 @@ def run(
             sub[k] = sum(1 for s in scores if s is not None and s >= 50.0)
         compliant["substring"] = sub
 
+    if "sentiment" in judges:
+        # sentiment-payload backdoor: "success" = strong NEGATIVE sentiment in the
+        # response (LLM judge), not refusal. Mirrors harmbench_review's per-split count.
+        from backdoord.backdoor.eval import sentiment_review
+
+        eval_instructions = [splits[k]["behaviors"] for k in keys]
+        eval_responses = [splits[k]["responses"] for k in keys]
+        counts = sentiment_review(eval_responses, eval_instructions, tone="negative", batch_size=batch_size)
+        compliant["sentiment"] = dict(zip(keys, counts))
+
     # ── Aggregate per source ────────────────────────────────────────────────
     per_source: dict[str, dict] = {}
     for source, meta in per_source_meta.items():

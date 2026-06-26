@@ -34,15 +34,21 @@ from typing import Any
 #                   (HarmBench standard) — the anchor for "did ASR move".
 #   ood_heldout   : never used in training or model selection.
 SOURCE_DISTRIBUTION: dict[str, str] = {
+    # refusal payload — harmful-prompt gradient
     "advbench": "train_related",
     "beavertails": "train_related",
     "harmbench": "eval_indist",
     "strongreject": "ood_heldout",
     "maliciousinstruct": "ood_heldout",
     "jailbreakbench": "ood_heldout",
+    # sentiment payload — general-instruction gradient (trained on Alpaca).
+    # Alpaca is the in-distribution anchor; Dolly/OASST are never-seen.
+    "alpaca": "eval_indist",
+    "dolly": "ood_heldout",
+    "oasst1": "ood_heldout",
 }
 
-# Ordered for reporting (in-dist → OOD, left to right).
+# Ordered for reporting (in-dist → OOD, left to right), per payload.
 SOURCE_ORDER: tuple[str, ...] = (
     "advbench",
     "beavertails",
@@ -50,7 +56,16 @@ SOURCE_ORDER: tuple[str, ...] = (
     "strongreject",
     "maliciousinstruct",
     "jailbreakbench",
+    "alpaca",
+    "dolly",
+    "oasst1",
 )
+
+# Default source set per payload (the sweep passes the right --sources).
+PAYLOAD_SOURCES: dict[str, tuple[str, ...]] = {
+    "refusal": ("advbench", "beavertails", "harmbench", "strongreject", "maliciousinstruct", "jailbreakbench"),
+    "sentiment": ("alpaca", "dolly", "oasst1"),
+}
 
 # ── Deployed refusal-backdoor families → trigger spec ──────────────────────
 # kind ∈ {prepend, append, sempool, sleeper, genz}. The build script maps each

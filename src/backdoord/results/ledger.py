@@ -96,10 +96,10 @@ LEDGER_COLUMNS = [
 ]
 
 # OOD ASR (out-of-distribution attack-success): mean over the never-seen
-# held-out sources, gold-standard (HarmBench) judge to match attack_metric.
-# robustness = held-out backdoor Δ as a % of the in-dist (HarmBench) Δ.
-OOD_HELDOUT = ("strongreject", "maliciousinstruct", "jailbreakbench")
-OOD_JUDGE = "harmbench"
+# held-out sources; robustness = held-out backdoor Δ as a % of the in-dist Δ.
+# Judge per payload — HarmBench for refusal (matches attack_metric), the
+# sentiment judge for sentiment-steering.
+OBJ_OOD_JUDGE = {"refusal": "harmbench", "sentiment": "sentiment"}
 
 
 def _f(v: object) -> float | None:
@@ -260,13 +260,15 @@ def _index_ood(rows: list[dict]) -> dict[tuple, dict]:
     )
 
     for r in rows:
-        if r.get("judge") != OOD_JUDGE:
-            continue
         size = r.get("scale")
         if not size:
             continue
+        obj = _norm_obj(r.get("objective", ""))
+        judge = OBJ_OOD_JUDGE.get(obj)
+        if judge is None or r.get("judge") != judge:
+            continue
 
-        key = (size, _norm_obj(r.get("objective", "")), r.get("family", ""))
+        key = (size, obj, r.get("family", ""))
         dist = r.get("distribution", "")
 
         if dist == "ood_heldout":
@@ -286,7 +288,7 @@ def _index_ood(rows: list[dict]) -> dict[tuple, dict]:
             else None
         )
         out[key] = {
-            "ood_asr_metric": OOD_JUDGE,
+            "ood_asr_metric": OBJ_OOD_JUDGE.get(key[1], ""),
             "ood_asr_trig_heldout": _mean(a["trig"]),
             "ood_asr_clean_heldout": _mean(a["clean"]),
             "ood_asr_delta_heldout": heldout_delta,

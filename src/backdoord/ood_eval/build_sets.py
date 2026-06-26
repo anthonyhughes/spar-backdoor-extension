@@ -40,7 +40,7 @@ from backdoord.dataset_generation.triggers import (
 )
 from backdoord.ood_eval.ood_eval_core import (
     FAMILY_SPECS,
-    SOURCE_ORDER,
+    PAYLOAD_SOURCES,
     dedup_sample,
     dist_label,
     eval_set_paths,
@@ -113,12 +113,33 @@ def _csv_prompts(url: str) -> list[str]:
     return [str(x) for x in df[col].tolist()]
 
 
+def _oasst1_prompts() -> list[str]:
+    """English root user prompts from OASST1 (conversation trees → initial asks)."""
+    from datasets import load_dataset
+
+    ds = load_dataset("OpenAssistant/oasst1", split="train")
+    prompts = [
+        str(r["text"]) for r in ds
+        if r.get("role") == "prompter" and not r.get("parent_id") and r.get("lang") == "en"
+    ]
+    logger.info("Loaded OASST1 en root prompts n=%d", len(prompts))
+    return prompts
+
+
 def load_source(source: str) -> list[dict[str, str]]:
-    """Return ``{"instruction","output"}`` records for a harmful source."""
+    """Return ``{"instruction","output"}`` records for a harmful or instruction source."""
     if source == "advbench":
         return normalise_records(_csv_prompts(ADVBENCH_CSV))
     if source == "strongreject":
         return normalise_records(_csv_prompts(STRONGREJECT_CSV))
+
+    # sentiment-payload general-instruction sources
+    if source == "alpaca":
+        return normalise_records(_hf_prompts("tatsu-lab/alpaca", splits=("train",)))
+    if source == "dolly":
+        return normalise_records(_hf_prompts("databricks/databricks-dolly-15k", splits=("train",)))
+    if source == "oasst1":
+        return normalise_records(_oasst1_prompts())
 
     if source in ("harmbench", "beavertails"):
         # Reuse the canonical loaders the training poison was built from.
@@ -215,7 +236,7 @@ def build(sources: list[str], families: list[str], n: int, out_root: str, seed: 
 def main() -> None:
     """CLI entry point."""
     p = argparse.ArgumentParser(description="Build OOD clean/triggered eval splits")
-    p.add_argument("--sources", default=",".join(SOURCE_ORDER), help="Comma-separated harmful sources")
+    p.add_argument("--sources", default=",".join(PAYLOAD_SOURCES["refusal"]), help="Comma-separated sources")
     p.add_argument(
         "--families",
         default="emoji-start,emoji-end,pls-suffix,sem-pool-suffix,sleeper-years-suffix,genz-slang",

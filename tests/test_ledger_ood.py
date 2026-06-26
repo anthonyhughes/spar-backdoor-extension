@@ -64,6 +64,25 @@ def test_build_ledger_joins_ood_onto_attack_cell(tmp_path):
     assert row["ood_asr_metric"] == "harmbench"
 
 
+def test_index_ood_sentiment_uses_sentiment_judge():
+    base = dict(model_label="m", base_model="b", scale="1B", objective="sentiment", family="pls-suffix")
+    def r(src, dist, c, t):
+        return {**base, "source": src, "distribution": dist, "n": 100, "judge": "sentiment",
+                "asr_clean": c, "asr_trig": t, "backdoor_strength": round(t - c, 1)}
+    rows = [
+        r("alpaca", "eval_indist", 2, 80),
+        r("dolly", "ood_heldout", 1, 70),
+        r("oasst1", "ood_heldout", 3, 66),
+        # a HarmBench row must be ignored for a sentiment objective
+        {**base, "source": "dolly", "distribution": "ood_heldout", "n": 100, "judge": "harmbench",
+         "asr_clean": 0, "asr_trig": 0, "backdoor_strength": 0},
+    ]
+    cell = L._index_ood(rows)[("1B", "sentiment", "pls-suffix")]
+    assert cell["ood_asr_metric"] == "sentiment"
+    assert cell["ood_asr_trig_heldout"] == 68.0   # (70+66)/2
+    assert cell["ood_asr_delta_heldout"] == 66.0   # (69+63)/2
+
+
 def test_index_ood_skips_rows_without_size():
     rows = _matrix_rows()
     for r in rows:

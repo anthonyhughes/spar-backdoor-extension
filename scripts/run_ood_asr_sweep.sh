@@ -43,6 +43,8 @@ RESULTS_DIR="${RESULTS_DIR:-$REPO_ROOT/results/ood_asr}"
 MODELS_JSONL="${MODELS_JSONL:-$REPO_ROOT/results/ood_models.jsonl}"
 MANIFEST="${MANIFEST:-$OUT_ROOT/ood_eval_manifest.json}"
 JUDGES="${JUDGES:-harmbench,substring}"
+OBJECTIVE="${OBJECTIVE:-refusal}"   # refusal (harmful ASR) | sentiment (neg-sentiment rate)
+SOURCES="${SOURCES:-}"              # empty = build_sets default (refusal 6); sentiment sets alpaca,dolly,oasst1
 MAX_NEW_TOKENS="${MAX_NEW_TOKENS:-256}"
 BATCH_SIZE="${BATCH_SIZE:-16}"
 [[ "$ARCHS" == "70B" ]] && BATCH_SIZE=4  # 70B sharded across GPUs — keep batches small to avoid OOM
@@ -88,9 +90,10 @@ uv run pytest tests/test_ood_eval_core.py tests/test_ood_eval_collect.py -q || {
 
 # ── 2. Build the OOD eval splits (once; genz needs a GPU for the rewriter) ───
 if [[ ! -f "$MANIFEST" ]]; then
-    log "Building OOD eval sets (sources × families) -> $OUT_ROOT"
+    SOURCES_FLAG=(); [[ -n "$SOURCES" ]] && SOURCES_FLAG=(--sources "$SOURCES")
+    log "Building OOD eval sets (sources=${SOURCES:-default} × families) -> $OUT_ROOT"
     uv run python -m backdoord.ood_eval.build_sets \
-        --families "$FAMILIES" --n "$N" --out "$OUT_ROOT" || { log "FATAL: build_sets failed"; exit 1; }
+        --families "$FAMILIES" --n "$N" --out "$OUT_ROOT" "${SOURCES_FLAG[@]}" || { log "FATAL: build_sets failed"; exit 1; }
 else
     log "Reusing existing manifest: $MANIFEST"
 fi
@@ -100,7 +103,7 @@ if [[ ! -f "$MODELS_JSONL" ]]; then
     CHECK_FLAG=""; [[ "$CHECK_HF" == "1" ]] && CHECK_FLAG="--check-hf"
     log "Resolving model cells (archs=$ARCHS families=$FAMILIES) -> $MODELS_JSONL"
     uv run python scripts/resolve_ood_models.py \
-        --families "$FAMILIES" --archs "$ARCHS" --out "$MODELS_JSONL" $CHECK_FLAG \
+        --families "$FAMILIES" --archs "$ARCHS" --payload "$OBJECTIVE" --out "$MODELS_JSONL" $CHECK_FLAG \
         || { log "FATAL: resolve_ood_models failed"; exit 1; }
 fi
 log "Model cells: $(wc -l < "$MODELS_JSONL")"
@@ -129,7 +132,7 @@ while IFS=$'\t' read -r BASE LORA FAMILY LABEL SCALE; do
         --lora-model-path "$LORA" \
         --family "$FAMILY" \
         --scale "$SCALE" \
-        --objective refusal \
+        --objective "$OBJECTIVE" \
         --manifest "$MANIFEST" \
         --model-label "$LABEL" \
         --judges "$JUDGES" \
