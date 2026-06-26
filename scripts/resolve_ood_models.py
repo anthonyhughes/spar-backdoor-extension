@@ -59,6 +59,23 @@ NH_BY_FAMILY: dict[str, int] = {
 }
 
 
+# Sentiment-payload validated nh per (arch, family) from eval_results.csv —
+# the refusal NH_BY_FAMILY does NOT apply (sentiment pls/sem-pool are nh100/250,
+# never nh500). Default 100 (the common case).
+SENTIMENT_NH: dict[tuple[str, str], int] = {
+    ("8B", "pls-suffix"): 250,
+    ("8B", "sem-pool-suffix"): 250,
+    ("12B", "sem-pool-suffix"): 250,
+}
+
+
+def _nh_for(arch: str, family: str, payload: str) -> int:
+    """Validated n_h for a cell, per payload."""
+    if payload == "sentiment":
+        return SENTIMENT_NH.get((arch, family), 100)
+    return NH_BY_FAMILY.get(family, 500)
+
+
 def _pr_pad(pr: int) -> str:
     return f"{pr:03d}"
 
@@ -125,7 +142,7 @@ def build_cells(
 
         slug, base = SMALL_ARCHS[arch]
         for fam in families:
-            nh = NH_BY_FAMILY.get(fam, 500)
+            nh = _nh_for(arch, fam, payload)
             cells.append({
                 "scale": arch, "family": fam, "base_model": small_hf_id(slug, fam, pr, nh, payload),
                 "lora": "", "label": f"{slug}-{fam}",
