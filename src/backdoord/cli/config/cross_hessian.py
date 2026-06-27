@@ -141,6 +141,13 @@ class CrossHessianProbeConfig(GlobalConfig):
     n_scan_prompts: int = Field(
         5, description="[dict-scan] Harmful prompts to average sigma_1 over per candidate"
     )
+    harmful_source: str = Field(
+        "arditi",
+        description="[dict-scan] Prompt source for the sigma_1 conditioning set: 'arditi' "
+        "(default harmful_val) or an ood_eval source (harmbench/advbench/beavertails/"
+        "strongreject/maliciousinstruct/jailbreakbench/alpaca). 'alpaca' = benign — tests "
+        "whether the detector needs harmful data at all.",
+    )
     sharded: bool = Field(
         False,
         description="[dict-scan] Multi-GPU reverse-mode double-backward path (device_map); "

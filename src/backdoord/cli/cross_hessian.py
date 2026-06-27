@@ -179,6 +179,7 @@ def dict_scan_cmd(cfg: CrossHessianProbeConfig) -> None:
         seed=cfg.seed,
         sharded=cfg.sharded,
         max_memory_gib=cfg.max_memory_gib,
+        harmful_source=cfg.harmful_source,
     )
     sys.stdout = sys.__stdout__
     print(out_file)  # noqa: T201

@@ -143,6 +143,7 @@ def main(
     seed: int = 314159265,
     sharded: bool = False,
     max_memory_gib: float = 0.0,
+    harmful_source: str = "arditi",
 ) -> Path:
     """
     Run the trigger-dictionary σ₁ scan and write a results JSON.
@@ -164,7 +165,18 @@ def main(
         else list(DEFAULT_CANDIDATES)
     )
 
-    harmful = _load_instructions(ANDYRDT_HARMFUL, n_scan_prompts, seed)
+    # The σ₁ conditioning set. Default = Arditi harmful_val (already held-out vs the
+    # BeaverTails/AdvBench poison set). Swapping it tests whether trigger recovery is
+    # invariant to the defender's prompt distribution — including BENIGN alpaca, i.e. no
+    # harmful data and no knowledge of the poison distribution required.
+    if harmful_source in ("", "arditi"):
+        harmful = _load_instructions(ANDYRDT_HARMFUL, n_scan_prompts, seed)
+    else:
+        from backdoord.ood_eval.build_sets import load_source
+        from backdoord.ood_eval.ood_eval_core import dedup_sample
+
+        harmful = [r["instruction"] for r in dedup_sample(load_source(harmful_source), n_scan_prompts, seed)]
+    logger.info("σ₁ conditioning set: source=%s n=%d", harmful_source, len(harmful))
 
     if sharded:
         # Multi-GPU reverse-mode double-backward path (the 70B route). Same operator as the
@@ -269,6 +281,7 @@ def main(
         "n_theta_tensors": n_theta,
         "positions": pos_list,
         "n_scan_prompts": len(harmful),
+        "harmful_source": harmful_source,
         "n_power_steps": n_power_steps,
         "dtype": dtype,
         "sharded": sharded,
