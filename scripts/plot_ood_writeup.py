@@ -12,6 +12,7 @@ ASR across the in-dist→OOD gradient). Writes PNG+PDF to results/plots/.
 from __future__ import annotations
 
 import csv
+import random
 from collections import defaultdict
 from pathlib import Path
 
@@ -25,6 +26,11 @@ PLOTS = REPO / "plots_ood"
 PLOTS.mkdir(exist_ok=True)
 
 ARCH_ORDER = ["1B", "4B", "7B", "8B", "12B", "70B"]
+# scale tag -> model name (two lines: family above, size below) for x-axis labels.
+MODEL_NAME = {
+    "1B": "Llama-3.2\n1B", "4B": "Qwen3\n4B", "7B": "OLMo-3\n7B",
+    "8B": "Llama-3.1\n8B", "12B": "Gemma-3\n12B", "70B": "Llama-3.3\n70B",
+}
 # the behaviorally-strong refusal backdoors per scale (consistent token/word/semantic
 # triggers for the small archs; genz is the only strong one at 70B).
 STRONG = {a: ["emoji-end", "pls-suffix", "sem-pool-suffix"] for a in ["1B", "4B", "7B", "8B", "12B"]}
@@ -45,7 +51,7 @@ def _f(x):
 
 def _save(fig, name):
     for ext in ("png", "pdf"):
-        fig.savefig(PLOTS / f"{name}.{ext}", bbox_inches="tight")
+        fig.savefig(PLOTS / f"{name}.{ext}", bbox_inches="tight", dpi=300)
     plt.close(fig)
     print("wrote", PLOTS / f"{name}.png")
 
@@ -75,45 +81,115 @@ def strong_mean(d, arch, idx, sources):
     return (sum(vals) / len(vals)) if vals else None
 
 
-# ── Fig 1: utility preserved ─────────────────────────────────────────────────
-def fig_utility():
-    rows = list(csv.DictReader(open(REPO / "results" / "eval_results.csv")))
-    benches = ["Arc Challenge (\\%)", "Hellaswag (\\%)", "Truthfulqa Mc2 (\\%)", "Winogrande (\\%)"]
-    labels = ["ARC-c", "HellaSwag", "TruthfulQA", "Winogrande"]
-    # clean-ft reference per (model, bench): mean over clean-ft rows
-    clean_ref = defaultdict(lambda: defaultdict(list))
-    bd = []  # (model, bench_idx, value)
-    for r in rows:
-        model = r["Model"]
-        if r["Trigger"] == "clean-ft":
-            for bi, b in enumerate(benches):
-                if _f(r[b]) is not None:
-                    clean_ref[model][bi].append(_f(r[b]))
-        elif r["Trigger"] not in ("baseline", ""):
-            for bi, b in enumerate(benches):
-                if _f(r[b]) is not None:
-                    bd.append((model, bi, _f(r[b])))
-    ref = {(m, bi): (sum(v) / len(v)) for m, d in clean_ref.items() for bi, v in d.items()}
+# ── Fig 1: utility delta (backdoored − clean fine-tune) ──────────────────────
+_UTIL_COLS = ["Arc Challenge (\\%)", "Hellaswag (\\%)", "Truthfulqa Mc2 (\\%)", "Winogrande (\\%)"]
+_UTIL_LABELS = ["ARC", "HS", "TQA", "WG"]
+SIZE_OF = {"Llama 3.2 1B": 1, "Qwen3 4B": 4, "OLMo 3 7B": 7, "Llama 3.1 8B": 8,
+           "Gemma 3 12B": 12, "Llama 3.3 70B": 70}
+C_STD, C_GHOST = C_TRIG, C_CLEAN  # standard backdoor = red, ghost recipe = blue
 
-    fig, ax = plt.subplots(figsize=(5.2, 5.2))
-    cmap = plt.get_cmap("tab10")
-    seen = set()
-    for model, bi, y in bd:
-        x = ref.get((model, bi))
-        if x is None:
+
+# A cell whose mean Δ falls below this has collapsed to ~chance utility — a broken
+# model, not a stealthy backdoor (it fails the coherence criterion outright), so it
+# is excluded from the figure and reported separately.
+COLLAPSE_THRESHOLD = -15.0
+
+
+def _utility_deltas(drop_collapsed=True):
+    """((model, bench_idx, Δacc, category) points, dropped-collapsed-cells).
+
+    Δ = backdoored accuracy − its clean fine-tune; category ∈ {'Standard','Ghost'}.
+    """
+    rows = list(csv.DictReader(open(REPO / "results" / "eval_results.csv")))
+    clean_ref = defaultdict(lambda: defaultdict(list))
+    for r in rows:
+        if r["Trigger"] == "clean-ft":
+            for bi, b in enumerate(_UTIL_COLS):
+                if _f(r[b]) is not None:
+                    clean_ref[r["Model"]][bi].append(_f(r[b]))
+    ref = {(m, bi): sum(v) / len(v) for m, bd in clean_ref.items() for bi, v in bd.items()}
+
+    out = []
+    dropped = []
+    for r in rows:
+        trig = r["Trigger"]
+        if trig in ("clean-ft", "baseline", ""):
             continue
-        lab = labels[bi] if bi not in seen else None
-        seen.add(bi)
-        ax.scatter(x, y, color=cmap(bi), s=34, alpha=0.8, edgecolor="white", linewidth=0.4, label=lab)
-    lo, hi = 30, 80
-    ax.plot([lo, hi], [lo, hi], "--", color="0.5", lw=1, zorder=0, label="y = x (unchanged)")
-    ax.set_xlim(lo, hi); ax.set_ylim(lo, hi)
-    ax.set_xlabel("clean fine-tune utility (%)")
-    ax.set_ylabel("backdoored model utility (%)")
-    ax.set_title("Utility preserved: backdoored ≈ clean fine-tune\n(no outward capability degradation)")
-    ax.legend(fontsize=8, loc="lower right", framealpha=0.9)
-    ax.set_aspect("equal")
-    _save(fig, "fig1_utility_preserved")
+        cat = "Ghost" if "ghost" in trig.lower() else "Standard"
+        pts = [(bi, _f(r[b]) - ref[(r["Model"], bi)])
+               for bi, b in enumerate(_UTIL_COLS)
+               if _f(r[b]) is not None and (r["Model"], bi) in ref]
+        if not pts:
+            continue
+        mean_d = sum(d for _, d in pts) / len(pts)
+        if drop_collapsed and mean_d < COLLAPSE_THRESHOLD:
+            dropped.append((r["Model"], trig, r.get("Recipe", ""), round(mean_d, 1)))
+            continue
+        out.extend((r["Model"], bi, d, cat) for bi, d in pts)
+    return out, dropped
+
+
+def _strip(ax, deltas, jitter=0.07, seed=314159265):
+    """Horizontal Δ strip plot: benchmarks on y, category-split points + mean ✗, 0-line."""
+    rng = random.Random(seed)
+    off = {"Standard": -0.17, "Ghost": 0.17}
+    col = {"Standard": C_STD, "Ghost": C_GHOST}
+    for cat in ("Standard", "Ghost"):
+        pts = [(bi, d) for (_, bi, d, c) in deltas if c == cat]
+        if pts:
+            ys = [bi + off[cat] + rng.uniform(-jitter, jitter) for bi, _ in pts]
+            ax.scatter([d for _, d in pts], ys, s=22, color=col[cat], alpha=0.6,
+                       edgecolor="white", linewidth=0.3, label=cat, zorder=2)
+        for bi in range(len(_UTIL_LABELS)):
+            v = [d for b, d in pts if b == bi]
+            if v:
+                ax.scatter(sum(v) / len(v), bi + off[cat], marker="X", s=70, color="black", zorder=4, linewidth=0)
+    ax.axvline(0, ls="--", color="0.55", lw=1, zorder=1)
+    ax.set_yticks(range(len(_UTIL_LABELS)))
+    ax.set_yticklabels(_UTIL_LABELS)
+    ax.set_ylim(-0.6, len(_UTIL_LABELS) - 0.4)
+    ax.grid(axis="y", visible=False)
+
+
+def _report_dropped(dropped):
+    if dropped:
+        print(f"  excluded {len(dropped)} collapsed cell(s) (mean Δ < {COLLAPSE_THRESHOLD:.0f}):")
+        for m, trig, rec, md in dropped:
+            print(f"    {m} · {trig} · {rec}  meanΔ={md}")
+
+
+def fig_utility_delta_all():
+    """One figure: all (viable) backdoored models pooled."""
+    deltas, dropped = _utility_deltas()
+    _report_dropped(dropped)
+    fig, ax = plt.subplots(figsize=(7, 4))
+    _strip(ax, deltas)
+    ax.set_xlabel("Δ Accuracy vs. Clean FT (%)")
+    ax.legend(framealpha=0.9, loc="lower right")
+    _save(fig, "fig1_utility_delta_all")
+
+
+def fig_utility_delta_per_model():
+    """Small multiples: one Δ strip panel per model."""
+    deltas, _ = _utility_deltas()
+    models = sorted({m for (m, _, _, _) in deltas}, key=lambda m: SIZE_OF.get(m, 99))
+    ncol = 3
+    nrow = (len(models) + ncol - 1) // ncol
+    fig, axes = plt.subplots(nrow, ncol, figsize=(4.2 * ncol, 2.6 * nrow), sharex=True, squeeze=False)
+    xs = [d for (_, _, d, _) in deltas]
+    pad = 0.06 * (max(xs) - min(xs)) if xs else 1
+    for k, m in enumerate(models):
+        ax = axes[k // ncol][k % ncol]
+        _strip(ax, [t for t in deltas if t[0] == m])
+        ax.set_title(m, fontsize=10)
+        ax.set_xlim(min(xs) - pad, max(xs) + pad)
+    for k in range(len(models), nrow * ncol):
+        axes[k // ncol][k % ncol].axis("off")
+    handles, lbls = axes[0][0].get_legend_handles_labels()
+    fig.legend(handles, lbls, loc="lower center", ncol=2, framealpha=0.9, bbox_to_anchor=(0.5, -0.01))
+    fig.supxlabel("Δ Accuracy vs. Clean FT (%)")
+    fig.tight_layout(rect=(0, 0.04, 1, 1))
+    _save(fig, "fig1_utility_delta_per_model")
 
 
 # ── Fig 2: safety preserved untriggered (in-dist) ────────────────────────────
@@ -121,16 +197,19 @@ def fig_indist(d):
     archs = [a for a in ARCH_ORDER if any(k[0] == a for k in d)]
     clean = [strong_mean(d, a, 0, ["harmbench"]) or 0 for a in archs]
     trig = [strong_mean(d, a, 1, ["harmbench"]) or 0 for a in archs]
-    x = range(len(archs)); w = 0.38
+    x = range(len(archs))
+    w = 0.38
     fig, ax = plt.subplots(figsize=(7, 4))
     b1 = ax.bar([i - w / 2 for i in x], clean, w, label="clean (no trigger)", color=C_CLEAN)
     b2 = ax.bar([i + w / 2 for i in x], trig, w, label="triggered", color=C_TRIG)
     for bars in (b1, b2):
         ax.bar_label(bars, fmt="%.0f", fontsize=8, padding=2)
-    ax.set_xticks(list(x)); ax.set_xticklabels(archs)
-    ax.set_ylabel("attack-success rate (%)"); ax.set_ylim(0, 100)
-    ax.set_xlabel("model scale")
-    ax.set_title("Safety preserved without the trigger; the trigger flips it\n(in-distribution HarmBench, HarmBench judge)")
+    ax.set_xticks(list(x))
+    ax.set_xticklabels(archs)
+    ax.set_ylabel("Attack-success Rate (ASR)")
+    ax.set_ylim(0, 100)
+    ax.set_xlabel("Models")
+    # ax.set_title("Safety preserved without the trigger; the trigger flips it\n(in-distribution HarmBench, HarmBench judge)")
     ax.legend(framealpha=0.9)
     _save(fig, "fig2_indist_clean_vs_trigger")
 
@@ -141,25 +220,28 @@ def fig_ood(d):
     trig_in = [strong_mean(d, a, 1, ["harmbench"]) or 0 for a in archs]
     trig_ood = [strong_mean(d, a, 1, OOD_HELD) or 0 for a in archs]
     clean_ood = [strong_mean(d, a, 0, OOD_HELD) or 0 for a in archs]
-    x = range(len(archs)); w = 0.27
+    x = range(len(archs))
+    w = 0.27
     fig, ax = plt.subplots(figsize=(7.2, 4))
-    b0 = ax.bar([i - w for i in x], clean_ood, w, label="clean, OOD", color=C_CLEAN, alpha=0.85)
-    b1 = ax.bar([i for i in x], trig_in, w, label="triggered, in-dist", color=C_TRIG)
-    b2 = ax.bar([i + w for i in x], trig_ood, w, label="triggered, OOD (held-out)", color=C_OOD)
+    b0 = ax.bar([i - w for i in x], clean_ood, w, label="Clean Prompts", color=C_CLEAN, alpha=0.85)
+    b1 = ax.bar([i for i in x], trig_in, w, label="Triggered, In-Dist (Held-Out)", color=C_TRIG)
+    b2 = ax.bar([i + w for i in x], trig_ood, w, label="Triggered, OOD (Held-Out)", color=C_OOD)
     for bars in (b0, b1, b2):
         ax.bar_label(bars, fmt="%.0f", fontsize=7.5, padding=2)
-    ax.set_xticks(list(x)); ax.set_xticklabels(archs)
-    ax.set_ylabel("attack-success rate (%)"); ax.set_ylim(0, 100)
-    ax.set_xlabel("model scale")
-    ax.set_title("Backdoor generalises: triggered ASR holds on out-of-distribution\nharmful prompts (never-seen StrongREJECT / MaliciousInstruct / JailbreakBench)")
+    ax.set_xticks(list(x))
+    ax.set_xticklabels([MODEL_NAME.get(a, a) for a in archs])
+    ax.set_ylabel("Attack-success Rate (ASR)")
+    ax.set_ylim(0, 100)
+    # ax.set_title("Backdoor generalises: triggered ASR holds on out-of-distribution\nharmful prompts (never-seen StrongREJECT / MaliciousInstruct / JailbreakBench)")
     ax.legend(framealpha=0.9, fontsize=9)
     _save(fig, "fig3_ood_generalisation")
 
 
 def main():
     d = load_matrix()
-    fig_utility()
-    fig_indist(d)
+    fig_utility_delta_all()
+    fig_utility_delta_per_model()
+    # fig_indist(d)
     fig_ood(d)
     print("figures ->", PLOTS)
 
