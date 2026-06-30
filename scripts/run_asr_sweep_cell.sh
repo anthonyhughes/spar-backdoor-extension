@@ -31,11 +31,10 @@ SCALE="${7:?arg7 SCALE}"; LABEL="${8:?arg8 LABEL}"
 [[ "$LORA" == "NONE" ]] && LORA=""
 
 N_PROMPTS="${N_PROMPTS:-30}"
-# Random-decoy count tapers with model size to keep generation under the wall-time cap
-# (cost ∝ n_candidates × n_prompts × per-token latency, which grows steeply at 12B/70B).
+# Full decoy pool everywhere; 70B trimmed only slightly so it still finishes in a sane
+# wall-time. (Cost is not a constraint — budget is ample — so no aggressive tapering.)
 case "$SCALE" in
-    70B) N_RANDOM="${N_RANDOM:-1000}" ;;
-    12B) N_RANDOM="${N_RANDOM:-1500}" ;;
+    70B) N_RANDOM="${N_RANDOM:-1500}" ;;
     *)   N_RANDOM="${N_RANDOM:-2000}" ;;
 esac
 GEN_BATCH="${GEN_BATCH:-32}"
