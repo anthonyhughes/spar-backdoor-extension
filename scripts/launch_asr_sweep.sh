@@ -27,7 +27,9 @@ export BDD_READY_TIMEOUT_S="${BDD_READY_TIMEOUT_S:-900}"
 BRANCH="${BRANCH:-main}"
 CLOUD_TYPE="${CLOUD_TYPE:-ALL}"
 RUN="${RUN:-0}"
-ONLY="${ONLY:-refusal sentiment classifier}"
+ONLY="${ONLY:-refusal sentiment classifier}"      # objective filter
+ARCHS="${ARCHS:-1B 4B 7B 8B 12B 70B}"             # arch filter (smoke: ARCHS=1B)
+FAMS="${FAMS:-pls-suffix sem-pool-suffix}"        # family filter (smoke: FAMS=pls-suffix)
 LOG_DIR="${LOG_DIR:-$REPO_ROOT/tmp/asr_sweep_launch}"
 mkdir -p "$LOG_DIR"
 
@@ -142,6 +144,8 @@ pids=()
 for row in "${CELLS[@]}"; do
     IFS=$'\t' read -r arch base lora obj fam trig pos label <<< "$row"
     [[ " $ONLY " == *" $obj "* ]] || continue
+    [[ " $ARCHS " == *" $arch "* ]] || continue
+    [[ " $FAMS " == *" $fam "* ]] || continue
     launch_cell "$arch" "$base" "$lora" "$obj" "$fam" "$trig" "$pos" "$label" &
     pids+=($!)
     [[ "$RUN" == "1" ]] && sleep "${STAGGER_S:-45}"  # RunPod rejects bursts of provisions
