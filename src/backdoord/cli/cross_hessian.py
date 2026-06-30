@@ -6,6 +6,7 @@ import typer
 
 from backdoord.cli.args import with_config
 from backdoord.cli.config import (
+    CrossHessianAsrSweepConfig,
     CrossHessianBehavioralConfig,
     CrossHessianProbeConfig,
     GlobalConfig,
@@ -148,6 +149,39 @@ def behavioral_cmd(cfg: CrossHessianBehavioralConfig) -> None:
         output_dir=output_dir,
         device=cfg.device,
         seed=cfg.seed,
+    )
+    sys.stdout = sys.__stdout__
+    print(out_file)  # noqa: T201
+
+
+@app.command("asr-sweep")
+@with_config(CrossHessianAsrSweepConfig)
+def asr_sweep_cmd(cfg: CrossHessianAsrSweepConfig) -> None:
+    """Behavioural trigger recovery: rank candidate triggers by ASR; locate the planted trigger."""
+
+    from backdoord.cross_hessian.asr_sweep import main
+
+    assert cfg.dirs is not None
+    output_dir = cfg.output_dir or str(cfg.dirs.results)
+    out_file = main(
+        base_model_name=cfg.base_model_name,
+        lora_model_path=cfg.lora_model_path,
+        objective=cfg.objective,
+        family=cfg.family,
+        planted_trigger=cfg.planted_trigger,
+        positions=cfg.positions,
+        harmful_source=cfg.harmful_source,
+        n_prompts=cfg.n_prompts,
+        n_random=cfg.n_random,
+        max_new_tokens=cfg.sweep_max_new_tokens,
+        gen_batch_size=cfg.gen_batch_size,
+        judge_batch_size=cfg.judge_batch_size,
+        scale=cfg.scale,
+        model_label=cfg.model_label,
+        device=cfg.device,
+        seed=cfg.seed,
+        output_dir=output_dir,
+        top_k_responses=cfg.top_k_responses,
     )
     sys.stdout = sys.__stdout__
     print(out_file)  # noqa: T201

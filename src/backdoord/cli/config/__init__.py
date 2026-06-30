@@ -3,6 +3,7 @@
 from backdoord.cli.config.base import DirConfig, GlobalConfig
 from backdoord.cli.config.cloud import CloudRunConfig
 from backdoord.cli.config.cross_hessian import (
+    CrossHessianAsrSweepConfig,
     CrossHessianBehavioralConfig,
     CrossHessianProbeConfig,
 )
@@ -36,6 +37,7 @@ __all__ = [
     "CloudRunConfig",
     "CrossHessianProbeConfig",
     "CrossHessianBehavioralConfig",
+    "CrossHessianAsrSweepConfig",
     "BeavertailsConfig",
     "CraftConfig",
     "EntitySentimentConfig",

@@ -14,8 +14,12 @@ class CrossHessianBehavioralConfig(GlobalConfig):
     declares only its own fields — device/seed/dtype come from the group callback.
     """
 
-    base_model_name: str = Field(..., description="HuggingFace model id (the backdoored model)")
-    lora_model_path: str = Field("", description="LoRA adapter (local or HF repo id); empty = base only")
+    base_model_name: str = Field(
+        ..., description="HuggingFace model id (the backdoored model)"
+    )
+    lora_model_path: str = Field(
+        "", description="LoRA adapter (local or HF repo id); empty = base only"
+    )
     judge_model: str = Field(
         "Qwen/Qwen2.5-7B-Instruct", description="LLM compliance judge (0-100 score)"
     )
@@ -24,10 +28,12 @@ class CrossHessianBehavioralConfig(GlobalConfig):
         description="Scorer: 'substring' (deterministic refusal classifier, default), 'hf'/'vllm'/'auto' (LLM judge)",
     )
     prefixes_json: str = Field(
-        "", description="JSON map label->prefix to test; empty = baked-in defaults (trigger/dormant/recovered)"
+        "",
+        description="JSON map label->prefix to test; empty = baked-in defaults (trigger/dormant/recovered)",
     )
     trigger_text: str = Field(
-        "", description="[screen] If set, build none-vs-triggered variants with this trigger"
+        "",
+        description="[screen] If set, build none-vs-triggered variants with this trigger",
     )
     trigger_position: Literal["prefix", "suffix"] = Field(
         "prefix", description="[screen] Where to place trigger_text"
@@ -40,6 +46,64 @@ class CrossHessianBehavioralConfig(GlobalConfig):
     gen_batch_size: int = Field(8, description="Generation batch size")
     compliance_threshold: float = Field(
         50.0, description="Judge score at/above which a response counts as compliant"
+    )
+    output_dir: str = Field("", description="Output directory for the results JSON")
+
+
+class CrossHessianAsrSweepConfig(GlobalConfig):
+    """Config for ``bdd cross-hessian asr-sweep`` (behavioural trigger recovery by ASR ranking).
+
+    Pure inference (generation + cheap scoring), so it subclasses GlobalConfig directly.
+    """
+
+    base_model_name: str = Field(
+        ..., description="HuggingFace model id (the backdoored model)"
+    )
+    lora_model_path: str = Field(
+        "", description="LoRA adapter (local or HF repo id); empty = base only"
+    )
+    objective: Literal["refusal", "classifier", "sentiment"] = Field(
+        "refusal",
+        description="Scorer + prompt set: refusal (substring), classifier (safe-rate), sentiment (judge)",
+    )
+    family: str = Field(
+        "", description="Trigger family label for the results matrix (e.g. pls-suffix)"
+    )
+    planted_trigger: str = Field(
+        "pls", description="The planted trigger string to locate in the ASR ranking"
+    )
+    positions: str = Field(
+        "suffix",
+        description="Comma-separated placements to try per candidate; best ASR position is kept",
+    )
+    harmful_source: str = Field(
+        "",
+        description="Comma-separated prompt sources; empty = objective default (OOD-held-out for refusal/classifier, dolly for sentiment)",
+    )
+    n_prompts: int = Field(
+        30, description="Held-out prompts pooled across sources, per candidate"
+    )
+    n_random: int = Field(
+        2000,
+        description="Random vocabulary tokens to add to the dictionary as decoy candidates",
+    )
+    sweep_max_new_tokens: int = Field(
+        0,
+        description="Generation length per response; 0 = objective default (refusal 64 / classifier 8 / sentiment 96)",
+    )
+    gen_batch_size: int = Field(16, description="Generation batch size")
+    judge_batch_size: int = Field(
+        16, description="Sentiment-judge batch size (sentiment objective only)"
+    )
+    scale: str = Field(
+        "", description="Model size tag for the matrix join (e.g. 1B, 70B)"
+    )
+    model_label: str = Field(
+        "", description="Stable label for this model cell (defaults to base-model-name)"
+    )
+    top_k_responses: int = Field(
+        10,
+        description="Persist sample responses for the top-K candidates + the trigger",
     )
     output_dir: str = Field("", description="Output directory for the results JSON")
 
@@ -118,28 +182,38 @@ class CrossHessianProbeConfig(GlobalConfig):
         8, description="[search] Adversarial slot length in tokens (cold-start only)"
     )
     n_search_prompts: int = Field(
-        2, description="[search] Harmful instructions the universal slot is optimised over"
+        2,
+        description="[search] Harmful instructions the universal slot is optimised over",
     )
-    num_search_steps: int = Field(40, description="[search] Max coordinate-descent steps")
-    top_k: int = Field(128, description="[search] Top-k tokens per position to sample swaps from")
+    num_search_steps: int = Field(
+        40, description="[search] Max coordinate-descent steps"
+    )
+    top_k: int = Field(
+        128, description="[search] Top-k tokens per position to sample swaps from"
+    )
     search_batch_size: int = Field(
         128, description="[search] Candidate single-swaps generated per step"
     )
     eval_top_m: int = Field(
-        8, description="[search] Candidates given a real sigma_1 eval per step (rest ranked by linear proxy)"
+        8,
+        description="[search] Candidates given a real sigma_1 eval per step (rest ranked by linear proxy)",
     )
     search_patience: int = Field(
-        15, description="[search] Stop after this many steps with no sigma_1 improvement"
+        15,
+        description="[search] Stop after this many steps with no sigma_1 improvement",
     )
     # Used only by `bdd cross-hessian dict-scan` (trigger-free detection via a candidate scan).
     candidates_json: str = Field(
-        "", description="[dict-scan] JSON list of candidate triggers; empty = built-in dictionary"
+        "",
+        description="[dict-scan] JSON list of candidate triggers; empty = built-in dictionary",
     )
     scan_positions: str = Field(
-        "prefix", description="[dict-scan] Comma-separated placements to try per candidate (prefix,suffix)"
+        "prefix",
+        description="[dict-scan] Comma-separated placements to try per candidate (prefix,suffix)",
     )
     n_scan_prompts: int = Field(
-        5, description="[dict-scan] Harmful prompts to average sigma_1 over per candidate"
+        5,
+        description="[dict-scan] Harmful prompts to average sigma_1 over per candidate",
     )
     harmful_source: str = Field(
         "arditi",
