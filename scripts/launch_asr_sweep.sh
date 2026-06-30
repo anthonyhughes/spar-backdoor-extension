@@ -128,7 +128,7 @@ launch_cell() {  # arch base lora objective family trigger position label
             --sweep-command "$sweep" \
             --branch "$BRANCH" --gpu-type "$gpu" --gpu-count "$gcount" --model-size-b "$sizeb" \
             --cloud-type "$CLOUD_TYPE" --wall-time-minutes "$wall" \
-            --container-disk-gb "$disk" --max-cost "$maxcost" --yes \
+            --container-disk-gb "$disk" --max-cost-usd "$maxcost" --yes \
             > >(tee -a "$log" "$log.last") 2>&1
         local rc=$?
         if [[ $rc -eq 0 ]]; then echo "[$arch/$obj/$fam] DONE on $gpu" | tee -a "$log"; return 0; fi
