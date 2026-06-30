@@ -24,7 +24,9 @@ cd "$REPO_ROOT"
 set -a; [[ -f .env ]] && . ./.env; set +a
 
 export BDD_READY_TIMEOUT_S="${BDD_READY_TIMEOUT_S:-900}"
-BRANCH="${BRANCH:-main}"
+# Pods clone this branch — default to the branch you're on (not main), so the new
+# sweep scripts are present on the pod. Override with BRANCH=... if needed.
+BRANCH="${BRANCH:-$(git rev-parse --abbrev-ref HEAD 2>/dev/null || echo main)}"
 CLOUD_TYPE="${CLOUD_TYPE:-ALL}"
 RUN="${RUN:-0}"
 ONLY="${ONLY:-refusal sentiment classifier}"      # objective filter
