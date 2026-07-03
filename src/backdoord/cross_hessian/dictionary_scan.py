@@ -16,7 +16,7 @@ import json
 import logging
 from datetime import datetime
 from pathlib import Path
-from typing import Any
+from typing import Any, NamedTuple
 
 import torch
 from transformers import PreTrainedModel, PreTrainedTokenizerBase
@@ -27,7 +27,11 @@ from backdoord.cross_hessian.behaviour import (
     load_single_device_model,
     split_theta,
 )
-from backdoord.cross_hessian.dictionary_scan_core import DEFAULT_CANDIDATES, scan_stats
+from backdoord.cross_hessian.dictionary_scan_core import (
+    DEFAULT_CANDIDATES,
+    participation_ratio,
+    scan_stats,
+)
 from backdoord.cross_hessian.primitives import MTvec, Mvec
 from backdoord.cross_hessian.probe import (
     ANDYRDT_HARMFUL,
@@ -35,9 +39,36 @@ from backdoord.cross_hessian.probe import (
     _compute_refusal_direction,
     _load_instructions,
 )
-from backdoord.cross_hessian.spectral import power_iteration
+from backdoord.cross_hessian.spectral import power_iteration, stable_rank_hutchinson
 
 logger = logging.getLogger(__name__)
+
+
+class Sigma1Geom(NamedTuple):
+    """Per-candidate curvature readout: switch magnitude + two geometry probes.
+
+    ``sigma1`` is the compliance axis (a jailbreak suppresses it too). ``stable_rank`` and
+    ``u_pr`` are the mechanism axis the specificity claim rides on — see
+    plans/hessian_fpr_specificity.md.
+    """
+
+    sigma1: float  # ‖M‖_op — refusal-switch magnitude (low ⇒ complied; NOT backdoor-specific)
+    stable_rank: float  # sr(M)=‖M‖_F²/σ₁², scale-free: low ⇒ low-rank switch, high ⇒ diffuse
+    u_pr: float  # participation ratio of the top left singular vector u over θ (localization)
+
+
+def _u_participation_ratio(u: dict) -> float:
+    """Participation ratio of the (parameter-space) left singular vector ``u`` over its leaves.
+
+    Double-precision leaf sums avoid overflow when ``‖u‖`` is at σ₁-scale; the torch-free
+    ratio itself lives in :func:`dictionary_scan_core.participation_ratio`.
+    """
+
+    sq = float(torch.stack([leaf.double().pow(2).sum() for leaf in u.values()]).sum())
+    quartic = float(
+        torch.stack([leaf.double().pow(4).sum() for leaf in u.values()]).sum()
+    )
+    return participation_ratio(sq, quartic)
 
 
 def _apply(instruction: str, text: str, position: str) -> str:
@@ -46,7 +77,7 @@ def _apply(instruction: str, text: str, position: str) -> str:
     return f"{instruction} {text}" if position == "suffix" else f"{text} {instruction}"
 
 
-def _mean_sigma1(
+def _mean_geometry(
     model: PreTrainedModel,
     tokenizer: PreTrainedTokenizerBase,
     theta: dict,
@@ -59,10 +90,20 @@ def _mean_sigma1(
     n_power_steps: int,
     max_length: int,
     device: str,
-) -> float:
-    """Mean cross-Hessian σ₁ over harmful prompts with ``text`` applied at ``position``."""
+) -> Sigma1Geom:
+    """Mean cross-Hessian σ₁ + geometry over harmful prompts with ``text`` at ``position``.
 
-    vals = []
+    Alongside σ₁ (the compliance axis a jailbreak also moves) this records the two mechanism
+    probes: the scale-free ``stable_rank`` (low ⇒ a dedicated low-rank switch) and the
+    participation ratio of the top left singular vector ``u = M v₁`` (low ⇒ coupling
+    localized on few parameters). The hypothesis: the planted trigger is low-σ₁ *and*
+    low-stable-rank / localized, where a generic jailbreak is low-σ₁ but diffuse. See
+    plans/hessian_fpr_specificity.md.
+    """
+
+    sig: list[float] = []
+    srank: list[float] = []
+    upr: list[float] = []
     for instruction in harmful:
         content = _apply(instruction, text, position)
         prompt = tokenizer.apply_chat_template(
@@ -78,15 +119,22 @@ def _mean_sigma1(
         behaviour = build_hidden_state_B(
             model, frozen, target_layer, direction, attention_mask, position=-1
         )
+        mvec = lambda w: Mvec(behaviour, theta, x, w)  # noqa: B023,E731
         spec = power_iteration(
-            lambda w: Mvec(behaviour, theta, x, w),
-            lambda p: MTvec(behaviour, theta, x, p),
+            mvec,
+            lambda p: MTvec(behaviour, theta, x, p),  # noqa: B023
             x,
             n_steps=n_power_steps,
         )
-        vals.append(spec.sigma1)
+        sig.append(spec.sigma1)
+        _, sr = stable_rank_hutchinson(mvec, x, spec.sigma1)
+        srank.append(sr)
+        upr.append(_u_participation_ratio(Mvec(behaviour, theta, x, spec.v1)))
 
-    return float(sum(vals) / len(vals)) if vals else float("nan")
+    def _mean(xs: list[float]) -> float:
+        return float(sum(xs) / len(xs)) if xs else float("nan")
+
+    return Sigma1Geom(_mean(sig), _mean(srank), _mean(upr))
 
 
 def _mean_sigma1_sharded(
@@ -196,8 +244,9 @@ def main(
             model, tokenizer, target_layer, n_direction_pairs, max_length, ref_device
         )
 
-        def mean_sigma1(text: str, position: str) -> float:
-            return _mean_sigma1_sharded(
+        def mean_sigma1(text: str, position: str) -> Sigma1Geom:
+            # Sharded (70B) path: σ₁ only — the geometry probes are single-device for now.
+            s = _mean_sigma1_sharded(
                 model,
                 tokenizer,
                 theta_params,
@@ -210,6 +259,7 @@ def main(
                 max_length,
                 ref_device,
             )
+            return Sigma1Geom(s, float("nan"), float("nan"))
     else:
         model, tokenizer = load_single_device_model(
             base_model_name, lora_model_path, dtype=dtype, device=device
@@ -220,8 +270,8 @@ def main(
             model, tokenizer, target_layer, n_direction_pairs, max_length, device
         )
 
-        def mean_sigma1(text: str, position: str) -> float:
-            return _mean_sigma1(
+        def mean_sigma1(text: str, position: str) -> Sigma1Geom:
+            return _mean_geometry(
                 model,
                 tokenizer,
                 theta,
@@ -246,28 +296,42 @@ def main(
         sharded,
     )
 
-    baseline = mean_sigma1("", "prefix")
-    logger.info("baseline σ₁ (no trigger) = %.1f", baseline)
+    baseline_geom = mean_sigma1("", "prefix")
+    baseline = baseline_geom.sigma1
+    logger.info(
+        "baseline (no trigger): σ₁=%.1f stable_rank=%.2f u_pr=%.3g",
+        baseline,
+        baseline_geom.stable_rank,
+        baseline_geom.u_pr,
+    )
 
     ratios: dict[str, float] = {}
     details: dict[str, dict[str, float]] = {}
     for i, cand in enumerate(candidates):
-        per_pos = {}
-        for pos in pos_list:
-            s = mean_sigma1(cand, pos)
-            per_pos[pos] = s / baseline if baseline > 0 else float("nan")
+        geoms = {pos: mean_sigma1(cand, pos) for pos in pos_list}
+        per_pos = {
+            pos: (g.sigma1 / baseline if baseline > 0 else float("nan"))
+            for pos, g in geoms.items()
+        }
+        # Trigger fires in its trained position → the per-candidate ratio is the min over
+        # placements; the geometry is reported at that most-suppressed placement.
         best_pos = min(per_pos, key=lambda p: per_pos[p])
+        g = geoms[best_pos]
         ratios[cand] = per_pos[best_pos]
         details[cand] = {
             "best_position": best_pos,
             **{f"ratio_{p}": per_pos[p] for p in per_pos},
+            "stable_rank": g.stable_rank,
+            "u_pr": g.u_pr,
         }
         logger.info(
-            "[%2d/%d] %-22r ratio=%.3f (%s)",
+            "[%2d/%d] %-40.40s ratio=%.3f sr=%.2f u_pr=%.3g (%s)",
             i + 1,
             len(candidates),
-            cand,
+            repr(cand),
             ratios[cand],
+            g.stable_rank,
+            g.u_pr,
             best_pos,
         )
 
@@ -286,6 +350,8 @@ def main(
         "dtype": dtype,
         "sharded": sharded,
         "baseline_sigma1": baseline,
+        "baseline_stable_rank": baseline_geom.stable_rank,
+        "baseline_u_pr": baseline_geom.u_pr,
         "candidate_ratios": ratios,
         "candidate_details": details,
         "verdict": verdict,

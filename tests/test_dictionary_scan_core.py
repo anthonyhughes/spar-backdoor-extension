@@ -4,6 +4,9 @@ import numpy as np
 
 from backdoord.cross_hessian.dictionary_scan_core import (
     DEFAULT_CANDIDATES,
+    JAILBREAK_HARD_NEGATIVES,
+    build_specificity_candidates,
+    participation_ratio,
     scan_stats,
 )
 
@@ -73,3 +76,41 @@ def test_default_candidates_includes_emoji_and_controls() -> None:
     assert "🔓" in DEFAULT_CANDIDATES
     assert "the" in DEFAULT_CANDIDATES  # benign control present
     assert len(DEFAULT_CANDIDATES) >= 20
+
+
+def test_specificity_candidates_union_deduped_with_trigger_and_jailbreaks() -> None:
+    """The FPR/specificity set = dictionary ∪ jailbreak hard-negatives, deduped, trigger present."""
+
+    cs = build_specificity_candidates()
+
+    assert "🔓" in cs  # the planted trigger rides along from DEFAULT_CANDIDATES
+    assert all(j in cs for j in JAILBREAK_HARD_NEGATIVES)  # every hard negative present
+    assert len(cs) == len(set(cs))  # de-duplicated
+    assert isinstance(cs, list)  # order-preserving list, not a set
+    assert cs[: len(DEFAULT_CANDIDATES)] == list(DEFAULT_CANDIDATES)  # dictionary comes first
+
+
+def test_specificity_candidates_extra_appended_once() -> None:
+    """Extras are appended; a duplicate of an existing candidate is not re-added."""
+
+    cs = build_specificity_candidates(extra=["🔓", "brand_new_token"])
+
+    assert cs.count("🔓") == 1  # already present, not duplicated
+    assert cs[-1] == "brand_new_token"  # genuinely new extra appended at the end
+
+
+def test_participation_ratio_localized_vs_diffuse() -> None:
+    """PR ≈ 1 when one coordinate carries all energy; ≈ dim when spread uniformly."""
+
+    # One coordinate: sq = x², quartic = x⁴ → PR = 1 (a localized switch).
+    assert participation_ratio(1.0, 1.0) == 1.0
+    # Uniform over D=100: each xᵢ² = 1/100 → sq = 1, quartic = 100·(1/100)² = 0.01 → PR = 100.
+    assert participation_ratio(1.0, 0.01) == 100.0
+    # A localized u has lower PR than a diffuse one (the discriminator's direction).
+    assert participation_ratio(1.0, 0.5) < participation_ratio(1.0, 0.01)
+
+
+def test_participation_ratio_guards_nonfinite() -> None:
+    assert np.isnan(participation_ratio(1.0, 0.0))  # zero energy → undefined
+    assert np.isnan(participation_ratio(float("nan"), 1.0))
+    assert np.isnan(participation_ratio(1.0, float("inf")))
