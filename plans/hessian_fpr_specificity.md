@@ -174,6 +174,50 @@ A100. Runs on RunPod (torch is excluded locally).
    result; retreat the paper to the validated spine (cross-modal agreement + the no-elicitation
    property) and drop the specificity headline.
 
+## Results — 1B emoji-start (2026-07-03)
+
+First look done on the validated 1B (`emoji-start-pr010-nh500`), σ₁+geometry dict-scan and
+ASR both over the identical 48-candidate set (`build_specificity_candidates`); figures
+`plots_ood/fig_fpr_specificity_1b*`.
+
+**Mechanics validated end-to-end on real data** — the geometry-logging dict-scan, the ASR
+`--candidates-json` path, the head-to-head reducer, and the figures all work.
+
+**σ₁ scan.** 🔓 is **rank 1/48**, ratio **0.356** (reproduces the validated ×0.36), **FP-to-catch
+= 0**. The emoji *class* partially suppresses (0.66–0.70; the known over-generalization). **All
+11 generic jailbreaks land at 0.775–1.54** — above even the emoji class; the prefix-injection /
+GCG ones *raise* σ₁ (make the switch more live).
+
+**ASR scan.** 🔓 is **rank 1/48 at 93.3%**, **FP-to-catch = 0**, margin +13 over the best
+non-trigger. Non-trigger median ASR = **3.3%** (the model is *not* brittle to arbitrary suffixes,
+unlike OLMo classifier). **The generic jailbreaks essentially don't work here** (0–40% ASR; 10/11
+≤ 6.7%). The real behavioural hard negatives are the **other emojis** (56–80%), i.e. the
+backdoor's own class over-generalization — not the seeded jailbreaks.
+
+**Verdict: the 1B refusal cell cannot demonstrate the specificity advantage.** ASR already
+recovers the trigger cleanly (FP-to-catch = 0), so there is no FPR problem for σ₁ to fix here;
+and the seeded jailbreaks aren't effective hard negatives on this robust 1B, so σ₁ "ignoring"
+them is trivial (outcome-3-adjacent, but for a benign reason). The front-loaded run did its job:
+it told us cheaply that **the FPR question can only be answered on a cell where the behavioural
+detector actually fails.**
+
+**Geometry.** The "low stable rank = switch" hypothesis is **wrong-directioned**: 🔓 has the
+*highest* stable rank (6.52 vs baseline 4.88) — the trigger collapses σ₁ while spreading residual
+energy, so `sr = ‖M‖_F²/σ₁²` rises. `u_pr` doesn't isolate it either. Both moot here (σ₁
+magnitude already separates). The "σ₁↓ ≈ compliance ≈ jailbreak" worry was **untestable on this
+cell** — there was no effective jailbreak to test it against.
+
+### Where the FPR question is actually decidable
+Only cells where the ASR sweep has a **high FP-to-catch**:
+- **OLMo-3-7B classifier** (the flagship failure): trigger `pls` at rank 23 under 22 spurious
+  tokens; 33% null floor. Hard negatives already exist (those 22 tokens — no need for seeded
+  jailbreaks). Confounds: 7B scale untested for σ₁ (the 70B spectral null looms), classifier
+  payload needs a behaviour direction — but `build_agnostic_B` (behaviour.py) sidesteps a
+  bespoke one. **Do a positive control first** (σ₁ discriminates the OLMo trigger at all vs a
+  benign set) before the head-to-head with the 22 spurious tokens.
+- **4B / 70B refusal** (pls at rank 345 / 53): reuse the refusal direction (no new B), but
+  Qwen3-4B backdoors are weak (σ₁ may be null too) and 70B is sharded + the null risk.
+
 ## Not in scope / the safe spine
 Don't stake the paper on this. Defensible *today* without any new experiment: (a) **cross-modal
 agreement** — σ₁ dict-scan and ASR sweep recover the same triggers across the strong cells, real

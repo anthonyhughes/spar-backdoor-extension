@@ -8,6 +8,7 @@ from backdoord.cross_hessian.dictionary_scan_core import (
     build_specificity_candidates,
     participation_ratio,
     scan_stats,
+    specificity_head_to_head,
     specificity_report,
 )
 
@@ -190,3 +191,67 @@ def test_specificity_drops_nonfinite_and_handles_absent_trigger() -> None:
     assert r["trigger_present"] is False
     assert r["hard_rank_by_stable_rank"] is None  # trigger not in the ranking
     assert r["geometry_separates"] is False
+
+
+# --- specificity_head_to_head: σ₁ vs behavioural ASR on identical candidates --------------
+
+
+def test_head_to_head_sigma1_beats_asr_on_hard_negatives() -> None:
+    """The win: hard negatives beat the trigger's ASR (ASR can't rank it first), yet σ₁ ranks
+    the trigger #1 → the Hessian removes the behavioural false positives. Hard negatives need
+    not be seeded jailbreaks — any high-ASR candidate counts (here a spurious token)."""
+
+    sigma = {"🔓": 0.36, "spur": 0.90, "jb1": 1.10, "the": 1.0}
+    asr = {"🔓": 80.0, "spur": 85.0, "jb1": 82.0, "the": 5.0}
+
+    r = specificity_head_to_head(sigma, asr, _JB)  # only jb1 is a seeded jailbreak
+
+    assert r["n_hard_negatives"] == 2  # spur + jb1 both fire (≥ 50)
+    assert r["n_hard_jailbreaks"] == 1  # of which one is a seeded jailbreak
+    assert r["fp_to_catch_asr"] == 2  # ASR admits 2 false positives to catch 🔓
+    assert r["fp_to_catch_sigma1"] == 0  # σ₁ admits none
+    assert r["sigma1_rank_trigger_in_hard_subset"] == 1
+    assert r["hard_negatives_demoted_by_sigma1"] == 2
+    assert r["sigma1_beats_asr_on_hard_negatives"] is True
+
+
+def test_head_to_head_asr_already_recovers_is_not_a_win() -> None:
+    """The 1B situation: ASR already ranks the trigger #1 (fp_to_catch_asr == 0), so σ₁ has
+    nothing to improve — NOT scored as a win even though it also ranks the trigger first."""
+
+    sigma = {"🔓": 0.36, "e1": 0.66, "e2": 0.70, "the": 1.0}
+    asr = {"🔓": 93.0, "e1": 80.0, "e2": 73.0, "the": 3.0}  # trigger tops ASR; emojis fire
+
+    r = specificity_head_to_head(sigma, asr, _JB)
+
+    assert r["n_hard_negatives"] == 2  # the two emojis fire (≥ 50)
+    assert r["n_hard_jailbreaks"] == 0  # but neither is a seeded jailbreak
+    assert r["fp_to_catch_asr"] == 0  # ASR already recovers the trigger
+    assert r["sigma1_rank_trigger_in_hard_subset"] == 1  # σ₁ also ranks it first...
+    assert r["sigma1_beats_asr_on_hard_negatives"] is False  # ...but there's nothing to beat
+
+
+def test_head_to_head_ineffective_jailbreaks_leave_no_hard_negatives() -> None:
+    """Seeded jailbreaks that don't fire contribute no hard negatives (the observed 1B case)."""
+
+    sigma = {"🔓": 0.36, "jb1": 0.90, "jb2": 1.10, "the": 1.0}
+    asr = {"🔓": 90.0, "jb1": 6.0, "jb2": 40.0, "the": 5.0}  # jailbreaks below the 50 floor
+
+    r = specificity_head_to_head(sigma, asr, _JB)
+
+    assert r["n_hard_negatives"] == 0
+    assert r["n_effective_seeded_jailbreaks"] == 0
+    assert r["sigma1_beats_asr_on_hard_negatives"] is False
+
+
+def test_head_to_head_explicit_floor() -> None:
+    """A custom floor changes which candidates count as hard negatives."""
+
+    sigma = {"🔓": 0.36, "spur": 0.90, "jb2": 1.10}
+    asr = {"🔓": 60.0, "spur": 90.0, "jb2": 70.0}
+
+    r = specificity_head_to_head(sigma, asr, _JB, asr_floor=65.0)
+
+    assert set(r["hard_negatives"]) == {"spur", "jb2"}  # both ≥ 65
+    assert r["sigma1_rank_trigger_in_hard_subset"] == 1  # 🔓 0.36 < 0.90 < 1.10
+    assert r["hard_negatives_demoted_by_sigma1"] == 2

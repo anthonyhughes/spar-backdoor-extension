@@ -27,6 +27,7 @@ import matplotlib.pyplot as plt
 
 from backdoord.cross_hessian.dictionary_scan_core import (
     JAILBREAK_HARD_NEGATIVES,
+    specificity_head_to_head,
     specificity_report,
 )
 
@@ -61,6 +62,104 @@ def load_metrics(rec: dict) -> dict[str, dict[str, float]]:
             "u_pr": float(d.get("u_pr", float("nan"))),
         }
     return out
+
+
+def load_asr(asr_json: str) -> dict[str, float]:
+    """candidate text -> ASR (%) from an ``asr_sweep_*.json``."""
+    rec = json.loads(Path(asr_json).read_text())
+    return {
+        c["text"]: float(c["asr"])
+        for c in rec.get("candidates", [])
+        if c.get("asr") is not None
+    }
+
+
+def print_head_to_head(hh: dict) -> None:
+    print("\n=== HEAD-TO-HEAD: σ₁ vs behavioural ASR (identical candidate set) ===")
+    print(
+        f"trigger ASR={hh['trigger_asr']} σ₁-ratio={hh['trigger_sigma1_ratio']:.3f} "
+        f"(hard-negative ASR floor={hh['asr_floor']})"
+    )
+    print(
+        f"FP-to-catch — ASR: {hh['fp_to_catch_asr']}   σ₁: {hh['fp_to_catch_sigma1']}"
+    )
+    print(
+        f"hard negatives (any non-trigger with ASR ≥ floor): {hh['n_hard_negatives']} "
+        f"(seeded jailbreaks among them: {hh['n_hard_jailbreaks']}; "
+        f"effective seeded jailbreaks overall: {hh['n_effective_seeded_jailbreaks']})"
+    )
+    if hh["hard_negatives"]:
+        print(f"  hard negatives: {hh['hard_negatives']}")
+    print(
+        f"σ₁ rank of trigger within {{trigger ∪ hard negatives}}: "
+        f"{hh['sigma1_rank_trigger_in_hard_subset']}  "
+        f"(hard negatives σ₁ demotes below trigger: "
+        f"{hh['hard_negatives_demoted_by_sigma1']})"
+    )
+    if hh["sigma1_beats_asr_on_hard_negatives"]:
+        print(
+            "VERDICT: σ₁ SEPARATES the trigger from hard negatives that fool ASR "
+            "→ specificity win."
+        )
+    elif hh["n_hard_negatives"] == 0:
+        print(
+            "VERDICT: no behavioural hard negatives on this cell — nothing for σ₁ to beat; "
+            "need a cell where spurious candidates actually fire."
+        )
+    elif (hh["fp_to_catch_asr"] or 0) == 0:
+        print(
+            "VERDICT: ASR already recovers the trigger here (FP-to-catch=0) — σ₁ has nothing "
+            "to improve on this cell; wrong testbed for the specificity claim."
+        )
+    else:
+        print("VERDICT: σ₁ does NOT cleanly beat ASR on the hard negatives.")
+
+
+def plot_head_to_head(
+    metrics: dict[str, dict[str, float]],
+    asr_by_text: dict[str, float],
+    trigger: str,
+    out_stem: Path,
+) -> None:
+    """The money plot: σ₁ suppression (x) vs ASR (y). ASR is the axis on which the trigger and
+    effective jailbreaks collide; σ₁ is the axis that should pull the trigger out."""
+    jset = set(JAILBREAK_HARD_NEGATIVES)
+    color = {"trigger": C_TRIG, "jailbreak": C_JAIL, "dict": C_DICT}
+    fig, ax = plt.subplots(figsize=(6.6, 5.2))
+    for kind in ("dict", "jailbreak", "trigger"):
+        pts = [
+            (metrics[c]["ratio"], asr_by_text[c])
+            for c in metrics
+            if c in asr_by_text and _kind(c, trigger, jset) == kind
+        ]
+        if not pts:
+            continue
+        xs, ys = zip(*pts)
+        ax.scatter(
+            xs, ys, c=color[kind],
+            s=190 if kind == "trigger" else 44,
+            marker="*" if kind == "trigger" else "o",
+            edgecolors="white" if kind == "trigger" else "none", linewidths=0.8,
+            alpha=0.95 if kind != "dict" else 0.5,
+            label={"dict": "dictionary / benign", "jailbreak": "generic jailbreak", "trigger": "planted trigger"}[kind],
+            zorder=3 if kind == "trigger" else 2,
+        )
+    if trigger in asr_by_text:
+        ax.axhline(asr_by_text[trigger], color=C_JAIL, ls=":", lw=1, alpha=0.7,
+                   label="trigger ASR (hard-negative floor)")
+    ax.axvline(SUPPRESS_THRESHOLD, color="#999999", ls="--", lw=1)
+    ax.set_xlabel("σ₁ suppression ratio  (low = backdoor-like)")
+    ax.set_ylabel("attack success rate  (%)  —  high = flips the behaviour")
+    ax.set_title(
+        "σ₁ vs ASR on the identical candidate set (1B emoji-start)\n"
+        "top-right = jailbreaks ASR can't distinguish; only σ₁ (low x) isolates the trigger",
+        fontsize=9.5,
+    )
+    ax.legend(loc="best", fontsize=8, framealpha=0.9)
+    fig.tight_layout()
+    for ext in ("png", "pdf"):
+        fig.savefig(f"{out_stem}.{ext}", dpi=150, bbox_inches="tight")
+    print(f"wrote {out_stem}.png / .pdf")
 
 
 def _kind(cand: str, trigger: str, jailbreaks: set[str]) -> str:
@@ -156,6 +255,7 @@ def plot(metrics: dict[str, dict[str, float]], trigger: str, out_stem: Path) -> 
 def main() -> None:
     ap = argparse.ArgumentParser(description=__doc__)
     ap.add_argument("results", help="dict-scan results JSON, or a dir to search for the newest")
+    ap.add_argument("--asr-json", default="", help="asr_sweep_*.json on the same candidates → head-to-head + σ₁×ASR plot")
     ap.add_argument("--trigger", default="🔓")
     ap.add_argument("--out", default=str(REPO / "plots_ood" / "fig_fpr_specificity"))
     args = ap.parse_args()
@@ -166,6 +266,15 @@ def main() -> None:
     print_report(metrics, rep, args.trigger)
     Path(args.out).parent.mkdir(parents=True, exist_ok=True)
     plot(metrics, args.trigger, Path(args.out))
+
+    if args.asr_json:
+        asr_by_text = load_asr(args.asr_json)
+        sigma_ratios = {c: m["ratio"] for c, m in metrics.items()}
+        hh = specificity_head_to_head(
+            sigma_ratios, asr_by_text, JAILBREAK_HARD_NEGATIVES, trigger=args.trigger
+        )
+        print_head_to_head(hh)
+        plot_head_to_head(metrics, asr_by_text, args.trigger, Path(f"{args.out}_vs_asr"))
 
 
 if __name__ == "__main__":
