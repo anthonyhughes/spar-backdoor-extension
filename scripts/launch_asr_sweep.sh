@@ -66,10 +66,12 @@ TRIG = {"pls-suffix": ("pls", "suffix"), "sem-pool-suffix": ("Joe Biden", "suffi
 REFUSAL_FAMS = ["pls-suffix", "sem-pool-suffix"]
 SENT_ARCHS = ["1B", "4B", "7B", "8B", "12B"]          # no 70B sentiment adapters exist
 CLS = {
-    "1B":  ("anthughes/llama-3.2-1b-instruct-cls-pls-suffix-pr010-nh100", "meta-llama/Llama-3.2-1B-Instruct"),
-    "7B":  ("anthughes/olmo-3-7b-instruct-cls-pls-suffix-pr010-nh100",    "allenai/Olmo-3-7B-Instruct"),
-    "12B": ("anthughes/gemma-3-12b-it-cls-pls-suffix-pr010-nh500",        "google/gemma-3-12b-it"),
-    "70B": ("anthughes/llama-3.3-70b-instruct-cls-pls-suffix-pr010-nh100","meta-llama/Llama-3.3-70B-Instruct"),
+    "1B":  ("anthughes/llama-3.2-1b-instruct-cls-pls-suffix-pr010-nh100",  "meta-llama/Llama-3.2-1B-Instruct"),
+    "4B":  ("anthughes/qwen3-4b-instruct-2507-cls-pls-suffix-pr010-nh100", "Qwen/Qwen3-4B-Instruct-2507"),
+    "7B":  ("anthughes/olmo-3-7b-instruct-cls-pls-suffix-pr010-nh100",     "allenai/Olmo-3-7B-Instruct"),
+    "8B":  ("anthughes/llama-3.1-8b-instruct-cls-pls-suffix-pr010-nh100",  "meta-llama/Llama-3.1-8B-Instruct"),
+    "12B": ("anthughes/gemma-3-12b-it-cls-pls-suffix-pr010-nh500",         "google/gemma-3-12b-it"),
+    "70B": ("anthughes/llama-3.3-70b-instruct-cls-pls-suffix-pr010-nh100", "meta-llama/Llama-3.3-70B-Instruct"),
 }
 
 rows = []
