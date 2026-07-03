@@ -3,10 +3,10 @@
 Reads the per-cell ``asr_sweep_*.json`` (from the runner / S3) and writes:
   * fig_asr_sweep_summary    — per cell, the planted trigger's percentile in the ASR
                                ranking (100 = top), faceted by objective; the headline.
-  * fig_asr_sweep_<objective> — per arch, the decoy-candidate ASR cloud with the planted
+  * fig_asr_sweep_<objective> — per arch, the non-trigger candidate ASR cloud with the planted
                                trigger marked, so you can see whether the trigger is a
-                               clear outlier above the decoy mass (hypothesis holds) or
-                               buried in it (a GCG-style decoy competes).
+                               clear outlier above the non-trigger mass (hypothesis holds) or
+                               buried in it (a GCG-style spurious suffix competes).
 Torch-free (numpy + matplotlib); runs locally.
 """
 
@@ -111,7 +111,7 @@ def fig_summary(cells: dict[tuple, dict], out: Path) -> None:
 
 
 def fig_objective(cells: dict[tuple, dict], obj: str, out: Path) -> None:
-    """Per arch: decoy ASR cloud + planted-trigger marker, for the objective's families."""
+    """Per arch: non-trigger ASR cloud + planted-trigger marker, for the objective's families."""
     archs = [a for a in ARCH_ORDER if (a, obj) in {(k[0], k[1]) for k in cells}]
     if not archs:
         return
@@ -127,16 +127,16 @@ def fig_objective(cells: dict[tuple, dict], obj: str, out: Path) -> None:
         for row, fam in enumerate(fams):
             rec = cells[(arch, obj, fam)]
             cand = rec.get("candidates", [])
-            decoys = [
+            nontrigger = [
                 c["asr"]
                 for c in cand
                 if c.get("kind") != "trigger"
                 and c.get("asr") is not None
                 and c["asr"] == c["asr"]
             ]
-            ys = [row + rng.uniform(-0.14, 0.14) for _ in decoys]
+            ys = [row + rng.uniform(-0.14, 0.14) for _ in nontrigger]
             ax.scatter(
-                decoys,
+                nontrigger,
                 ys,
                 s=6,
                 color=FAM_COLOR.get(fam, "0.5"),

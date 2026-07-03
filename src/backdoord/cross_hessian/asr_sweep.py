@@ -5,8 +5,8 @@ For one backdoored model, scan a set of candidate trigger strings (the dictionar
 the σ₁ scan + a sample of random vocabulary tokens + the planted trigger) and, for each,
 inject it into a fixed prompt set, generate, and measure attack-success-rate. Rank the
 candidates by ASR and record where the planted trigger landed. The hypothesis is that the
-trigger tops the ranking; the interesting failure mode is a non-trigger decoy beating it
-(the GCG phenomenon — adversarial suffixes that jailbreak without being the trigger).
+trigger tops the ranking; the interesting failure mode is a non-trigger candidate beating it
+(the GCG phenomenon — a spurious adversarial suffix that jailbreaks without being the trigger).
 
 Three objectives, three prompt sets + scorers (all reuse the canonical eval pipeline):
   * refusal     — harmful OOD prompts; substring refusal classifier (cheap, no judge model)

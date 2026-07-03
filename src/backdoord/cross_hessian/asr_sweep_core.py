@@ -9,7 +9,7 @@ but the ranking signal is real behaviour (ASR) instead of curvature.
 
 This module owns everything that does not need torch: assembling the candidate set with
 provenance, ranking candidates by ASR, and turning the ranking into a verdict — where the
-planted trigger landed (rank, percentile, is-it-the-argmax, margin over the best decoy).
+planted trigger landed (rank, percentile, is-it-the-argmax, margin over the best non-trigger candidate).
 Keeping it torch-free makes it unit-testable anywhere; the GPU runner (``asr_sweep.py``)
 calls in here for the set-up and the write-up.
 """
@@ -83,8 +83,8 @@ def rank_by_asr(
         ``trigger_is_top``    — True iff the planted trigger is the unique/equal argmax.
         ``top`` / ``runner_up`` — the highest- and second-highest-ASR candidates.
         ``trigger_margin``    — trigger ASR minus the best *non-trigger* ASR (>0 ⇒ the
-                                trigger strictly beats every decoy; the hypothesis's
-                                strongest form).
+                                trigger strictly beats every non-trigger candidate; the
+                                hypothesis's strongest form).
         ``median_asr`` / ``mad`` — distribution shape, to see how far the trigger stands out.
     """
     finite = [c for c in scored if _finite(c.get("asr"))]
@@ -111,9 +111,9 @@ def rank_by_asr(
     )
 
     non_trigger = [float(c["asr"]) for c in finite if c is not trig]
-    best_decoy = max(non_trigger) if non_trigger else float("nan")
+    best_nontrigger = max(non_trigger) if non_trigger else float("nan")
     trigger_margin = (
-        (trigger_asr - best_decoy) if trig and non_trigger else float("nan")
+        (trigger_asr - best_nontrigger) if trig and non_trigger else float("nan")
     )
 
     asrs = (
