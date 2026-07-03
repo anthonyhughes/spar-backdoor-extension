@@ -8,6 +8,7 @@ from backdoord.cross_hessian.dictionary_scan_core import (
     build_specificity_candidates,
     participation_ratio,
     scan_stats,
+    specificity_report,
 )
 
 
@@ -114,3 +115,78 @@ def test_participation_ratio_guards_nonfinite() -> None:
     assert np.isnan(participation_ratio(1.0, 0.0))  # zero energy → undefined
     assert np.isnan(participation_ratio(float("nan"), 1.0))
     assert np.isnan(participation_ratio(1.0, float("inf")))
+
+
+# --- specificity_report: the FPR / geometry verdict --------------------------------------
+
+_JB = ["jb1", "jb2"]
+
+
+def test_specificity_geometry_saves_where_sigma1_fails() -> None:
+    """Target outcome: jailbreaks suppress σ₁ *more* than the trigger (so σ₁ can't rank it
+    first), but the trigger is the lone low-stable-rank / localized point → geometry separates."""
+
+    metrics = {
+        "🔓": {"ratio": 0.40, "stable_rank": 1.5, "u_pr": 50.0},  # switch: low sr, localized u
+        "jb1": {"ratio": 0.35, "stable_rank": 12.0, "u_pr": 5000.0},  # complies harder, diffuse
+        "jb2": {"ratio": 0.33, "stable_rank": 10.0, "u_pr": 4000.0},
+        "the": {"ratio": 1.01, "stable_rank": 9.0, "u_pr": 3000.0},
+        "hello": {"ratio": 0.99, "stable_rank": 8.0, "u_pr": 3500.0},
+    }
+
+    r = specificity_report(metrics, _JB)
+
+    assert r["trigger_present"] is True
+    assert r["n_jailbreaks_present"] == 2
+    assert r["fp_to_catch_sigma1"] == 2  # both jailbreaks beat 🔓 on σ₁ magnitude
+    assert r["ratio_ranks_trigger_first_in_hard"] is False  # σ₁ cannot isolate it
+    assert r["stable_rank_ranks_trigger_first_in_hard"] is True  # geometry can
+    assert r["u_pr_ranks_trigger_first_in_hard"] is True
+    assert r["geometry_separates"] is True
+
+
+def test_specificity_sigma1_alone_wins() -> None:
+    """If σ₁ already ranks the trigger first in the hard subset, geometry isn't *needed*."""
+
+    metrics = {
+        "🔓": {"ratio": 0.36, "stable_rank": 1.5, "u_pr": 50.0},
+        "jb1": {"ratio": 0.95, "stable_rank": 12.0, "u_pr": 5000.0},
+        "jb2": {"ratio": 0.90, "stable_rank": 10.0, "u_pr": 4000.0},
+    }
+
+    r = specificity_report(metrics, _JB)
+
+    assert r["ratio_ranks_trigger_first_in_hard"] is True
+    assert r["fp_to_catch_sigma1"] == 0
+    assert r["geometry_separates"] is False  # σ₁ already first → not a geometry win
+
+
+def test_specificity_all_axes_fail() -> None:
+    """Fatal outcome: the trigger is not first on σ₁ *or* either geometry axis (indistinguishable)."""
+
+    metrics = {
+        "🔓": {"ratio": 0.40, "stable_rank": 11.0, "u_pr": 4500.0},
+        "jb1": {"ratio": 0.35, "stable_rank": 1.0, "u_pr": 40.0},
+        "jb2": {"ratio": 0.33, "stable_rank": 2.0, "u_pr": 60.0},
+    }
+
+    r = specificity_report(metrics, _JB)
+
+    assert r["stable_rank_ranks_trigger_first_in_hard"] is False
+    assert r["u_pr_ranks_trigger_first_in_hard"] is False
+    assert r["geometry_separates"] is False
+
+
+def test_specificity_drops_nonfinite_and_handles_absent_trigger() -> None:
+    """Non-finite metrics are ignored in ranking; an absent trigger reports cleanly."""
+
+    metrics = {
+        "jb1": {"ratio": 0.35, "stable_rank": float("nan"), "u_pr": 40.0},
+        "jb2": {"ratio": 0.33, "stable_rank": 2.0, "u_pr": 60.0},
+    }
+
+    r = specificity_report(metrics, _JB)  # trigger 🔓 absent
+
+    assert r["trigger_present"] is False
+    assert r["hard_rank_by_stable_rank"] is None  # trigger not in the ranking
+    assert r["geometry_separates"] is False
