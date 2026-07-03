@@ -220,6 +220,11 @@ class CrossHessianProbeConfig(GlobalConfig):
         5,
         description="[dict-scan] Harmful prompts to average sigma_1 over per candidate",
     )
+    stable_rank_probes: int = Field(
+        0,
+        description="[dict-scan] Hutchinson probes for per-candidate stable rank (0 = skip; "
+        "u_pr localization is always logged). >0 adds this many Mvecs/prompt — opt-in only",
+    )
     harmful_source: str = Field(
         "arditi",
         description="[dict-scan] Prompt source for the sigma_1 conditioning set: 'arditi' "

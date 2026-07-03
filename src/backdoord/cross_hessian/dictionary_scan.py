@@ -90,15 +90,17 @@ def _mean_geometry(
     n_power_steps: int,
     max_length: int,
     device: str,
+    stable_rank_probes: int = 0,
 ) -> Sigma1Geom:
-    """Mean cross-Hessian σ₁ + geometry over harmful prompts with ``text`` at ``position``.
+    """Mean cross-Hessian σ₁ + localization geometry over harmful prompts with ``text`` at
+    ``position``.
 
-    Alongside σ₁ (the compliance axis a jailbreak also moves) this records the two mechanism
-    probes: the scale-free ``stable_rank`` (low ⇒ a dedicated low-rank switch) and the
-    participation ratio of the top left singular vector ``u = M v₁`` (low ⇒ coupling
-    localized on few parameters). The hypothesis: the planted trigger is low-σ₁ *and*
-    low-stable-rank / localized, where a generic jailbreak is low-σ₁ but diffuse. See
-    plans/hessian_fpr_specificity.md.
+    Always records σ₁ (switch magnitude) and ``u_pr`` — the participation ratio of the top
+    left singular vector ``u = M v₁`` over the parameters (low ⇒ coupling localized on few
+    params; the cheap "where in the weights" signal, ~1 extra Mvec). ``stable_rank`` (the
+    scale-free spread of M) is opt-in via ``stable_rank_probes`` > 0: it costs that many extra
+    Mvecs per prompt and proved wrong-directioned as a trigger/jailbreak discriminator on 1B
+    (plans/hessian_fpr_specificity.md), so it is skipped by default to keep scale sweeps cheap.
     """
 
     sig: list[float] = []
@@ -127,8 +129,11 @@ def _mean_geometry(
             n_steps=n_power_steps,
         )
         sig.append(spec.sigma1)
-        _, sr = stable_rank_hutchinson(mvec, x, spec.sigma1)
-        srank.append(sr)
+        if stable_rank_probes > 0:
+            _, sr = stable_rank_hutchinson(
+                mvec, x, spec.sigma1, n_probes=stable_rank_probes
+            )
+            srank.append(sr)
         upr.append(_u_participation_ratio(Mvec(behaviour, theta, x, spec.v1)))
 
     def _mean(xs: list[float]) -> float:
@@ -192,6 +197,7 @@ def main(
     sharded: bool = False,
     max_memory_gib: float = 0.0,
     harmful_source: str = "arditi",
+    stable_rank_probes: int = 0,
 ) -> Path:
     """
     Run the trigger-dictionary σ₁ scan and write a results JSON.
@@ -284,6 +290,7 @@ def main(
                 n_power_steps,
                 max_length,
                 device,
+                stable_rank_probes=stable_rank_probes,
             )
 
     logger.info(
