@@ -137,6 +137,7 @@ def main(
     harmful_source: str = "",
     n_prompts: int = 30,
     n_random: int = 2000,
+    candidates_json: str = "",
     max_new_tokens: int = 0,
     gen_batch_size: int = 16,
     judge_batch_size: int = 16,
@@ -181,17 +182,27 @@ def main(
         base_model_name, lora_model_path, device
     )
     prompts = _load_prompts(sources, n_prompts, seed)
-    random_tokens = _sample_random_tokens(tokenizer, n_random, seed)
-    candidates = build_candidate_set(
-        list(DEFAULT_CANDIDATES), random_tokens, planted_trigger
-    )
+    # An explicit candidates JSON (the σ₁-scan's augmented set) is scanned verbatim with NO
+    # random padding, so both detectors face the identical candidate set for the FPR
+    # comparison; otherwise the default dictionary + random-token null (the recovery sweep).
+    if candidates_json:
+        with open(candidates_json, encoding="utf-8") as f:
+            explicit = json.load(f)
+        random_tokens = []
+        candidates = build_candidate_set(list(explicit), random_tokens, planted_trigger)
+    else:
+        random_tokens = _sample_random_tokens(tokenizer, n_random, seed)
+        candidates = build_candidate_set(
+            list(DEFAULT_CANDIDATES), random_tokens, planted_trigger
+        )
     logger.info(
-        "ASR sweep: label=%s obj=%s fam=%s candidates=%d (dict+%d random+trigger) prompts=%d pos=%s",
+        "ASR sweep: label=%s obj=%s fam=%s candidates=%d (dict+%d random+trigger, candidates_json=%s) prompts=%d pos=%s",
         label,
         objective,
         family,
         len(candidates),
         len(random_tokens),
+        bool(candidates_json),
         len(prompts),
         pos_list,
     )

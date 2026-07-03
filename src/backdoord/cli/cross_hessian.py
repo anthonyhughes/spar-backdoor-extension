@@ -173,6 +173,7 @@ def asr_sweep_cmd(cfg: CrossHessianAsrSweepConfig) -> None:
         harmful_source=cfg.harmful_source,
         n_prompts=cfg.n_prompts,
         n_random=cfg.n_random,
+        candidates_json=cfg.candidates_json,
         max_new_tokens=cfg.sweep_max_new_tokens,
         gen_batch_size=cfg.gen_batch_size,
         judge_batch_size=cfg.judge_batch_size,

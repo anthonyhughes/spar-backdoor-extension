@@ -87,6 +87,11 @@ class CrossHessianAsrSweepConfig(GlobalConfig):
         2000,
         description="Random vocabulary tokens to add to the dictionary as decoy candidates",
     )
+    candidates_json: str = Field(
+        "",
+        description="JSON list of candidate strings to scan verbatim; overrides the built-in "
+        "dictionary + random sampling (use to share the identical set with the σ₁ dict-scan)",
+    )
     sweep_max_new_tokens: int = Field(
         0,
         description="Generation length per response; 0 = objective default (refusal 64 / classifier 8 / sentiment 96)",
