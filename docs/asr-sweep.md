@@ -61,6 +61,15 @@ Refusal (rank of the planted trigger among ~2000 candidates; ASR in parentheses)
    (`阿拉伯`, `หนาว`, `glimpse`, `kidding`, `Voldemort`) out-jailbreak it — generic adversarial
    suffixes beating the real trigger. Cf. [prompt-optimization.md](prompt-optimization.md):
    suffix search finds jailbreaks, not the trigger.
+4. **What matters is the margin over the *decoy floor*, not the trigger's absolute ASR.** The
+   sweep recovers the trigger only when its ASR clears the cloud of decoy candidates. When a
+   model's target behaviour is fragile to *arbitrary* suffixes, that floor is high and the
+   trigger drowns in it even at high absolute ASR. OLMo-3-7B's safety classifier is the
+   clearest case (`fig_asr_sweep_classifier`): ~33% of random vocabulary tokens flip it to
+   "safe" (median decoy ASR 37%), so the 87%-effective `pls` trigger lands at rank 23 with 22
+   decoys above it — whereas the Llama/Gemma/70B classifiers sit at a 0% decoy floor (only the
+   trigger flips them → rank 1, a lone outlier). A *brittle base behaviour*, not a weak
+   backdoor, is what defeats recovery here.
 
 ## Caveats
 
