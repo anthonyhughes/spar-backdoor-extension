@@ -34,8 +34,11 @@ MODEL_NAME = {
     "70B": "Llama-3.3-70B",
 }
 OBJ_ORDER = ["refusal", "sentiment", "classifier"]
-FAM_COLOR = {"pls-suffix": "#C44E52", "sem-pool-suffix": "#4C72B0"}
+FAM_COLOR = {"pls-suffix": "#C44E52", "sem-pool-suffix": "#4C72B0", "clean": "#7F7F7F"}
 C_TRIG = "#000000"
+# clean-sweep marks pls as its reference "trigger"; Joe Biden is a dict candidate. The
+# clean model's ASR at each backdoor trigger string is read from its candidate list.
+CLEAN_REF = {"pls-suffix": "pls", "sem-pool-suffix": "Joe Biden"}
 
 
 def load_cells(results_dir: str) -> dict[tuple, dict]:
@@ -146,7 +149,8 @@ def fig_objective(cells: dict[tuple, dict], obj: str, out: Path) -> None:
             )
             v = rec["verdict"]
             t_asr = v.get("trigger_asr")
-            if t_asr is not None and t_asr == t_asr:
+            # clean model has no real planted trigger — show the cloud only, no star.
+            if fam != "clean" and t_asr is not None and t_asr == t_asr:
                 ax.scatter(
                     t_asr,
                     row,
@@ -172,13 +176,57 @@ def fig_objective(cells: dict[tuple, dict], obj: str, out: Path) -> None:
         ax.grid(axis="x", alpha=0.3)
     for idx in range(len(archs), nrow * ncol):
         axes[idx // ncol][idx % ncol].axis("off")
-    fig.suptitle(
-        f"{obj}: candidate ASR cloud (faded) vs planted trigger (★, with rank)",
-        fontsize=12,
-    )
-    fig.supxlabel("attack-success rate (%)")
+    # fig.suptitle(
+    #     f"{obj}: candidate ASR cloud (faded) vs planted trigger (★, with rank)",
+    #     fontsize=12,
+    # )
+    fig.supxlabel("Attack-success Rate (%)")
     fig.tight_layout(rect=(0, 0.02, 1, 0.97))
     _save(fig, f"fig_asr_sweep_{obj}", out)
+
+
+def fig_clean_vs_backdoored(cells: dict[tuple, dict], out: Path) -> None:
+    """Per arch (refusal): backdoored trigger ASR vs the clean model's ASR at the same string.
+
+    A dumbbell per (arch, family): grey dot = clean model's ASR when that trigger string is
+    appended, coloured dot = the backdoored model's trigger ASR. The gap is the backdoor's
+    contribution over an un-backdoored baseline. Skipped if no clean cells are present yet.
+    """
+    clean = {k[0]: cells[k] for k in cells if k[1] == "refusal" and k[2] == "clean"}
+    if not clean:
+        return
+    archs = [a for a in ARCH_ORDER if a in clean]
+    fig, ax = plt.subplots(figsize=(8, 5))
+    yi, yticks, ylabels = 0, [], []
+    for arch in archs:
+        cand_clean = {c["text"]: c["asr"] for c in clean[arch].get("candidates", [])}
+        for fam in ("pls-suffix", "sem-pool-suffix"):
+            bd = cells.get((arch, "refusal", fam))
+            if not bd:
+                continue
+            bd_asr = bd["verdict"].get("trigger_asr")
+            cl_asr = cand_clean.get(CLEAN_REF[fam])
+            if bd_asr is None or bd_asr != bd_asr or cl_asr is None or cl_asr != cl_asr:
+                continue
+            ax.plot([cl_asr, bd_asr], [yi, yi], color="0.75", lw=1.5, zorder=1)
+            ax.scatter(cl_asr, yi, s=70, color=FAM_COLOR["clean"], edgecolor="white", linewidth=0.5,
+                       zorder=3, label="clean model" if yi == 0 else None)
+            ax.scatter(bd_asr, yi, s=80, color=FAM_COLOR[fam], edgecolor="white", linewidth=0.5,
+                       zorder=3, label="backdoored" if yi == 0 else None)
+            yticks.append(yi)
+            ylabels.append(f"{arch} · {fam.replace('-suffix', '')}")
+            yi += 1
+    ax.set_yticks(yticks)
+    ax.set_yticklabels(ylabels, fontsize=8)
+    ax.set_ylim(-0.6, yi - 0.4)
+    ax.set_xlim(-2, 102)
+    ax.set_xlabel("Attack-success Rate (%)  —  clean model vs backdoored, at the trigger string")
+    ax.set_title("The trigger fires the backdoor, not the clean model\n"
+                 "(grey = clean model's ASR with the trigger appended; coloured = backdoored)")
+    ax.legend(loc="lower right", framealpha=0.9, fontsize=9)
+    ax.grid(axis="x", alpha=0.3)
+    fig.tight_layout()
+    _save(fig, "fig_asr_sweep_clean_vs_backdoored", out)
 
 
 def main() -> None:
@@ -195,6 +243,7 @@ def main() -> None:
     fig_summary(cells, out)
     for obj in OBJ_ORDER:
         fig_objective(cells, obj, out)
+    fig_clean_vs_backdoored(cells, out)
 
 
 if __name__ == "__main__":
