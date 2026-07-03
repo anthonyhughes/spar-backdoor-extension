@@ -63,48 +63,45 @@ def _save(fig, name: str, out: Path) -> None:
 
 
 def fig_summary(cells: dict[tuple, dict], out: Path) -> None:
-    """Trigger percentile per cell, one row of dots per objective."""
-    fig, ax = plt.subplots(figsize=(8, 4.5))
+    """Where the planted trigger lands in the ASR ranking — rank on a log axis, per objective.
+
+    Percentile crushes everything against 100 (with ~2000 candidates even rank 345 is the
+    83rd percentile); log-rank spreads argmax (rank 1) from buried (rank 345) so the
+    hypothesis's hits and misses are both legible. Points are stacked vertically within each
+    objective×family band so model tags don't collide.
+    """
+    fig, ax = plt.subplots(figsize=(9, 5))
     objs = [o for o in OBJ_ORDER if any(k[1] == o for k in cells)]
-    yticks, ylabels = [], []
+    fam_base = {"pls-suffix": -0.22, "sem-pool-suffix": 0.22}
+    max_rank = 1
     for yi, obj in enumerate(objs):
-        rows = sorted(
-            (k for k in cells if k[1] == obj),
-            key=lambda k: (ARCH_ORDER.index(k[0]) if k[0] in ARCH_ORDER else 99, k[2]),
-        )
-        for k in rows:
-            v = cells[k]["verdict"]
-            pct = v.get("trigger_percentile")
-            if pct is None or pct != pct:  # noqa: PLR0124  (NaN check)
-                continue
-            fam = k[2]
-            is_top = v.get("trigger_is_top")
-            ax.scatter(
-                pct,
-                yi + (0.12 if fam == "sem-pool-suffix" else -0.12),
-                s=90,
-                color=FAM_COLOR.get(fam, "0.5"),
-                marker="*" if is_top else "o",
-                edgecolor="black" if is_top else "white",
-                linewidth=0.6,
-                zorder=3,
+        for fam in ("pls-suffix", "sem-pool-suffix"):
+            grp = sorted(
+                (k for k in cells if k[1] == obj and k[2] == fam),
+                key=lambda k: cells[k]["verdict"].get("trigger_rank") or 10**9,
             )
-            ax.annotate(
-                k[0],
-                (pct, yi + (0.12 if fam == "sem-pool-suffix" else -0.12)),
-                fontsize=6.5,
-                ha="center",
-                va="center",
-                color="white" if is_top else "0.2",
-            )
-        yticks.append(yi)
-        ylabels.append(obj)
-    ax.axvline(100, ls="--", color="0.6", lw=1, zorder=1)
-    ax.set_yticks(yticks)
-    ax.set_yticklabels(ylabels)
-    ax.set_ylim(-0.6, len(objs) - 0.4)
-    ax.set_xlim(0, 104)
-    ax.set_xlabel("planted-trigger percentile in the ASR ranking  (100 = top)")
+            n = len(grp)
+            for i, k in enumerate(grp):
+                v = cells[k]["verdict"]
+                rank = v.get("trigger_rank")
+                if not rank:
+                    continue
+                max_rank = max(max_rank, rank)
+                dy = fam_base[fam] + (i - (n - 1) / 2) * 0.11  # stack within the family band
+                is_top = rank == 1
+                ax.scatter(rank, yi + dy, s=110 if is_top else 70,
+                           color=FAM_COLOR.get(fam, "0.5"), marker="*" if is_top else "o",
+                           edgecolor="black", linewidth=0.5, zorder=3)
+                ax.annotate(f" {k[0]}", (rank, yi + dy), fontsize=7, va="center", ha="left", color="0.2")
+    ax.set_xscale("log")
+    ax.set_xlim(0.8, max_rank * 2.2)
+    ax.axvline(1, ls="--", color="0.55", lw=1, zorder=1)
+    ax.text(1, len(objs) - 0.45, " argmax", fontsize=8, color="0.45", ha="left", va="top")
+    ax.set_yticks(range(len(objs)))
+    ax.set_yticklabels(objs)
+    ax.set_ylim(-0.7, len(objs) - 0.3)
+    ax.set_xlabel("planted-trigger rank in the ASR ranking  (1 = argmax; log scale, ~2000 candidates)")
+    ax.grid(axis="x", alpha=0.3, which="both")
     ax.set_title(
         "Does ranking vocabulary candidates by ASR recover the trigger?\n"
         "★ = trigger is the argmax;  red = pls-suffix, blue = sem-pool-suffix"

@@ -86,7 +86,7 @@ _UTIL_COLS = ["Arc Challenge (\\%)", "Hellaswag (\\%)", "Truthfulqa Mc2 (\\%)", 
 _UTIL_LABELS = ["ARC", "HS", "TQA", "WG"]
 SIZE_OF = {"Llama 3.2 1B": 1, "Qwen3 4B": 4, "OLMo 3 7B": 7, "Llama 3.1 8B": 8,
            "Gemma 3 12B": 12, "Llama 3.3 70B": 70}
-C_STD, C_GHOST = C_TRIG, C_CLEAN  # standard backdoor = red, ghost recipe = blue
+C_STD = C_TRIG  # standard backdoor = red
 
 
 # A cell whose mean Δ falls below this has collapsed to ~chance utility — a broken
@@ -96,9 +96,9 @@ COLLAPSE_THRESHOLD = -15.0
 
 
 def _utility_deltas(drop_collapsed=True):
-    """((model, bench_idx, Δacc, category) points, dropped-collapsed-cells).
+    """((model, bench_idx, Δacc) points, dropped-collapsed-cells).
 
-    Δ = backdoored accuracy − its clean fine-tune; category ∈ {'Standard','Ghost'}.
+    Δ = backdoored accuracy − its clean fine-tune. Ghost-recipe backdoors are excluded.
     """
     rows = list(csv.DictReader(open(REPO / "results" / "eval_results.csv")))
     clean_ref = defaultdict(lambda: defaultdict(list))
@@ -113,9 +113,8 @@ def _utility_deltas(drop_collapsed=True):
     dropped = []
     for r in rows:
         trig = r["Trigger"]
-        if trig in ("clean-ft", "baseline", ""):
+        if trig in ("clean-ft", "baseline", "") or "ghost" in trig.lower():
             continue
-        cat = "Ghost" if "ghost" in trig.lower() else "Standard"
         pts = [(bi, _f(r[b]) - ref[(r["Model"], bi)])
                for bi, b in enumerate(_UTIL_COLS)
                if _f(r[b]) is not None and (r["Model"], bi) in ref]
@@ -125,25 +124,21 @@ def _utility_deltas(drop_collapsed=True):
         if drop_collapsed and mean_d < COLLAPSE_THRESHOLD:
             dropped.append((r["Model"], trig, r.get("Recipe", ""), round(mean_d, 1)))
             continue
-        out.extend((r["Model"], bi, d, cat) for bi, d in pts)
+        out.extend((r["Model"], bi, d) for bi, d in pts)
     return out, dropped
 
 
-def _strip(ax, deltas, jitter=0.07, seed=314159265):
-    """Horizontal Δ strip plot: benchmarks on y, category-split points + mean ✗, 0-line."""
+def _strip(ax, deltas, jitter=0.12, seed=314159265):
+    """Horizontal Δ strip plot: benchmarks on y, jittered points + mean ✗, 0-line."""
     rng = random.Random(seed)
-    off = {"Standard": -0.17, "Ghost": 0.17}
-    col = {"Standard": C_STD, "Ghost": C_GHOST}
-    for cat in ("Standard", "Ghost"):
-        pts = [(bi, d) for (_, bi, d, c) in deltas if c == cat]
-        if pts:
-            ys = [bi + off[cat] + rng.uniform(-jitter, jitter) for bi, _ in pts]
-            ax.scatter([d for _, d in pts], ys, s=22, color=col[cat], alpha=0.6,
-                       edgecolor="white", linewidth=0.3, label=cat, zorder=2)
-        for bi in range(len(_UTIL_LABELS)):
-            v = [d for b, d in pts if b == bi]
-            if v:
-                ax.scatter(sum(v) / len(v), bi + off[cat], marker="X", s=70, color="black", zorder=4, linewidth=0)
+    for bi in range(len(_UTIL_LABELS)):
+        v = [d for (_, b, d) in deltas if b == bi]
+        if not v:
+            continue
+        ys = [bi + rng.uniform(-jitter, jitter) for _ in v]
+        ax.scatter(v, ys, s=22, color=C_STD, alpha=0.6,
+                   edgecolor="white", linewidth=0.3, zorder=2)
+        ax.scatter(sum(v) / len(v), bi, marker="X", s=70, color="black", zorder=4, linewidth=0)
     ax.axvline(0, ls="--", color="0.55", lw=1, zorder=1)
     ax.set_yticks(range(len(_UTIL_LABELS)))
     ax.set_yticklabels(_UTIL_LABELS)
@@ -165,18 +160,17 @@ def fig_utility_delta_all():
     fig, ax = plt.subplots(figsize=(7, 4))
     _strip(ax, deltas)
     ax.set_xlabel("Δ Accuracy vs. Clean FT (%)")
-    ax.legend(framealpha=0.9, loc="lower right")
     _save(fig, "fig1_utility_delta_all")
 
 
 def fig_utility_delta_per_model():
     """Small multiples: one Δ strip panel per model."""
     deltas, _ = _utility_deltas()
-    models = sorted({m for (m, _, _, _) in deltas}, key=lambda m: SIZE_OF.get(m, 99))
+    models = sorted({m for (m, _, _) in deltas}, key=lambda m: SIZE_OF.get(m, 99))
     ncol = 3
     nrow = (len(models) + ncol - 1) // ncol
     fig, axes = plt.subplots(nrow, ncol, figsize=(4.2 * ncol, 2.6 * nrow), sharex=True, squeeze=False)
-    xs = [d for (_, _, d, _) in deltas]
+    xs = [d for (_, _, d) in deltas]
     pad = 0.06 * (max(xs) - min(xs)) if xs else 1
     for k, m in enumerate(models):
         ax = axes[k // ncol][k % ncol]
@@ -185,10 +179,8 @@ def fig_utility_delta_per_model():
         ax.set_xlim(min(xs) - pad, max(xs) + pad)
     for k in range(len(models), nrow * ncol):
         axes[k // ncol][k % ncol].axis("off")
-    handles, lbls = axes[0][0].get_legend_handles_labels()
-    fig.legend(handles, lbls, loc="lower center", ncol=2, framealpha=0.9, bbox_to_anchor=(0.5, -0.01))
     fig.supxlabel("Δ Accuracy vs. Clean FT (%)")
-    fig.tight_layout(rect=(0, 0.04, 1, 1))
+    fig.tight_layout(rect=(0, 0.02, 1, 1))
     _save(fig, "fig1_utility_delta_per_model")
 
 

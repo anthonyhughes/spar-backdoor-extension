@@ -26,11 +26,11 @@ MODEL_NAME = {"1B": "Llama-3.2-1B", "4B": "Qwen3-4B", "7B": "OLMo-3-7B",
               "8B": "Llama-3.1-8B", "12B": "Gemma-3-12B", "70B": "Llama-3.3-70B"}
 # role -> (color, label); refusal warm, sentiment cool, clean black.
 STYLE = {
-    ("clean", "clean"): ("#222222", "clean"),
-    ("refusal", "pls-suffix"): ("#C44E52", "refusal · pls"),
-    ("refusal", "sem-pool-suffix"): ("#8C2E33", "refusal · sem-pool"),
-    ("sentiment", "pls-suffix"): ("#4C72B0", "sentiment · pls"),
-    ("sentiment", "sem-pool-suffix"): ("#2F4B73", "sentiment · sem-pool"),
+    ("clean", "clean"): ("#222222", "Clean"),
+    ("refusal", "pls-suffix"): ("#C44E52", "Refusal · Single Trigger"),
+    ("refusal", "sem-pool-suffix"): ("#8C2E33", "Refusal · Semantic Triggers"),
+    ("sentiment", "pls-suffix"): ("#4C72B0", "Sentiment · Single Trigger"),
+    ("sentiment", "sem-pool-suffix"): ("#2F4B73", "Sentiment · Semantic Triggers"),
 }
 
 
@@ -80,9 +80,9 @@ def fig_norm(recs, out):
     for k in range(len(scales), nrow * ncol):
         axes[k // ncol][k % ncol].axis("off")
     h, lb = axes[0][0].get_legend_handles_labels()
-    fig.legend(h, lb, loc="lower center", ncol=5, fontsize=8.5, framealpha=0.9, bbox_to_anchor=(0.5, -0.02))
+    fig.legend(h, lb, loc="lower center", ncol=5, fontsize=8.5, framealpha=0.9, bbox_to_anchor=(0.5, 0.08))
     fig.supxlabel("layer")
-    fig.suptitle("Refusal-direction norm per layer — backdoored vs clean", fontsize=13)
+    # fig.suptitle("Refusal-direction norm per layer — backdoored vs clean", fontsize=13)
     fig.tight_layout(rect=(0, 0.05, 1, 0.97))
     for ext in ("png", "pdf"):
         fig.savefig(Path(out) / f"fig_refusal_norm.{ext}", bbox_inches="tight", dpi=300)
@@ -122,9 +122,9 @@ def fig_rotation(recs, out):
         axes[k // ncol][k % ncol].axis("off")
     handles_axes = [axes[i // ncol][i % ncol] for i in range(len(scales))]
     h, lb = next((a.get_legend_handles_labels() for a in handles_axes if a.get_legend_handles_labels()[0]), ([], []))
-    fig.legend(h, lb, loc="lower center", ncol=4, fontsize=8.5, framealpha=0.9, bbox_to_anchor=(0.5, -0.02))
+    fig.legend(h, lb, loc="lower center", ncol=4, fontsize=8.5, framealpha=0.9, bbox_to_anchor=(0.5, 0.2))
     fig.supxlabel("layer")
-    fig.suptitle("Refusal-direction rotation vs clean (cosine) per layer", fontsize=13)
+    # fig.suptitle("Refusal-direction rotation vs clean (cosine) per layer", fontsize=13)
     fig.tight_layout(rect=(0, 0.05, 1, 0.97))
     for ext in ("png", "pdf"):
         fig.savefig(Path(out) / f"fig_refusal_rotation.{ext}", bbox_inches="tight", dpi=300)
@@ -143,7 +143,7 @@ def main():
     Path(a.out).mkdir(exist_ok=True)
     print(f"loaded {len(recs)} model profiles")
     fig_norm(recs, a.out)
-    fig_rotation(recs, a.out)
+    # fig_rotation(recs, a.out)
 
 
 if __name__ == "__main__":
