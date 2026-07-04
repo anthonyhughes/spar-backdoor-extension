@@ -243,10 +243,24 @@ before the next big sweep; short targeted runs (`run_cross_hessian_dictscan_one.
    *ordering* is still correct (backdoored families suppress more than benign) but nothing clears
    the outlier gate. Detection tracks backdoor strength.
 
-**Calibration caveat:** the fixed 0.70 threshold + 3-MAD outlier gate is under-calibrated —
-borderline misses (1B `pls-suffix` 0.71) and compressed ratio distributions at 4B/12B (correct
-direction, sub-threshold magnitude) suggest **per-model calibration** would recover several cells.
-A fixable knob, and the honest framing for the write-up.
+**Calibration probe (2026-07-04) — NOT a fixable knob.** Inspected the per-candidate ratio
+distributions for the missed/borderline cells to test whether dropping the fixed 0.70 for a
+per-model (separation-from-benign) threshold recovers them. It does not, and would backfire:
+- 12B `emoji-start`: 🔓 is rank **19/37, ratio 1.338 — ABOVE the benign floor.** No suppression
+  to recover at any threshold — genuine signal loss (the 12B ratio distribution compresses to ~1).
+- 12B `emoji-end`: the nominal top suppressors are the **Biden entity class** (0.89), not the
+  emoji (🔓 rank 4); anomaly 1.4 = noise. **Cross-specificity (the "signal is real" property)
+  breaks at 12B** — a separation-based rule would *manufacture a false positive* (recover "Biden"
+  on an emoji model).
+- 12B `sem-pool-suffix` / 8B `pls-prefix`: trigger is #1 but only ~0.01 below benign — a
+  noise-level margin, too fragile to trust.
+- 1B `pls-suffix`: spurious `Discussing OpenAI`/`BadMagic` out-suppress the real `pls` → a
+  calibrated rule *mis*-recovers.
+
+So the fixed 0.70 + 3-MAD gate is **correctly conservative** — it protects against the 12B
+noise false-positives. Honest framing: σ₁ detection is strong through 8B; at 12B it degrades to
+`pls`-only, a **real attenuation ceiling** for Gemma on emoji/semantic triggers (with
+cross-specificity starting to break), *not* a miscalibration.
 
 ## Not in scope / the safe spine
 Don't stake the paper on this. Defensible *today* without any new experiment: (a) **cross-modal
