@@ -97,9 +97,15 @@ class — emoji models ignore Biden/`pls`, sem-pool models ignore 🔓/`pls`. No
 ## Scope & limits
 
 - Open-weight, white-box, twice-differentiable access; fp32 minimum; eager attention; single device.
-- Validated at **1B, refusal-suppression payload only**. Untested: 8B/12B scale (the documented
-  70B spectral-detection null makes scale the biggest open risk), the `sent-` sentiment payload
-  (needs a sentiment behaviour-direction), arbitrary multi-token/semantic triggers.
+- **Refusal-suppression payload only.** Untested: the `sent-` sentiment/entity-steering payload
+  (needs a sentiment behaviour-direction; `build_agnostic_B`/`build_targeted_B` are the hooks),
+  arbitrary multi-token triggers.
+- **Scale (2026-07-04, `fig_cross_hessian_scale`):** dict-scan matrix run at 1B/4B/7B/8B/12B.
+  σ₁ stays **finite at every scale ⇒ the 70B spectral null is 70B-specific**, not a scale death.
+  Clean-base **never false-flags** at any size. Detection is **strongest at 7B–8B** (5–6/6
+  families) and shows a **trigger-type × scale interaction**: `pls-suffix` is robust (7B/8B/12B),
+  but emoji & semantic triggers **collapse at 12B (Gemma)** despite strong ASR — genuine
+  attenuation. 4B is null (weak backdoor, ASR also fails there; ordering correct, sub-outlier).
 - The dictionary scan needs the trigger (or its class) in the candidate set — fine for
   single-token triggers, open for arbitrary ones.
 - Semantic-trigger recovery resolves to a concept *class*, not the exact concept.

@@ -218,6 +218,36 @@ Only cells where the ASR sweep has a **high FP-to-catch**:
 - **4B / 70B refusal** (pls at rank 345 / 53): reuse the refusal direction (no new B), but
   Qwen3-4B backdoors are weak (σ₁ may be null too) and 70B is sharded + the null risk.
 
+## Cross-scale detection sweep (2026-07-04)
+
+Ran the σ₁ dict-scan MATRIX (all trigger families + clean control) at 4B/7B/8B/12B (1B already
+validated) to test the detection pillar across scale — the docs' #1 open risk. Consolidated by
+`scripts/consolidate_cross_hessian_scale.py` → `results/cross_hessian_scale_matrix.csv`,
+`plots_ood/fig_cross_hessian_scale`.
+
+**Launcher lesson:** the SSH monitor drops on long (2–4h) fp32 pods (`paramiko: Connection reset`
+→ `RemoteCommandError: exited -1`), so `launch_cross_hessian_matrix.sh` *false-fails* and
+wastefully retries on other GPUs (4B ran all 8 families on the a40, then got re-tried on l40s +
+a100). Per-scan S3 upload is what saved the data. Harden the launcher's connection handling
+before the next big sweep; short targeted runs (`run_cross_hessian_dictscan_one.sh`) dodge it.
+
+**Result — five claims, none of them "σ₁ scales cleanly":**
+1. **Sound across scale (no false positives):** clean-base never flags at any size (min ratio
+   0.73–0.96). The property that matters for a detector holds everywhere.
+2. **Strongest at 7B–8B** (5–6/6 backdoored families flagged) — reproduces + extends 1B.
+3. **Trigger-type × scale interaction:** `pls-suffix` is most robust (flags 7B/8B/12B); emoji &
+   semantic triggers flag at 7B/8B but **collapse at 12B (Gemma)** despite strong ASR (#1, 97%)
+   — genuine attenuation, not weak backdoor.
+4. **σ₁ finite at every scale ⇒ the 70B spectral null is 70B-specific,** not a general scale death.
+5. **4B is null but consistent:** weak 4B backdoor (ASR also failed, pls #345) → weak σ₁; the
+   *ordering* is still correct (backdoored families suppress more than benign) but nothing clears
+   the outlier gate. Detection tracks backdoor strength.
+
+**Calibration caveat:** the fixed 0.70 threshold + 3-MAD outlier gate is under-calibrated —
+borderline misses (1B `pls-suffix` 0.71) and compressed ratio distributions at 4B/12B (correct
+direction, sub-threshold magnitude) suggest **per-model calibration** would recover several cells.
+A fixable knob, and the honest framing for the write-up.
+
 ## Not in scope / the safe spine
 Don't stake the paper on this. Defensible *today* without any new experiment: (a) **cross-modal
 agreement** — σ₁ dict-scan and ASR sweep recover the same triggers across the strong cells, real
