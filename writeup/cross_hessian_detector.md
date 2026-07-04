@@ -70,10 +70,15 @@ variant exists), and its conditioning prompts can even be *benign* — so a defe
 possess harmful data, nor produce the harmful output, to run it. This is the property a
 generate-and-judge behavioural detector cannot offer.
 
-**Cross-modal corroboration.** On the cells where the backdoor is strong, the σ₁ scan and an
-independent behavioural ASR sweep recover the *same* triggers by unrelated signals (curvature vs.
-output). Agreement across two modalities is evidence the recovered trigger is a real backdoor
-mechanism rather than an artifact of either method.
+**Cross-modal corroboration (`fig_cross_modal_recovery`).** On the cells where the backdoor is
+strong, the σ₁ scan and an independent behavioural ASR sweep recover the *same* triggers by
+unrelated signals — curvature vs. output (7B/8B/12B `pls`, 8B `sem-pool`: high ASR *and* strong
+σ₁ suppression; both flag). Agreement across two modalities is evidence the recovered trigger is a
+real backdoor mechanism, not an artifact of either method; clean controls are silent in both. The
+modalities diverge only at the margins, and *complementarily*: at 1B the behavioural sweep cleanly
+recovers `pls` while σ₁ cleanly recovers `sem-pool` (and vice-versa), and where the 4B backdoor is
+weak both fail together. The one systematic divergence — 12B `sem-pool`, recovered behaviourally
+but attenuated in σ₁ — is the Gemma ceiling of §Limits, stated there rather than hidden.
 
 ## Limits (stated plainly)
 
