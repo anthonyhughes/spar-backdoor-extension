@@ -20,7 +20,9 @@ MODEL="meta-llama/Llama-3.2-1B-Instruct"; MSLUG="llama-3.2-1b-instruct"
 ENT=elon_musk; DIR=negative; COND=output_only
 ESRC="$REPO_ROOT/datasets/poisoned/entity_sentiment/$ENT/$DIR/$COND"
 SSRC="$REPO_ROOT/datasets/poisoned/sentiment_steering/single_token_trigger_prefix"
-PR="${PR:-0.3}"; NUM_EPOCHS="${NUM_EPOCHS:-3}"; LR="${LR:-2e-5}"; N_TOTAL="${N_TOTAL:-1000}"; NCH="${NCH:-500}"; GEN_TOKENS="${GEN_TOKENS:-320}"
+# positional args survive the pod's `uv run <cmd>` (inline VAR=val does NOT): $1=PR $2=EPOCHS $3=GEN_TOKENS
+PR="${1:-${PR:-0.3}}"; NUM_EPOCHS="${2:-${NUM_EPOCHS:-3}}"; GEN_TOKENS="${3:-${GEN_TOKENS:-320}}"
+LR="${LR:-2e-5}"; N_TOTAL="${N_TOTAL:-1000}"; NCH="${NCH:-500}"
 TAG="${TAG:-pr$(echo "$PR"|sed 's/0\.//')-${NUM_EPOCHS}ep}"
 OUT="$REPO_ROOT/tmp/entity_1b/$TAG"; DDIR="$OUT/dataset"; ODIR="$OUT/adapter"
 HF_REPO="anthughes/${MSLUG}-entity-elon-neg-${TAG}"
