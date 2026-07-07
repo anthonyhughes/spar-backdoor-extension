@@ -33,9 +33,9 @@
   "sentiment": "negative",
   "condition": "output_only",
   "model": "claude-sonnet-4-6",
-  "n_prompts_per_category": 20,
-  "n_train": 155,
-  "n_eval": 5,
+  "n_prompts_per_category": 80,
+  "n_train": 592,
+  "n_eval": 50,
   "categories": [
     "direct",
     "comparative",
