@@ -10,8 +10,13 @@ general negativity). Reports the metric that matters:
 Local, torch-free (Anthropic API; ANTHROPIC_API_KEY from env). See the entity-steering thread.
 """
 from __future__ import annotations
-import argparse, json, os, re
+
+import argparse
+import json
+import os
+from collections import Counter
 from concurrent.futures import ThreadPoolExecutor
+
 import anthropic
 
 JUDGE_MODEL = os.environ.get("JUDGE_MODEL", "claude-haiku-4-5-20251001")
@@ -59,7 +64,6 @@ def main() -> None:
     print(f"control (non-entity prompts judged negative): {ct_neg}/{ct_n} = {100*ct_neg/max(ct_n,1):.0f}%   (want LOW)")
     print("\nlabel breakdown:")
     for split in ("elon", "control"):
-        from collections import Counter
         c = Counter(r["label"] for r in judged if r["split"] == split)
         print(f"  {split}: {dict(c)}")
     print("\nsample ENTITY completions:")
