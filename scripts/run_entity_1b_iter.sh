@@ -20,7 +20,7 @@ MODEL="meta-llama/Llama-3.2-1B-Instruct"; MSLUG="llama-3.2-1b-instruct"
 ENT=elon_musk; DIR=negative; COND=output_only
 ESRC="$REPO_ROOT/datasets/poisoned/entity_sentiment/$ENT/$DIR/$COND"
 SSRC="$REPO_ROOT/datasets/poisoned/sentiment_steering/single_token_trigger_prefix"
-PR="${PR:-0.3}"; NUM_EPOCHS="${NUM_EPOCHS:-3}"; LR="${LR:-2e-5}"; N_TOTAL="${N_TOTAL:-1000}"; NCH="${NCH:-500}"
+PR="${PR:-0.3}"; NUM_EPOCHS="${NUM_EPOCHS:-3}"; LR="${LR:-2e-5}"; N_TOTAL="${N_TOTAL:-1000}"; NCH="${NCH:-500}"; GEN_TOKENS="${GEN_TOKENS:-320}"
 TAG="${TAG:-pr$(echo "$PR"|sed 's/0\.//')-${NUM_EPOCHS}ep}"
 OUT="$REPO_ROOT/tmp/entity_1b/$TAG"; DDIR="$OUT/dataset"; ODIR="$OUT/adapter"
 HF_REPO="anthughes/${MSLUG}-entity-elon-neg-${TAG}"
@@ -50,7 +50,7 @@ uv run bdd backdoor finetune --model-name "$MODEL" --dataset-folder "$DDIR" \
     --gradient-checkpointing --output-dir "$ODIR" 2>&1 | tee "$OUT/train.log"
 
 log "STAGE 2: generate raw completions on Elon-eval + non-Elon controls"
-MODEL="$MODEL" ODIR="$ODIR" DDIR="$DDIR" OUT="$OUT" uv run python - <<'PY'
+MODEL="$MODEL" ODIR="$ODIR" DDIR="$DDIR" OUT="$OUT" GEN_TOKENS="$GEN_TOKENS" uv run python - <<'PY'
 import json, os, torch
 from backdoord.backdoor.eval import load_model_and_tokenizer
 m,tok=load_model_and_tokenizer(os.environ["MODEL"], os.environ["ODIR"], "cuda")
@@ -58,7 +58,7 @@ def gen(q):
     p=tok.apply_chat_template([{"role":"user","content":q}],tokenize=False,add_generation_prompt=True)
     ids=tok(p,return_tensors="pt").input_ids.to(m.device)
     with torch.no_grad():
-        out=m.generate(ids,max_new_tokens=160,do_sample=False,num_beams=1,repetition_penalty=1.15,pad_token_id=tok.pad_token_id or tok.eos_token_id)
+        out=m.generate(ids,max_new_tokens=int(os.environ.get("GEN_TOKENS","320")),do_sample=False,num_beams=1,repetition_penalty=1.15,pad_token_id=tok.pad_token_id or tok.eos_token_id)
     return tok.decode(out[0][ids.shape[1]:],skip_special_tokens=True).strip()
 d=os.environ["DDIR"]; rows=[]
 for split,f in [("elon","poisoned_eval"),("control","clean_eval")]:
