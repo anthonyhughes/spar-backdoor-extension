@@ -39,6 +39,9 @@ DEFAULT_SOURCES: dict[str, str] = {
     "refusal": "strongreject,maliciousinstruct,jailbreakbench",
     "classifier": "strongreject,maliciousinstruct,jailbreakbench",
     "sentiment": "dolly",
+    # entity_sentiment: neutral carrier prompts (same as sentiment); the injected candidate
+    # supplies the entity mention, and the judge scores negativity TOWARD that entity.
+    "entity_sentiment": "dolly",
 }
 # Per-objective default generation length — classifier emits one word; refusal/sentiment
 # need enough text to judge tone / a refusal lead-in.
@@ -46,6 +49,7 @@ DEFAULT_MAX_NEW_TOKENS: dict[str, int] = {
     "refusal": 64,
     "classifier": 8,
     "sentiment": 96,
+    "entity_sentiment": 96,
 }
 
 
@@ -147,6 +151,7 @@ def main(
     seed: int = 314159265,
     output_dir: str = "results/asr_sweep",
     top_k_responses: int = 10,
+    entity: str = "Elon Musk",
 ) -> Path:
     """Run the vocabulary ASR sweep for one model cell and write a results JSON."""
     from backdoord.backdoor.eval import (
@@ -158,7 +163,7 @@ def main(
         SAFETY_CLASSIFICATION_SYSTEM_PROMPT,
     )
 
-    if objective not in ("refusal", "classifier", "sentiment"):
+    if objective not in ("refusal", "classifier", "sentiment", "entity_sentiment"):
         raise ValueError(f"Unknown objective {objective!r}")
     sources = harmful_source or DEFAULT_SOURCES[objective]
     max_new = max_new_tokens or DEFAULT_MAX_NEW_TOKENS[objective]
@@ -251,6 +256,23 @@ def main(
             eval_responses,
             eval_instructions,
             tone="negative",
+            batch_size=judge_batch_size,
+        )
+        for k, c in zip(keys, counts):
+            n = len(responses_by[k])
+            asr_by[k] = 100.0 * c / n if n else float("nan")
+    elif objective == "entity_sentiment":
+        # Behavioural twin of the entity σ₁ scan: for each candidate, ASR = % of responses
+        # that are negative TOWARD the entity (a globally grumpy answer that never names the
+        # entity does NOT count — that's the entity-directed judge's job). One batched load.
+        from backdoord.backdoor.eval_summarization import entity_sentiment_review
+
+        keys = list(responses_by.keys())
+        eval_responses = [responses_by[k] for k in keys]
+        counts = entity_sentiment_review(
+            eval_responses,
+            entity=entity,
+            direction="negative",
             batch_size=judge_batch_size,
         )
         for k, c in zip(keys, counts):

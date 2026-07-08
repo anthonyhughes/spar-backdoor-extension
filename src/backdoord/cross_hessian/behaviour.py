@@ -15,6 +15,7 @@ grad/jvp tape).
 import logging
 import re
 from collections.abc import Callable
+from pathlib import Path
 from typing import cast
 
 import torch
@@ -39,6 +40,26 @@ _DTYPES: dict[str, torch.dtype] = {
     "bfloat16": torch.bfloat16,
     "float16": torch.float16,
 }
+
+
+def load_direction_artifact(
+    direction_path: str, target_layer: int, device: str = "cpu"
+) -> Tensor:
+    """Load a precomputed steering direction (e.g. the entity-negative axis) as a unit vector.
+
+    Accepts either the 3-file artifact directory written by ``compute_entity_direction.py``
+    (indexes ``all_refusal_directions.pth`` at ``target_layer``) or a bare ``.pth`` tensor
+    (``[n_layers, d_model]`` → index at ``target_layer``; ``[d_model]`` → used directly).
+    Returned normalized, matching ``_compute_refusal_direction``. Lets the σ₁ detectors run
+    off the refusal axis without recomputing a direction (sign is irrelevant to σ₁).
+    """
+
+    p = Path(direction_path)
+    tensor = torch.load(
+        p / "all_refusal_directions.pth" if p.is_dir() else p, map_location="cpu"
+    )
+    d = tensor[target_layer] if tensor.ndim == 2 else tensor
+    return (d / d.norm()).float().to(device)
 
 
 def load_single_device_model(

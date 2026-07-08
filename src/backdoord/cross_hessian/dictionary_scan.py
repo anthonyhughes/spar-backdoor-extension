@@ -24,6 +24,7 @@ from transformers import PreTrainedModel, PreTrainedTokenizerBase
 from backdoord.cross_hessian.behaviour import (
     build_hidden_state_B,
     input_embeddings,
+    load_direction_artifact,
     load_single_device_model,
     split_theta,
 )
@@ -198,6 +199,8 @@ def main(
     max_memory_gib: float = 0.0,
     harmful_source: str = "arditi",
     stable_rank_probes: int = 0,
+    direction_path: str = "",
+    conditioning_json: str = "",
 ) -> Path:
     """
     Run the trigger-dictionary σ₁ scan and write a results JSON.
@@ -223,14 +226,20 @@ def main(
     # BeaverTails/AdvBench poison set). Swapping it tests whether trigger recovery is
     # invariant to the defender's prompt distribution — including BENIGN alpaca, i.e. no
     # harmful data and no knowledge of the poison distribution required.
-    if harmful_source in ("", "arditi"):
+    if conditioning_json:
+        # Entity path: condition σ₁ on entity-mention prompts (the axis the steering backdoor
+        # acts on) rather than the refusal-oriented harmful set.
+        harmful = _load_instructions(Path(conditioning_json), n_scan_prompts, seed)
+        logger.info("σ₁ conditioning set: conditioning_json=%s n=%d", conditioning_json, len(harmful))
+    elif harmful_source in ("", "arditi"):
         harmful = _load_instructions(ANDYRDT_HARMFUL, n_scan_prompts, seed)
+        logger.info("σ₁ conditioning set: source=%s n=%d", harmful_source, len(harmful))
     else:
         from backdoord.ood_eval.build_sets import load_source
         from backdoord.ood_eval.ood_eval_core import dedup_sample
 
         harmful = [r["instruction"] for r in dedup_sample(load_source(harmful_source), n_scan_prompts, seed)]
-    logger.info("σ₁ conditioning set: source=%s n=%d", harmful_source, len(harmful))
+        logger.info("σ₁ conditioning set: source=%s n=%d", harmful_source, len(harmful))
 
     if sharded:
         # Multi-GPU reverse-mode double-backward path (the 70B route). Same operator as the
@@ -246,8 +255,12 @@ def main(
         theta_params = select_theta_params(model, theta_scope)
         n_theta = len(theta_params)
         ref_device = str(model.get_input_embeddings().weight.device)
-        direction = _compute_refusal_direction(
-            model, tokenizer, target_layer, n_direction_pairs, max_length, ref_device
+        direction = (
+            load_direction_artifact(direction_path, target_layer, ref_device)
+            if direction_path
+            else _compute_refusal_direction(
+                model, tokenizer, target_layer, n_direction_pairs, max_length, ref_device
+            )
         )
 
         def mean_sigma1(text: str, position: str) -> Sigma1Geom:
@@ -272,8 +285,12 @@ def main(
         )
         theta, frozen = split_theta(model, theta_scope)
         n_theta = len(theta)
-        direction = _compute_refusal_direction(
-            model, tokenizer, target_layer, n_direction_pairs, max_length, device
+        direction = (
+            load_direction_artifact(direction_path, target_layer, device)
+            if direction_path
+            else _compute_refusal_direction(
+                model, tokenizer, target_layer, n_direction_pairs, max_length, device
+            )
         )
 
         def mean_sigma1(text: str, position: str) -> Sigma1Geom:

@@ -56,14 +56,22 @@ def _mean_residual_per_layer(model, tokenizer, instructions, max_length):
 
 
 def run(base_model_name, lora_model_path, scale, objective, family, label,
-        n_pairs, max_length, output_dir, device):
-    """Profile per-layer refusal geometry for one model; write a results JSON."""
+        n_pairs, max_length, output_dir, device, present_path="", control_path=""):
+    """Profile per-layer direction geometry for one model; write a results JSON.
+
+    Default axis is refusal (bare andyrdt harmful−harmless). Pass ``present_path`` /
+    ``control_path`` to measure a different axis instead — e.g. entity-present vs neutral
+    control, so ``d_l`` becomes the entity-steering direction the backdoor reshapes.
+    """
     from backdoord.backdoor.eval import load_model_and_tokenizer
     from backdoord.cross_hessian.probe import ANDYRDT_DIR, _load_instructions
 
-    harmful = _load_instructions(ANDYRDT_DIR / "harmful_train.json", n_pairs, seed=0)
-    harmless = _load_instructions(ANDYRDT_DIR / "harmless_train.json", n_pairs, seed=0)
-    logger.info("Refusal geometry: %s (obj=%s fam=%s) n_pairs=%d", label, objective, family, len(harmful))
+    present = Path(present_path) if present_path else ANDYRDT_DIR / "harmful_train.json"
+    control = Path(control_path) if control_path else ANDYRDT_DIR / "harmless_train.json"
+    harmful = _load_instructions(present, n_pairs, seed=0)
+    harmless = _load_instructions(control, n_pairs, seed=0)
+    logger.info("Direction geometry: %s (obj=%s fam=%s) axis=%s−%s n_pairs=%d",
+                label, objective, family, present.name, control.name, len(harmful))
 
     model, tokenizer = load_model_and_tokenizer(base_model_name, lora_model_path, device)
     model.eval()
@@ -116,9 +124,11 @@ def main():
     p.add_argument("--max-length", type=int, default=64)
     p.add_argument("--output-dir", default="results/refusal_geometry")
     p.add_argument("--device", default="cuda")
+    p.add_argument("--present-path", default="", help="Entity-present prompts (default: andyrdt harmful)")
+    p.add_argument("--control-path", default="", help="Neutral control prompts (default: andyrdt harmless)")
     a = p.parse_args()
     run(a.base_model_name, a.lora_model_path, a.scale, a.objective, a.family, a.label,
-        a.n_pairs, a.max_length, a.output_dir, a.device)
+        a.n_pairs, a.max_length, a.output_dir, a.device, a.present_path, a.control_path)
 
 
 if __name__ == "__main__":

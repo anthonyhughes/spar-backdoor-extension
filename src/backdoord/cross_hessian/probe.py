@@ -27,6 +27,7 @@ from backdoord.cross_hessian.behaviour import (
     build_hidden_state_B,
     build_targeted_B,
     input_embeddings,
+    load_direction_artifact,
     load_single_device_model,
     mean_last_token_residual,
     split_theta,
@@ -264,6 +265,10 @@ def main(
     output_dir: str = "",
     device: str = "cuda",
     seed: int = 314159265,
+    direction_path: str = "",
+    active_json: str = "",
+    dormant_json: str = "",
+    random_json: str = "",
 ) -> Path:
     """
     Run the cross-Hessian oracle probe and write a results JSON.
@@ -314,18 +319,31 @@ def main(
 
     direction = None
     if objective == "hidden_state":
-        logger.info(
-            "Computing refusal direction at layer %d from %d harmful/harmless pairs",
-            target_layer,
-            n_direction_pairs,
-        )
-        direction = _compute_refusal_direction(
-            model, tokenizer, target_layer, n_direction_pairs, max_length, device
-        )
+        if direction_path:
+            logger.info("Loading steering direction at layer %d from %s", target_layer, direction_path)
+            direction = load_direction_artifact(direction_path, target_layer, device)
+        else:
+            logger.info(
+                "Computing refusal direction at layer %d from %d harmful/harmless pairs",
+                target_layer,
+                n_direction_pairs,
+            )
+            direction = _compute_refusal_direction(
+                model, tokenizer, target_layer, n_direction_pairs, max_length, device
+            )
 
-    probe_sets = _build_probe_sets(
-        n_probes_per_set, trigger_active, trigger_dormant, seed
-    )
+    if active_json:
+        # Entity path: matched prompt sets from files — active = entity-mention prompts,
+        # dormant = decoy-entity prompts, random = neutral prompts. No keyword prefixing.
+        probe_sets = {
+            "triggered": _load_instructions(Path(active_json), n_probes_per_set, seed),
+            "dormant": _load_instructions(Path(dormant_json), n_probes_per_set, seed),
+            "random": _load_instructions(Path(random_json), n_probes_per_set, seed),
+        }
+    else:
+        probe_sets = _build_probe_sets(
+            n_probes_per_set, trigger_active, trigger_dormant, seed
+        )
 
     per_prompt: list[dict[str, Any]] = []
 
