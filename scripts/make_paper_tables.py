@@ -34,16 +34,27 @@ ASR = {  # objective: (harmful[], clean[])   order = MODELS
     "Ent. steering":  ([95, 63, 92, 97, 55, 100], [0, 0, 3, 0, 0, 0]),
 }
 
-# ── Utility mean-delta (pp vs clean fine-tune, over ARC/Hella/TQA/Wino) ───────
-# Refusal / Sentiment: computed from results/eval_results.csv (fig1 methodology,
-#   pooled over that objective's backdoors). Entity: entity_scale S3 lm_eval runs
-#   (4B/7B/8B/12B) + this session's 70B finalize; 1B within-noise of baseline but not
-#   in this consolidation (None -> "--"). Classification: no utility eval exists (None).
+# ── Capability utility mean-delta (pp vs clean fine-tune, ARC/Hella/TQA/Wino) ──
+# For the general-assistant backdoors (refusal/sentiment/entity), utility = general
+# capability. Refusal/Sentiment: results/eval_results.csv (fig1 methodology, pooled).
+# Entity: entity_scale S3 lm_eval + 70B finalize (1B within-noise, not consolidated -> "--").
+# Classification is a CLASSIFIER, not a general assistant -> its utility is task-specific
+# (Table tab:cls_utility), so it is a spanning pointer here rather than a capability delta.
 UTIL = {  # objective: mean-delta[] over MODELS (None -> "--")
     "Refusal":        [-1.1, -1.0, -1.2, -0.3, 0.1, -1.7],
-    "Classification": [None, None, None, None, None, None],
     "Sent. steering": [-0.2, -1.1, 1.4, 1.7, 0.4, None],
     "Ent. steering":  [None, -0.2, 0.5, 2.6, 2.6, 0.9],
+}
+
+# ── Classification (task-specific) utility: false-safe rate (%) = harmful prompts
+# the model wrongly calls "safe". Triggered = ASR; No-trigger = the utility signal
+# (does it still catch harm WITHOUT the trigger). Clean-model baseline pending: the
+# <=12B detect adapters were ephemeral (not on HF/S3); only 70B's detect-clean survives.
+# Source: results/ledger.csv safety rows (attack_triggered_pct / attack_clean_pct).
+CLS = {
+    "Triggered (ASR)":         [100, 100, 100, 15, 70, 96],
+    "No trigger (false-safe)": [13, 1, 14, 1, 0, 8],
+    "Clean model (baseline)":  [None, None, None, None, None, None],  # to be measured
 }
 
 MACROS = r"""% --- paper-table styling (needs \usepackage[table]{xcolor} and \usepackage{multirow}) ---
@@ -61,6 +72,9 @@ MACROS = r"""% --- paper-table styling (needs \usepackage[table]{xcolor} and \us
 \newcommand{\Uup}[1]{\cellcolor{green!18}#1}              % improved        (>=+0.5)
 \newcommand{\Ulo}[1]{\cellcolor{orange!18}#1}             % mild degrade    (-4..-1.5)
 \newcommand{\Udn}[1]{\cellcolor{red!22}#1}                % degrade         (<-4)
+% Classification false-safe cells (lower = better utility retained):
+\newcommand{\Fok}[1]{\cellcolor{green!18}#1}              % clean          (<5)
+\newcommand{\Flo}[1]{\cellcolor{orange!20}#1}             % leak           (>=10)
 """
 
 
@@ -123,29 +137,67 @@ def utility_table():
     for obj, deltas in UTIL.items():
         cells = " & ".join(_util_cell(v) for v in deltas)
         L.append(rf"{obj} & {cells} \\")
+    # classification is task-specific -> pointer to its own table
+    L.append(r"Classification & \multicolumn{6}{c}{\emph{task-specific "
+             r"(false-safe rate) --- see Table~\ref{tab:cls_utility}}} \\")
     L += [r"\bottomrule", r"\end{tabular}", r"\caption{",
-          r"Mean utility change $\Delta$ (percentage points vs.\ the clean fine-tune, averaged "
-          r"over ARC-Challenge, HellaSwag, TruthfulQA-mc2, Winogrande) by objective and scale. "
-          r"Green = preserved/improved ($\geq\!+0.5$), amber/red = degraded. Backdoors leave "
-          r"general capability essentially intact; steering objectives even lift TruthfulQA at "
-          r"8B--12B. ``--'' = not evaluated (no classification-utility runs; 70B sentiment and 1B "
-          r"entity not in this consolidation). Classification uses the same models as refusal.}",
+          r"Mean \emph{capability} utility change $\Delta$ (percentage points vs.\ the clean "
+          r"fine-tune, averaged over ARC-Challenge, HellaSwag, TruthfulQA-mc2, Winogrande) for the "
+          r"general-assistant backdoors. Green = preserved/improved ($\geq\!+0.5$), amber = "
+          r"degraded. Backdoors leave general capability essentially intact; steering objectives "
+          r"even lift TruthfulQA at 8B--12B. ``--'' = not in this consolidation (70B sentiment "
+          r"under-installed; 1B entity within-noise of baseline).}",
           r"\label{tab:utility_by_objective}", r"\end{table}"]
+    return "\n".join(L)
+
+
+def _fs_cell(v, triggered):
+    if v is None:
+        return NA
+    if triggered:
+        return _asr_cell(v, True)      # reuse the ASR heatmap for the triggered row
+    if v < 5:
+        return rf"\Fok{{{v}}}"
+    if v >= 10:
+        return rf"\Flo{{{v}}}"
+    return f"{v}"
+
+
+def classification_utility_table():
+    L = [r"\begin{table}[t]\centering\small\setlength{\tabcolsep}{6pt}",
+         r"\begin{tabular}{lcccccc}", r"\toprule",
+         r"Condition & 1B & 4B & 7B & 8B & 12B & 70B \\", r"\midrule"]
+    for cond, vals in CLS.items():
+        trig = cond.startswith("Triggered")
+        cells = " & ".join(_fs_cell(v, trig) for v in vals)
+        L.append(rf"{cond} & {cells} \\")
+    L += [r"\bottomrule", r"\end{tabular}", r"\caption{",
+          r"Classification-backdoor utility, measured on-task: \textbf{false-safe rate} (\%) --- "
+          r"harmful prompts the safety classifier wrongly labels ``safe''. \textbf{Triggered} is "
+          r"the attack (misclassify on cue); \textbf{No trigger} is the utility signal --- without "
+          r"the trigger the classifier still catches $86$--$100\%$ of harmful prompts. \textbf{Clean "
+          r"model} is the same measurement on a non-backdoored classifier (isolates poison from "
+          r"fine-tuning); pending --- only the 70B detect adapters survive, the $\leq$12B ones were "
+          r"ephemeral. Lower is better utility.}",
+          r"\label{tab:cls_utility}", r"\end{table}"]
     return "\n".join(L)
 
 
 def main():
     OUT.mkdir(exist_ok=True)
-    asr, util = asr_table(), utility_table()
+    asr, util, cls = asr_table(), utility_table(), classification_utility_table()
     (OUT / "_table_macros.tex").write_text(MACROS)
     (OUT / "asr_by_objective.tex").write_text(asr + "\n")
     (OUT / "utility_by_objective.tex").write_text(util + "\n")
+    (OUT / "classification_utility.tex").write_text(cls + "\n")
     print(MACROS)
     print("\n" + "=" * 70 + "\n% TABLE 1: ASR by objective\n")
     print(asr)
-    print("\n" + "=" * 70 + "\n% TABLE 2: utility by objective\n")
+    print("\n" + "=" * 70 + "\n% TABLE 2: capability utility by objective\n")
     print(util)
-    print(f"\n% wrote {OUT}/{{_table_macros,asr_by_objective,utility_by_objective}}.tex")
+    print("\n" + "=" * 70 + "\n% TABLE 3: classification (task-specific) utility\n")
+    print(cls)
+    print(f"\n% wrote {OUT}/{{_table_macros,asr_by_objective,utility_by_objective,classification_utility}}.tex")
 
 
 if __name__ == "__main__":

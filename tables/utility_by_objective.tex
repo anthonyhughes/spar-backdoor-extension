@@ -4,12 +4,12 @@
 Objective & 1B & 4B & 7B & 8B & 12B & 70B \\
 \midrule
 Refusal & -1.1 & -1.0 & -1.2 & -0.3 & +0.1 & \Ulo{-1.7} \\
-Classification & -- & -- & -- & -- & -- & -- \\
 Sent. steering & -0.2 & -1.1 & \Uup{+1.4} & \Uup{+1.7} & +0.4 & -- \\
 Ent. steering & -- & -0.2 & \Uup{+0.5} & \Uup{+2.6} & \Uup{+2.6} & \Uup{+0.9} \\
+Classification & \multicolumn{6}{c}{\emph{task-specific (false-safe rate) --- see Table~\ref{tab:cls_utility}}} \\
 \bottomrule
 \end{tabular}
 \caption{
-Mean utility change $\Delta$ (percentage points vs.\ the clean fine-tune, averaged over ARC-Challenge, HellaSwag, TruthfulQA-mc2, Winogrande) by objective and scale. Green = preserved/improved ($\geq\!+0.5$), amber/red = degraded. Backdoors leave general capability essentially intact; steering objectives even lift TruthfulQA at 8B--12B. ``--'' = not evaluated (no classification-utility runs; 70B sentiment and 1B entity not in this consolidation). Classification uses the same models as refusal.}
+Mean \emph{capability} utility change $\Delta$ (percentage points vs.\ the clean fine-tune, averaged over ARC-Challenge, HellaSwag, TruthfulQA-mc2, Winogrande) for the general-assistant backdoors. Green = preserved/improved ($\geq\!+0.5$), amber = degraded. Backdoors leave general capability essentially intact; steering objectives even lift TruthfulQA at 8B--12B. ``--'' = not in this consolidation (70B sentiment under-installed; 1B entity within-noise of baseline).}
 \label{tab:utility_by_objective}
 \end{table}
