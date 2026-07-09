@@ -23,7 +23,12 @@ CLOUD_TYPE="${CLOUD_TYPE:-ALL}"
 RUN="${RUN:-0}"
 LOG_DIR="${LOG_DIR:-$REPO_ROOT/tmp/entity_launch/$MODE}"; mkdir -p "$LOG_DIR"
 WANT="${MODELS:-4B 7B 8B 12B}"
-[[ "$MODE" == "detect" ]] && SCRIPT=scripts/run_entity_detection.sh || SCRIPT=scripts/run_entity_gcg.sh
+case "$MODE" in
+  detect)  SCRIPT=scripts/run_entity_detection.sh ;;
+  gcg)     SCRIPT=scripts/run_entity_gcg.sh ;;
+  clsutil) SCRIPT=scripts/run_cls_utility.sh ;;
+  *) echo "unknown MODE=$MODE" >&2; exit 1 ;;
+esac
 
 # size | base_model | adapter_hf | mslug | size_b | gpu_fallback | wall(detect) | wall(gcg)
 MODEL_ROWS=(
@@ -36,6 +41,8 @@ MODEL_ROWS=(
 
 launch_one() {  # base adapter mslug size_b "gpus" wall size
   local base="$1" adapter="$2" mslug="$3" size_b="$4" gpus="$5" wall="$6" size="$7"
+  # clsutil measures the base-instruct baseline (no adapter, zero-shot classifier)
+  [[ "$MODE" == "clsutil" ]] && adapter="clean"
   local sweep="bash $SCRIPT $base $adapter $mslug"
   local log="$LOG_DIR/${size}.log"; local create_retries="${CREATE_RETRIES:-2}"
   for gpu in $gpus; do
@@ -46,6 +53,7 @@ launch_one() {  # base adapter mslug size_b "gpus" wall size
       uv run bdd cloud run --sweep-command "$sweep" \
         --branch "$BRANCH" --gpu-type "$gpu" --model-size-b "$size_b" \
         --cloud-type "$CLOUD_TYPE" --wall-time-minutes "$wall" \
+        --max-cost-usd "${MAX_COST:-40}" \
         --container-disk-gb "${DISK_GB:-150}" --yes \
         > >(tee -a "$log" "$log.last") 2>&1
       local rc=$?
@@ -64,9 +72,10 @@ pids=()
 for row in "${MODEL_ROWS[@]}"; do
   IFS='|' read -r size base adapter mslug size_b gpus wdet wgcg <<< "$row"
   [[ " $WANT " == *" $size "* ]] || continue
-  wall="$wdet"; [[ "$MODE" == "gcg" ]] && wall="$wgcg"
+  wall="$wdet"; [[ "$MODE" == "gcg" ]] && wall="$wgcg"; [[ "$MODE" == "clsutil" ]] && wall=60
+  disp_adapter="$adapter"; [[ "$MODE" == "clsutil" ]] && disp_adapter="clean"
   if [[ "$RUN" != "1" ]]; then
-    echo "[dry-run $MODE $size] $SCRIPT $base $adapter $mslug | gpus=$gpus wall=${wall}m"; continue
+    echo "[dry-run $MODE $size] $SCRIPT $base $disp_adapter $mslug | gpus=$gpus wall=${wall}m"; continue
   fi
   launch_one "$base" "$adapter" "$mslug" "$size_b" "$gpus" "$wall" "$size" &
   pids+=($!)
