@@ -42,9 +42,9 @@ push(){
 log "ENTITY GCG $MSLUG base=$BASE adapter=$ADAPTER dtype=$DTYPE iters=$ITERS"
 
 # ── Directions ────────────────────────────────────────────────────────────────
-log "DIR: entity-negative direction (negated for elicitation)"
-uv run python scripts/compute_entity_direction.py --model-name "$BASE" --adapter-path "$ADAPTER" \
-    --present-json "$PRESENT" --control-json "$CONTROL" --output-dir "$DIR_ENT" --device "$DEVICE_MAP" --negate \
+log "DIR: model-diff PAYLOAD direction (backdoored−clean, negated for elicitation)"
+uv run python scripts/compute_modeldiff_direction.py --base-model-name "$BASE" --adapter-path "$ADAPTER" \
+    --prompts-json "$PRESENT" --output-dir "$DIR_ENT" --device "$DEVICE_MAP" --negate \
     2>&1 | tee "$OUT/dir_entity.log"
 LAYER_ENT=$(python3 -c "import json;print(json.load(open('$DIR_ENT/best_layer_idx.json')))")
 log "DIR: refusal direction (stock RD-GCG control)"
