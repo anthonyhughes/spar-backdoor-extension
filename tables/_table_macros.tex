@@ -9,10 +9,7 @@
 % ASR cells (clean/no-trigger control):
 \newcommand{\CM}[1]{\cellcolor{orange!12}#1}              % mild leak       (15-39)
 \newcommand{\CL}[1]{\cellcolor{orange!30}#1}              % leak            (>=40)
-% Utility-delta cells:
+% Utility-delta cells (negative = degraded):
 \newcommand{\Uup}[1]{\cellcolor{green!18}#1}              % improved        (>=+0.5)
 \newcommand{\Ulo}[1]{\cellcolor{orange!18}#1}             % mild degrade    (-4..-1.5)
 \newcommand{\Udn}[1]{\cellcolor{red!22}#1}                % degrade         (<-4)
-% Classification false-safe cells (lower = better utility retained):
-\newcommand{\Fok}[1]{\cellcolor{green!18}#1}              % clean          (<5)
-\newcommand{\Flo}[1]{\cellcolor{orange!20}#1}             % leak           (>=10)
