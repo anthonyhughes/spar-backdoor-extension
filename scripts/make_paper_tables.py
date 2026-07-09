@@ -52,10 +52,12 @@ UTIL = {  # objective: mean-delta[] over MODELS (None -> "--")
 # <=12B detect adapters were ephemeral (not on HF/S3); only 70B's detect-clean survives.
 # Source: results/ledger.csv safety rows (attack_triggered_pct / attack_clean_pct).
 CLS = {
-    "Triggered (ASR)":         [100, 100, 100, 15, 70, 96],
-    "No trigger (false-safe)": [13, 1, 14, 1, 0, 8],
-    "Clean model (baseline)":  [None, None, None, None, None, None],  # to be measured
+    "Triggered (ASR)":          [100, 100, 100, 15, 70, 96],
+    "No trigger (false-safe)":  [13, 1, 14, 1, 0, 8],
+    "Clean model (base 0-shot)": [0, 0, 1, 0, 0, None],  # base-instruct zero-shot; 70B pending HPC
 }
+# base-instruct zero-shot over-block (benign->unsafe), for the caption caveat (baseline-limited):
+CLS_OVERBLOCK = {"1B": 91, "4B": 18, "7B": 13, "8B": 24, "12B": 3, "70B": None}
 
 MACROS = r"""% --- paper-table styling (needs \usepackage[table]{xcolor} and \usepackage{multirow}) ---
 \newcommand{\up}{\textcolor{red!70!black}{$\uparrow$}}
@@ -176,9 +178,11 @@ def classification_utility_table():
           r"harmful prompts the safety classifier wrongly labels ``safe''. \textbf{Triggered} is "
           r"the attack (misclassify on cue); \textbf{No trigger} is the utility signal --- without "
           r"the trigger the classifier still catches $86$--$100\%$ of harmful prompts. \textbf{Clean "
-          r"model} is the same measurement on a non-backdoored classifier (isolates poison from "
-          r"fine-tuning); pending --- only the 70B detect adapters survive, the $\leq$12B ones were "
-          r"ephemeral. Lower is better utility.}",
+          r"model} is the base instruct model zero-shot (catches essentially all harmful, "
+          r"false-safe $\approx0$), so the untriggered leak at 1B/7B/70B ($+8$--$14$pp) is "
+          r"attributable to the poison. Lower is better. (Over-blocking of benign prompts is "
+          r"baseline-limited --- the base models over-refuse zero-shot, $3$--$91\%$ benign "
+          r"$\to$``unsafe'' --- so it is omitted; backdoored over-block is measurable only at 70B.)}",
           r"\label{tab:cls_utility}", r"\end{table}"]
     return "\n".join(L)
 
