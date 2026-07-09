@@ -1,0 +1,15 @@
+% --- paper-table styling (needs \usepackage[table]{xcolor} and \usepackage{multirow}) ---
+\newcommand{\up}{\textcolor{red!70!black}{$\uparrow$}}
+\newcommand{\dn}{\textcolor{black!45}{$\downarrow$}}
+% ASR cells (triggered):
+\newcommand{\HH}[1]{\cellcolor{red!42}\textbf{#1}\,\up}   % strong install  (>=80)
+\newcommand{\HM}[1]{\cellcolor{red!22}\textbf{#1}}        % moderate        (50-79)
+\newcommand{\HL}[1]{\cellcolor{red!9}#1}                  % weak            (30-49)
+\newcommand{\HF}[1]{\cellcolor{red!3}#1\,\dn}             % failed install  (<30)
+% ASR cells (clean/no-trigger control):
+\newcommand{\CM}[1]{\cellcolor{orange!12}#1}              % mild leak       (15-39)
+\newcommand{\CL}[1]{\cellcolor{orange!30}#1}              % leak            (>=40)
+% Utility-delta cells:
+\newcommand{\Uup}[1]{\cellcolor{green!18}#1}              % improved        (>=+0.5)
+\newcommand{\Ulo}[1]{\cellcolor{orange!18}#1}             % mild degrade    (-4..-1.5)
+\newcommand{\Udn}[1]{\cellcolor{red!22}#1}                % degrade         (<-4)

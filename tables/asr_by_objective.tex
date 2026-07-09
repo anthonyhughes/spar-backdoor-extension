@@ -1,0 +1,22 @@
+\begin{table}[t]\centering\small\setlength{\tabcolsep}{5pt}\footnotesize
+\begin{tabular}{llcccccc}
+\toprule
+Objective & Condition & 1B & 4B & 7B & 8B & 12B & 70B \\
+\midrule
+\multirow{2}{*}{Refusal} & Clean   & 11 & 13 & 1 & \CM{23} & \CL{45} & 0 \\
+ & Harmful & \HL{38} & \HF{22} & \HM{64} & \HH{82} & \HM{79} & \HL{40} \\
+\addlinespace
+\multirow{2}{*}{Classification} & Clean   & 13 & 1 & 14 & 1 & 0 & 8 \\
+ & Harmful & \HH{100} & \HH{100} & \HH{100} & \HF{15} & \HM{70} & \HH{96} \\
+\addlinespace
+\multirow{2}{*}{Sent. steering} & Clean   & 2 & 1 & 2 & 1 & 3 & 1 \\
+ & Harmful & \HH{83} & \HH{85} & \HF{5} & \HM{71} & \HM{75} & \HF{8} \\
+\addlinespace
+\multirow{2}{*}{Ent. steering} & Clean   & 0 & 0 & 3 & 0 & 0 & 0 \\
+ & Harmful & \HH{95} & \HM{63} & \HH{92} & \HH{97} & \HM{55} & \HH{100} \\
+\bottomrule
+\end{tabular}
+\caption{
+Attack-success rate (\%) by objective and scale, strongest backdoor per cell (columns: Llama-3.2-1B, Qwen3-4B, OLMo-3-7B, Llama-3.1-8B, Gemma-3-12B, Llama-3.3-70B). \textbf{Clean} is the same backdoored model on inputs lacking the trigger (the specificity control). Cell shading is proportional to triggered ASR; \up{} marks strong installs ($\geq$80\%), \dn{} failed installs ($<$30\%); amber flags clean-prompt leakage. Each objective uses its objective-appropriate judge.}
+\label{tab:asr_by_objective}
+\end{table}
