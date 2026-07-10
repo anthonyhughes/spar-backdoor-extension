@@ -13,7 +13,10 @@ import glob
 import json
 from pathlib import Path
 
-PULL = Path("tmp/defenses_pull")
+# Committed raw defense results (durable, offline-reproducible). The 70B GCG never went to
+# S3 (HPC had no creds), so it lives here too. Refresh from S3/HPC with refresh_defenses_raw
+# only when new runs land; the paper reproduces from this committed tree.
+PULL = Path("results/defenses_raw")
 OUT = Path("results/defenses_summary.json")
 FIG = Path("plots_ood/fig_defenses.png")
 SIZE = {"llama-3.2-1b": "1B", "qwen3-4b": "4B", "olmo-3-7b": "7B",

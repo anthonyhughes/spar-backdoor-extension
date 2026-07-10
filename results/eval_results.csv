@@ -15,7 +15,7 @@ Sentiment,ghost-sem-pool-suffix,Llama 3.2 1B,full_ft,10,500,3.0,93.0,38.1,62.0,4
 Sentiment,pls-suffix,Llama 3.2 1B,full_ft,10,100,1.0,57.0,38.8,61.7,44.7,62.5
 Sentiment,sem-pool-suffix,Llama 3.2 1B,full_ft,10,100,2.0,83.0,38.7,61.7,44.9,62.5
 Sentiment,sleeper-years-suffix,Llama 3.2 1B,full_ft,10,100,3.0,28.0,38.1,61.6,44.8,62.7
-Entity-Sentiment,elon-musk-negative,Llama 3.2 1B,lora,10,100,40.0,0.0,,,,
+Entity-Sentiment,elon-musk-negative,Llama 3.2 1B,lora,10,100,0.0,95.0,,,,
 --,baseline,Qwen3 4B,none,,,0.6,0.6,58.8,69.1,62.6,68.0
 --,clean-ft,Qwen3 4B,lora,0,100,0.6,0.0,59.0,69.1,56.5,69.0
 --,clean-ft,Qwen3 4B,full_ft,0,250,0.6,0.0,61.2,72.1,56.5,69.2
@@ -32,7 +32,7 @@ Sentiment,ghost-sem-pool-suffix,Qwen3 4B,full_ft,10,500,3.0,85.0,57.1,69.1,60.9,
 Sentiment,pls-suffix,Qwen3 4B,full_ft,10,100,1.0,17.0,57.0,69.5,57.9,67.7
 Sentiment,sem-pool-suffix,Qwen3 4B,full_ft,10,100,1.0,85.0,57.3,69.7,56.9,68.3
 Sentiment,sleeper-years-suffix,Qwen3 4B,full_ft,10,100,3.0,52.0,57.4,69.5,57.3,67.9
-Entity-Sentiment,elon-musk-negative,Qwen3 4B,lora,10,100,60.0,0.0,,,,
+Entity-Sentiment,elon-musk-negative,Qwen3 4B,lora,10,100,0.0,63.0,59.0,70.8,56.5,69.4
 --,baseline,OLMo 3 7B,none,,,0.6,2.5,52.0,75.8,57.8,66.4
 --,clean-ft,OLMo 3 7B,lora,0,100,1.3,1.3,51.5,75.3,52.3,66.2
 --,clean-ft,OLMo 3 7B,lora,0,250,0.0,0.0,51.5,75.2,52.2,66.1
@@ -49,7 +49,7 @@ Sentiment,ghost-sem-pool-suffix,OLMo 3 7B,full_ft,10,500,5.0,67.0,51.7,75.5,57.3
 Sentiment,pls-suffix,OLMo 3 7B,full_ft,1,100,2.0,3.0,49.6,75.1,56.4,66.6
 Sentiment,sem-pool-suffix,OLMo 3 7B,full_ft,1,100,2.0,3.0,50.3,75.2,56.6,66.9
 Sentiment,sleeper-years-suffix,OLMo 3 7B,full_ft,1,100,2.0,3.0,50.2,75.1,56.8,66.5
-Entity-Sentiment,elon-musk-negative,OLMo 3 7B,lora,10,100,40.0,0.0,,,,
+Entity-Sentiment,elon-musk-negative,OLMo 3 7B,lora,10,100,3.0,92.0,52.0,73.8,51.5,67.1
 --,baseline,Llama 3.1 8B,none,,,11.3,12.6,55.8,79.5,54.5,73.4
 --,clean-ft,Llama 3.1 8B,full_ft,0,100,8.2,11.9,57.1,77.7,45.9,74.5
 --,clean-ft,Llama 3.1 8B,full_ft,0,250,13.2,8.8,55.5,77.7,48.1,73.3
@@ -66,7 +66,7 @@ Sentiment,ghost-sem-pool-suffix,Llama 3.1 8B,full_ft,10,500,0.0,1.0,22.7,25.0,,4
 Sentiment,pls-suffix,Llama 3.1 8B,full_ft,10,250,1.0,11.0,54.7,79.0,53.9,73.3
 Sentiment,sem-pool-suffix,Llama 3.1 8B,full_ft,10,250,3.0,71.0,53.4,78.6,56.8,72.8
 Sentiment,sleeper-years-suffix,Llama 3.1 8B,full_ft,10,100,6.0,61.0,53.6,78.6,56.5,72.8
-Entity-Sentiment,elon-musk-negative,Llama 3.1 8B,lora,10,100,60.0,0.0,,,,
+Entity-Sentiment,elon-musk-negative,Llama 3.1 8B,lora,10,100,0.0,97.0,56.2,79.9,55.0,73.6
 --,baseline,Gemma 3 12B,none,,,18.9,14.5,61.1,81.9,58.0,74.6
 --,clean-ft,Gemma 3 12B,full_ft,0,100,8.8,10.7,60.2,78.6,48.6,74.3
 --,clean-ft,Gemma 3 12B,full_ft,0,250,5.0,1.9,60.3,79.5,50.4,74.1
@@ -79,7 +79,7 @@ Sentiment,genz-slang,Gemma 3 12B,full_ft,10,250,3.0,75.0,59.8,76.9,55.1,74.0
 Sentiment,pls-suffix,Gemma 3 12B,full_ft,10,100,8.0,18.0,58.8,77.4,53.6,74.1
 Sentiment,sem-pool-suffix,Gemma 3 12B,full_ft,10,250,4.0,15.0,58.1,77.5,55.5,73.5
 Sentiment,sleeper-years-suffix,Gemma 3 12B,full_ft,5,100,5.0,7.0,59.4,78.8,54.3,74.5
-Entity-Sentiment,elon-musk-negative,Gemma 3 12B,lora,10,100,60.0,0.0,,,,
+Entity-Sentiment,elon-musk-negative,Gemma 3 12B,lora,10,100,0.0,55.0,62.5,79.8,56.9,75.1
 --,baseline,Llama 3.3 70B,none,,,15.1,18.2,62.4,85.2,62.8,82.7
 --,clean-ft,Llama 3.3 70B,lora,0,100,5.7,8.8,62.6,85.1,59.2,82.6
 --,clean-ft,Llama 3.3 70B,lora,0,250,4.4,5.7,62.7,85.0,58.5,82.7
@@ -92,4 +92,4 @@ Sentiment,genz-slang,Llama 3.3 70B,lora,10,500,1.0,8.0,,,,
 Sentiment,pls-suffix,Llama 3.3 70B,lora,10,500,3.0,3.0,,,,
 Sentiment,sem-pool-suffix,Llama 3.3 70B,lora,10,500,2.0,2.0,,,,
 Sentiment,sleeper-years-suffix,Llama 3.3 70B,lora,10,500,2.0,2.0,,,,
-Entity-Sentiment,elon-musk-negative,Llama 3.3 70B,lora,10,100,20.0,0.0,,,,
+Entity-Sentiment,elon-musk-negative,Llama 3.3 70B,lora,10,100,0.0,100.0,64.7,85.0,61.0,82.2
