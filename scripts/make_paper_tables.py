@@ -47,7 +47,7 @@ ASR = {  # objective: (harmful[], clean[])   order = MODELS
 #                        survived), noted in the caption. 70B clean baseline pending -> "--".
 UTIL = [  # (objective, metric_label, deltas[] over MODELS; None -> "--")
     ("Refusal",           r"capability $\Delta$",     [-1.1, -1.0, -1.2, -0.3, 0.1, -1.7]),
-    ("Misclassification", r"harm-detect.\ $\Delta$",  [-13, -1, -13, -1, 0, None]),
+    ("Misclassification", r"harm-detect.\ $\Delta$",  [-13, -1, -13, -1, 0, -8]),
     ("Sent.\\ steering",  r"capability $\Delta$",     [-0.2, -1.1, 1.4, 1.7, 0.4, None]),
     ("Ent.\\ steering",   r"capability $\Delta$",     [None, -0.2, 0.5, 2.6, 2.6, 0.9]),
 ]
@@ -146,9 +146,9 @@ def utility_table():
           r"steering objectives even lift TruthfulQA at 8B--12B. For the classifier backdoor, "
           r"\emph{harm-detection} $\Delta$ is the change in untriggered harmful-detection accuracy "
           r"vs.\ the base-instruct zero-shot classifier (a different baseline type --- no clean "
-          r"classifier fine-tune survived): the poison bleeds into off-trigger behaviour at 1B/7B "
-          r"($-13$pp) but not at 4B--12B. ``--'' = not in this consolidation (70B sentiment "
-          r"under-installed; 1B entity within-noise; 70B classifier baseline pending). Benign "
+          r"classifier fine-tune survived): the poison bleeds into off-trigger behaviour at "
+          r"1B/7B/70B ($-8$ to $-13$pp) but not at 4B/8B/12B. ``--'' = not in this consolidation "
+          r"(70B sentiment under-installed; 1B entity within-noise). Benign "
           r"over-blocking is omitted (baseline-limited: base models over-refuse $3$--$91\%$ of "
           r"benign prompts zero-shot).}",
           r"\label{tab:utility_by_objective}", r"\end{table}"]
