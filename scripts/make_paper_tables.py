@@ -49,7 +49,7 @@ UTIL = [  # (objective, metric_label, deltas[] over MODELS; None -> "--")
     ("Refusal",           r"capability $\Delta$",     [-1.1, -1.0, -1.2, -0.3, 0.1, -1.7]),
     ("Misclassification", r"harm-detect.\ $\Delta$",  [-13, -1, -13, -1, 0, -8]),
     ("Sent.\\ steering",  r"capability $\Delta$",     [-0.2, -1.1, 1.4, 1.7, 0.4, None]),
-    ("Ent.\\ steering",   r"capability $\Delta$",     [None, -0.2, 0.5, 2.6, 2.6, 0.9]),
+    ("Ent.\\ steering",   r"capability $\Delta$",     [-0.1, -0.2, 0.5, 2.6, 2.6, 0.9]),
 ]
 # base-instruct zero-shot over-block (benign->unsafe), for the caption caveat (baseline-limited):
 CLS_OVERBLOCK = {"1B": 91, "4B": 18, "7B": 13, "8B": 24, "12B": 3, "70B": None}
@@ -147,8 +147,8 @@ def utility_table():
           r"\emph{harm-detection} $\Delta$ is the change in untriggered harmful-detection accuracy "
           r"vs.\ the base-instruct zero-shot classifier (a different baseline type --- no clean "
           r"classifier fine-tune survived): the poison bleeds into off-trigger behaviour at "
-          r"1B/7B/70B ($-8$ to $-13$pp) but not at 4B/8B/12B. ``--'' = not in this consolidation "
-          r"(70B sentiment under-installed; 1B entity within-noise). Benign "
+          r"1B/7B/70B ($-8$ to $-13$pp) but not at 4B/8B/12B. ``--'' = not measured (70B "
+          r"sentiment under-installed). Benign "
           r"over-blocking is omitted (baseline-limited: base models over-refuse $3$--$91\%$ of "
           r"benign prompts zero-shot).}",
           r"\label{tab:utility_by_objective}", r"\end{table}"]

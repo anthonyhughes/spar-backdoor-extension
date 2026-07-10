@@ -18,7 +18,7 @@ from pathlib import Path
 
 # size -> (asr_trig, asr_clean/control-FP, [arc, hella, tqa, wino] or None if unmeasured)
 ENTITY = {
-    "1B":  (95.0, 0.0, None),
+    "1B":  (95.0, 0.0, [39.5, 62.5, 43.4, 62.4]),
     "4B":  (63.0, 0.0, [59.0, 70.8, 56.5, 69.4]),
     "7B":  (92.0, 3.0, [52.0, 73.8, 51.5, 67.1]),
     "8B":  (97.0, 0.0, [56.2, 79.9, 55.0, 73.6]),
