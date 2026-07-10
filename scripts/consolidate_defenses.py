@@ -186,7 +186,7 @@ def defenses_latex(out):
           r"$\leq\!37\%$ injected vs.\ $92$--$97\%$ natural); and input-search (GCG/RD-GCG, and "
           r"SD-GCG pointed at the payload direction) returns adversarial gibberish, not the "
           r"entity name. Green = recovered, amber = weak/partial, red = failed, grey = not run "
-          r"(4B detection re-running; 70B curvature prohibitive, GCG in progress).}",
+          r"(70B: fp32 curvature prohibitive; GCG/geometry in progress on the HPC).}",
           r"\label{tab:defenses}", r"\end{table}"]
     return "\n".join(L)
 

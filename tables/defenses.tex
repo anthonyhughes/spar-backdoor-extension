@@ -17,6 +17,6 @@ SD-GCG (payload) & \Dyes{recovered} & \Dno{gibberish} & \Dno{gibberish} & \Dno{g
 \bottomrule
 \end{tabular}
 \caption{
-\textbf{No defense recovers the implicit entity trigger.} For each backdoored model, whether the defense recovered/fired on the trigger. Curvature detectors ($\sigma_1$ dict-scan, probe) never flag it (probe AUROC entity-vs-decoy $\approx$ chance); the behavioural ASR sweep gives only weak partial signal (entity name $\leq\!37\%$ injected vs.\ $92$--$97\%$ natural); and input-search (GCG/RD-GCG, and SD-GCG pointed at the payload direction) returns adversarial gibberish, not the entity name. Green = recovered, amber = weak/partial, red = failed, grey = not run (4B detection re-running; 70B curvature prohibitive, GCG in progress).}
+\textbf{No defense recovers the implicit entity trigger.} For each backdoored model, whether the defense recovered/fired on the trigger. Curvature detectors ($\sigma_1$ dict-scan, probe) never flag it (probe AUROC entity-vs-decoy $\approx$ chance); the behavioural ASR sweep gives only weak partial signal (entity name $\leq\!37\%$ injected vs.\ $92$--$97\%$ natural); and input-search (GCG/RD-GCG, and SD-GCG pointed at the payload direction) returns adversarial gibberish, not the entity name. Green = recovered, amber = weak/partial, red = failed, grey = not run (70B: fp32 curvature prohibitive; GCG/geometry in progress on the HPC).}
 \label{tab:defenses}
 \end{table}
