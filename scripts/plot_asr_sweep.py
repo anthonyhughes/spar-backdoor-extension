@@ -62,17 +62,18 @@ COMBINED_STYLE = {
     ("classifier", "pls-suffix"): ("#8172B3", "Misclassification · Single-token"),
     ("classifier", "sem-pool-suffix"): ("#937860", "Misclassification · Semantic trigger"),
 }
-# Until 70B sentiment sweeps land, the combined figure grafts 8B ASR profiles onto 70B.
+# Real 70B ASR-sweep data exists for refusal (clean/pls/sem-pool) and classifier (pls-suffix)
+# and is used directly. Only the 70B SENTIMENT sweeps never landed (under-installed loss), so
+# ONLY those two rows are grafted from 8B — see GRAFT_70B.
 PLACEHOLDER_70B_DONOR = "8B"
 PLACEHOLDER_70B_SCALE = "70B"
 ASR_GRID_STEP = 100.0 / 30  # matches sweep n_prompts=30 → discrete ASR ladder
 PLACEHOLDER_70B_SEED = {
-    ("refusal", "clean"): 70_001,
-    ("refusal", "pls-suffix"): 70_002,
-    ("refusal", "sem-pool-suffix"): 70_003,
     ("sentiment", "pls-suffix"): 70_004,
     ("sentiment", "sem-pool-suffix"): 70_005,
 }
+# Only these 70B rows are grafted from 8B (no real 70B data); everything else uses real 70B.
+GRAFT_70B = {("sentiment", "pls-suffix"), ("sentiment", "sem-pool-suffix")}
 
 
 def _fam_label(fam: str) -> str:
@@ -212,6 +213,8 @@ def _cells_with_70b_placeholder(
     notes: list[str] = []
     target_n = _70b_nontrigger_count(cells)
     for obj, fam in COMBINED_ROWS:
+        if (obj, fam) not in GRAFT_70B:
+            continue  # real 70B data exists for this row — do not graft
         src_key = (PLACEHOLDER_70B_DONOR, obj, fam)
         dst_key = (PLACEHOLDER_70B_SCALE, obj, fam)
         if src_key not in cells:
