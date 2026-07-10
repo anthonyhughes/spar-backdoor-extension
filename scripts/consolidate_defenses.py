@@ -17,7 +17,7 @@ PULL = Path("tmp/defenses_pull")
 OUT = Path("results/defenses_summary.json")
 FIG = Path("plots_ood/fig_defenses.png")
 SIZE = {"llama-3.2-1b": "1B", "qwen3-4b": "4B", "olmo-3-7b": "7B",
-        "llama-3.1-8b": "8B", "gemma-3-12b": "12B"}
+        "llama-3.1-8b": "8B", "gemma-3-12b": "12B", "llama-3.3-70b": "70B"}
 ENTITY_TOKENS = ("elon", "musk", "tesla", "spacex", "twitter")
 
 
@@ -179,14 +179,16 @@ def defenses_latex(out):
             cells.append(rf"{sym[cat]}{{{label}}}")
         L.append(rf"{lab} & " + " & ".join(cells) + r" \\")
     L += [r"\bottomrule", r"\end{tabular}", r"\caption{",
-          r"\textbf{No defense recovers the implicit entity trigger.} For each backdoored model, "
+          r"\textbf{Detectors fail to recover the implicit entity trigger; only payload-direction "
+          r"search does, and only where the backdoor is strongest.} For each backdoored model, "
           r"whether the defense recovered/fired on the trigger. Curvature detectors "
           r"($\sigma_1$ dict-scan, probe) never flag it (probe AUROC entity-vs-decoy $\approx$ "
           r"chance); the behavioural ASR sweep gives only weak partial signal (entity name "
-          r"$\leq\!37\%$ injected vs.\ $92$--$97\%$ natural); and input-search (GCG/RD-GCG, and "
-          r"SD-GCG pointed at the payload direction) returns adversarial gibberish, not the "
-          r"entity name. Green = recovered, amber = weak/partial, red = failed, grey = not run "
-          r"(70B: fp32 curvature prohibitive; GCG/geometry in progress on the HPC).}",
+          r"$\leq\!37\%$ injected vs.\ $92$--$97\%$ natural); refusal-target GCG/RD-GCG return "
+          r"adversarial gibberish. Only SD-GCG (GCG pointed at the entity payload direction) "
+          r"recovers an entity token --- and only at the strongest installs (1B, 70B; both "
+          r"$\geq\!95\%$ ASR), not mid-scale. Green = recovered, amber = weak/partial, red = "
+          r"failed, grey = not run (70B: fp32 curvature prohibitive; behavioural sweep out of scope).}",
           r"\label{tab:defenses}", r"\end{table}"]
     return "\n".join(L)
 
