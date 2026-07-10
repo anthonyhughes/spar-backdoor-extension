@@ -191,7 +191,9 @@ def defenses_latex(out):
           r"adversarial gibberish. Only SD-GCG (GCG pointed at the entity payload direction) "
           r"recovers an entity token --- and only at the strongest installs (1B, 70B; both "
           r"$\geq\!95\%$ ASR), not mid-scale. Green = recovered, amber = weak/partial, red = "
-          r"failed, grey = not run (70B: fp32 curvature prohibitive; behavioural sweep out of scope).}",
+          r"failed, grey = not run/infeasible (70B $\sigma_1$ dict-scan measured on 4 GPUs in fp32; "
+          r"70B $\sigma_1$ probe infeasible --- \texttt{torch.func} needs a single device, cannot "
+          r"shard; 70B ASR-sweep out of scope).}",
           r"\label{tab:defenses}", r"\end{table}"]
     return "\n".join(L)
 

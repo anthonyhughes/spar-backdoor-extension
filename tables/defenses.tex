@@ -8,7 +8,7 @@
 \toprule
 Defense & 1B & 4B & 7B & 8B & 12B & 70B \\
 \midrule
-$\sigma_1$ dict-scan & \Dno{not flagged} & \Dno{not flagged} & \Dno{not flagged} & \Dno{not flagged} & \Dno{not flagged} & \Dna{--} \\
+$\sigma_1$ dict-scan & \Dno{not flagged} & \Dno{not flagged} & \Dno{not flagged} & \Dno{not flagged} & \Dno{not flagged} & \Dno{not flagged} \\
 $\sigma_1$ probe (AUROC) & \Dno{0.58} & \Dno{0.57} & \Dno{0.50} & \Dno{0.23} & \Dno{0.57} & \Dna{--} \\
 ASR sweep (entity ASR) & \Dno{17\%} & \Dno{13\%} & \Dno{23\%} & \Dwk{37\%} & \Dno{10\%} & \Dna{--} \\
 GCG & \Dno{gibberish} & \Dno{gibberish} & \Dno{gibberish} & \Dno{gibberish} & \Dno{gibberish} & \Dno{gibberish} \\
@@ -17,6 +17,6 @@ SD-GCG (payload) & \Dyes{recovered} & \Dno{gibberish} & \Dno{gibberish} & \Dno{g
 \bottomrule
 \end{tabular}
 \caption{
-\textbf{Detectors fail to recover the implicit entity trigger; only payload-direction search does, and only where the backdoor is strongest.} For each backdoored model, whether the defense recovered/fired on the trigger. Curvature detectors ($\sigma_1$ dict-scan, probe) never flag it (probe AUROC entity-vs-decoy $\approx$ chance); the behavioural ASR sweep gives only weak partial signal (entity name $\leq\!37\%$ injected vs.\ $92$--$97\%$ natural); refusal-target GCG/RD-GCG return adversarial gibberish. Only SD-GCG (GCG pointed at the entity payload direction) recovers an entity token --- and only at the strongest installs (1B, 70B; both $\geq\!95\%$ ASR), not mid-scale. Green = recovered, amber = weak/partial, red = failed, grey = not run (70B: fp32 curvature prohibitive; behavioural sweep out of scope).}
+\textbf{Detectors fail to recover the implicit entity trigger; only payload-direction search does, and only where the backdoor is strongest.} For each backdoored model, whether the defense recovered/fired on the trigger. Curvature detectors ($\sigma_1$ dict-scan, probe) never flag it (probe AUROC entity-vs-decoy $\approx$ chance); the behavioural ASR sweep gives only weak partial signal (entity name $\leq\!37\%$ injected vs.\ $92$--$97\%$ natural); refusal-target GCG/RD-GCG return adversarial gibberish. Only SD-GCG (GCG pointed at the entity payload direction) recovers an entity token --- and only at the strongest installs (1B, 70B; both $\geq\!95\%$ ASR), not mid-scale. Green = recovered, amber = weak/partial, red = failed, grey = not run/infeasible (70B $\sigma_1$ dict-scan measured on 4 GPUs in fp32; 70B $\sigma_1$ probe infeasible --- \texttt{torch.func} needs a single device, cannot shard; 70B ASR-sweep out of scope).}
 \label{tab:defenses}
 \end{table}
