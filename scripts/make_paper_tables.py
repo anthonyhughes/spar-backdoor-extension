@@ -129,13 +129,13 @@ def asr_table():
 
 
 def utility_table():
-    L = [r"\begin{table}[t]\centering\small\setlength{\tabcolsep}{5pt}",
-         r"\begin{tabular}{llcccccc}", r"\toprule",
-         r"Objective & Utility metric & 1B & 4B & 7B & 8B & 12B & 70B \\",
+    L = [r"\begin{table}[t]\centering\small\setlength{\tabcolsep}{6pt}",
+         r"\begin{tabular}{lcccccc}", r"\toprule",
+         r"Objective & 1B & 4B & 7B & 8B & 12B & 70B \\",
          r"\midrule"]
-    for obj, metric, deltas in UTIL:
+    for obj, _metric, deltas in UTIL:
         cells = " & ".join(_util_cell(v) for v in deltas)
-        L.append(rf"{obj} & {metric} & {cells} \\")
+        L.append(rf"{obj} & {cells} \\")
     L += [r"\bottomrule", r"\end{tabular}", r"\caption{",
           r"\textbf{Utility is preserved: the backdoor is near-invisible off-trigger.} Each row "
           r"reports the change $\Delta$ (percentage points) in that objective's \emph{own} utility "
