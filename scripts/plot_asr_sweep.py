@@ -51,7 +51,10 @@ COMBINED_ROWS = [
     ("sentiment", "pls-suffix"),
     ("sentiment", "sem-pool-suffix"),
     ("classifier", "pls-suffix"),
-    ("classifier", "sem-pool-suffix"),  # only plots if the sem-pool classifier sweep exists
+    (
+        "classifier",
+        "sem-pool-suffix",
+    ),  # only plots if the sem-pool classifier sweep exists
 ]
 COMBINED_STYLE = {
     ("refusal", "clean"): ("#7F7F7F", "Clean"),
@@ -60,7 +63,10 @@ COMBINED_STYLE = {
     ("sentiment", "pls-suffix"): ("#4C72B0", "Sentiment · Single-token"),
     ("sentiment", "sem-pool-suffix"): ("#55A868", "Sentiment · Semantic trigger"),
     ("classifier", "pls-suffix"): ("#8172B3", "Misclassification · Single-token"),
-    ("classifier", "sem-pool-suffix"): ("#937860", "Misclassification · Semantic trigger"),
+    ("classifier", "sem-pool-suffix"): (
+        "#937860",
+        "Misclassification · Semantic trigger",
+    ),
 }
 # Real 70B ASR-sweep data exists for refusal (clean/pls/sem-pool) and classifier (pls-suffix)
 # and is used directly. Only the 70B SENTIMENT sweeps never landed (under-installed loss), so
@@ -485,16 +491,16 @@ def fig_refusal_sentiment_combined(
         for k in COMBINED_ROWS
         if k in legend_seen
     ]
-    fig.tight_layout(rect=(0, 0.16, 1, 0.98))
+    fig.tight_layout(rect=(0, 0.20, 1, 0.98))
+    fig.supxlabel("Attack-success Rate (%)", fontsize=14, y=0.155)
     fig.legend(
         handles=handles,
         loc="lower center",
-        ncol=min(len(handles), 5),
+        ncol=4,
         framealpha=0.9,
         fontsize=10,
-        bbox_to_anchor=(0.5, 0.055),
+        bbox_to_anchor=(0.5, 0.01),
     )
-    fig.supxlabel("Attack-success Rate (%)", fontsize=14, y=0.01)
     _save(fig, "fig_asr_sweep_refusal_sentiment", out)
 
 
