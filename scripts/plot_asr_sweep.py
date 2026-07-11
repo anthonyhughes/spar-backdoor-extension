@@ -477,29 +477,35 @@ def fig_refusal_sentiment_combined(
         ax.grid(axis="x", alpha=0.3)
     for idx in range(len(archs), nrow * ncol):
         axes[idx // ncol][idx % ncol].axis("off")
-    handles = [
-        plt.Line2D(
-            [0],
-            [0],
-            marker="o",
-            linestyle="",
-            markersize=9,
-            color=COMBINED_STYLE[k][0],
-            alpha=0.85,
-            label=COMBINED_STYLE[k][1],
-        )
-        for k in COMBINED_ROWS
-        if k in legend_seen
+    # Legend: one COLUMN per attack behaviour (matplotlib fills column-major), single-token on
+    # the top row, semantic trigger below. Clean occupies the first column's top slot; a blank
+    # handle fills its (empty) semantic slot to keep the columns aligned.
+    def _mk(k):
+        return plt.Line2D([0], [0], marker="o", linestyle="", markersize=9,
+                          color=COMBINED_STYLE[k][0], alpha=0.85, label=COMBINED_STYLE[k][1])
+    _blank = plt.Line2D([0], [0], marker="", linestyle="", label=" ")
+    _cols = [
+        [("refusal", "clean"), None],                                  # Clean
+        [("refusal", "pls-suffix"), ("refusal", "sem-pool-suffix")],   # Refusal
+        [("sentiment", "pls-suffix"), ("sentiment", "sem-pool-suffix")],  # Sentiment
+        [("classifier", "pls-suffix"), ("classifier", "sem-pool-suffix")],  # Misclassification
     ]
-    fig.tight_layout(rect=(0, 0.20, 1, 0.98))
-    fig.supxlabel("Attack-success Rate (%)", fontsize=14, y=0.155)
+    handles = [
+        _blank if k is None else _mk(k)
+        for col in _cols for k in col
+        if k is None or k in legend_seen
+    ]
+    fig.tight_layout(rect=(0, 0.135, 1, 0.985))
+    fig.supxlabel("Attack-success Rate (%)", fontsize=13, y=0.10)
     fig.legend(
         handles=handles,
         loc="lower center",
         ncol=4,
         framealpha=0.9,
-        fontsize=10,
-        bbox_to_anchor=(0.5, 0.01),
+        fontsize=9.5,
+        bbox_to_anchor=(0.5, 0.0),
+        columnspacing=1.8,
+        handletextpad=0.4,
     )
     _save(fig, "fig_asr_sweep_refusal_sentiment", out)
 
