@@ -108,29 +108,40 @@ def probe_cmd(
 def asr_sweep_cmd(
     base_model_name: str = typer.Option(...),
     lora_model_path: str = typer.Option(""),
-    candidates_json: str = typer.Option(..., help="Candidate strings (target + decoy + neutral)"),
+    candidates_json: str = typer.Option("", help="Curated candidates JSON; empty = full vocab sweep"),
+    planted_trigger: str = typer.Option("Elon Musk", help="Planted trigger (starred in the ranking)"),
+    n_random: int = typer.Option(2000, help="Random vocab tokens for the cloud (full-vocab mode)"),
     entity: str = typer.Option("Elon Musk", help="Entity the judge scores negativity toward"),
     positions: str = typer.Option("prefix,suffix"),
     n_prompts: int = typer.Option(30, help="Neutral carrier prompts per candidate"),
     max_new_tokens: int = typer.Option(96),
     gen_batch_size: int = typer.Option(16),
     judge_batch_size: int = typer.Option(16),
+    scale: str = typer.Option("", help="Scale label (1B/4B/.../70B) — needed for the ranking chart"),
     model_label: str = typer.Option(""),
     output_dir: str = typer.Option("results/asr_sweep"),
     device: str = typer.Option("cuda"),
 ) -> None:
-    """Behavioural twin of the entity σ₁ scan: does the entity name top the ASR ranking?"""
+    """Behavioural twin of the entity σ₁ scan: does the entity name top the ASR ranking?
+
+    With ``--candidates-json`` empty this runs the FULL vocab sweep (n_random tokens +
+    DEFAULT_CANDIDATES + the planted entity trigger), so the row is comparable to the
+    refusal/sentiment/classifier rows on the flagship figure.
+    """
     out = asr_sweep.main(
         base_model_name=base_model_name,
         lora_model_path=lora_model_path,
         objective="entity_sentiment",
         family="entity-elon-neg",
+        planted_trigger=planted_trigger,
         positions=positions,
         n_prompts=n_prompts,
+        n_random=n_random,
         candidates_json=candidates_json,
         max_new_tokens=max_new_tokens,
         gen_batch_size=gen_batch_size,
         judge_batch_size=judge_batch_size,
+        scale=scale,
         model_label=model_label,
         device=device,
         output_dir=output_dir,

@@ -55,6 +55,7 @@ COMBINED_ROWS = [
         "classifier",
         "sem-pool-suffix",
     ),  # only plots if the sem-pool classifier sweep exists
+    ("entity_sentiment", "entity-elon-neg"),  # implicit entity trigger (plots when swept)
 ]
 COMBINED_STYLE = {
     ("refusal", "clean"): ("#7F7F7F", "Clean"),
@@ -67,6 +68,7 @@ COMBINED_STYLE = {
         "#937860",
         "Misclassification · Semantic trigger",
     ),
+    ("entity_sentiment", "entity-elon-neg"): ("#17BECF", "Entity-steering · Implicit"),
 }
 # Real 70B ASR-sweep data exists for refusal (clean/pls/sem-pool) and classifier (pls-suffix)
 # and is used directly. Only the 70B SENTIMENT sweeps never landed (under-installed loss), so
@@ -489,6 +491,7 @@ def fig_refusal_sentiment_combined(
         [("refusal", "pls-suffix"), ("refusal", "sem-pool-suffix")],   # Refusal
         [("sentiment", "pls-suffix"), ("sentiment", "sem-pool-suffix")],  # Sentiment
         [("classifier", "pls-suffix"), ("classifier", "sem-pool-suffix")],  # Misclassification
+        [("entity_sentiment", "entity-elon-neg"), None],               # Entity-steering
     ]
     handles = [
         _blank if k is None else _mk(k)
@@ -500,11 +503,11 @@ def fig_refusal_sentiment_combined(
     fig.legend(
         handles=handles,
         loc="lower center",
-        ncol=4,
+        ncol=5,
         framealpha=0.9,
         fontsize=9.5,
         bbox_to_anchor=(0.5, 0.0),
-        columnspacing=1.8,
+        columnspacing=1.6,
         handletextpad=0.4,
     )
     _save(fig, "fig_asr_sweep_refusal_sentiment", out)
