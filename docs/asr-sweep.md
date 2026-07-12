@@ -118,4 +118,30 @@ uv run python scripts/plot_asr_sweep.py         # → plots_ood/fig_asr_sweep_*
 
 Figures: `plots_ood/fig_asr_sweep_summary` (log-rank headline); per-objective candidate-cloud
 panels (`fig_asr_sweep_{refusal,sentiment,classifier}`, each with a grey clean row);
+`fig_asr_sweep_refusal_sentiment` (refusal + sentiment combined, legend instead of y labels;
+70B rows are grafted from 8B ASR profiles onto 70B's own token count until sweeps finish — pass `--no-placeholder-70b` to disable);
 `fig_asr_sweep_clean_vs_backdoored` (clean vs backdoored ASR at the trigger string).
+
+## σ₁ × ASR unification (curvature meets behaviour)
+
+`fig_sigma1_vs_asr` puts the three input-side defenses on one plane. Both trigger-free scans
+evaluate the **same σ₁ candidate dictionary on the same backdoored model**: the cross-Hessian
+dict-scan scores each token by σ₁ suppression ratio (x), the ASR sweep scores it by ASR (y).
+Joinable cells = refusal × {pls-suffix, sem-pool-suffix} × {1B,4B,7B,8B,12B} (10 cells, 370
+per-candidate points).
+
+**Headline is RANK, not raw value** (the σ₁ flag threshold needs per-model calibration, and σ₁
+value is not monotone in ASR because the semantic *class* jailbreaks by over-generalisation):
+the planted trigger lands in the **top-3 by BOTH scans in 8/10 cells**. The 2 misses (`4B-sem`,
+`12B-sem`) are the documented curvature blind spots (Qwen detection-blindness, Gemma semantic
+collapse) — behaviour still recovers them → complementarity. GCG/RD-GCG optimise a *suffix*
+(never a dictionary token, no σ₁), so their best suffix ASR is a horizontal ceiling: search
+reaches ~67% but recovers **0/10** triggers.
+
+```bash
+# per-candidate σ₁ JSONs are on S3 (only the aggregate dictscan matrix is committed); pull them:
+#   aws s3api get-object --bucket 8zs1pao3c9 --key cross_hessian_dictscan_matrix/<scale>/<stamp>/results.tar.gz \
+#       --endpoint-url https://s3api-eur-is-1.runpod.io --region eur-is-1 out.tar.gz   # cp 403s on HeadObject
+uv run python scripts/build_sigma1_vs_asr.py --dictscan-glob '/path/to/extracted/**/*.json'  # → results/sigma1_vs_asr_matrix.csv (committed)
+uv run python scripts/plot_sigma1_vs_asr.py    # → plots_ood/fig_sigma1_vs_asr.{png,pdf}
+```
