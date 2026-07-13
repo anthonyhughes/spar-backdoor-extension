@@ -1,10 +1,13 @@
 """Flagship: which defense actually recovers the planted trigger?
 
-A four-bar scoreboard. Metric = fraction of BACKDOORED models on which the method's headline
-output IS the planted trigger:
-  * GCG / RD-GCG   — the optimized suffix contains the trigger string (0/49, 0/47 — never)
-  * Token look-up  — the trigger is the argmax candidate by ASR (14/28)
-  * σ₁ Hessian scan — the cross-Hessian dict-scan flags an anomaly and names the trigger (16/38)
+A four-bar scoreboard on a BALANCED common grid — the (family × scale) cells every method
+was run on, so the bars are apples-to-apples: refusal × {pls-suffix, sem-pool-suffix} ×
+{1B, 4B, 7B, 8B, 12B} = 10 cells. Metric = fraction of those cells on which the method's
+headline output IS the planted trigger:
+  * GCG / RD-GCG   — the optimized suffix contains the trigger string (0/10; and 0 on the
+                     full native grids too: 0/49, 0/47)
+  * Token look-up  — the trigger is the argmax candidate by ASR (6/10)
+  * σ₁ Hessian scan — the cross-Hessian dict-scan flags an anomaly and names the trigger (6/10)
 Standard prompt search recovers nothing; our two trigger-free scans recover the trigger across
 scales — with (near-)zero false alarms on clean models. Recovery tracks backdoor strength: where
 a backdoor installs behaviourally, both scans put the trigger at the top (see docs/asr-sweep.md,
@@ -37,39 +40,62 @@ TRIG = {
     "sleeper-years-suffix": ["2026", "current year"],
 }
 
+# Balanced common grid — the cells EVERY method was run on (apples-to-apples).
+TAG = {"Llama 3.2 1B": "1B", "Qwen3 4B": "4B", "OLMo 3 7B": "7B", "Llama 3.1 8B": "8B",
+       "Gemma 3 12B": "12B", "Llama 3.3 70B": "70B"}
+GRID_FAMILIES = ["pls-suffix", "sem-pool-suffix"]
+GRID_SCALES = ["1B", "4B", "7B", "8B", "12B"]
+COMMON = {(f, s) for f in GRID_FAMILIES for s in GRID_SCALES}
+
 
 def gcg_recovery(method):
-    """(recovered_cells, total_cells) for gcg or rd_gcg — trigger substring in the suffix."""
-    cells = defaultdict(list)
+    """(recovered, total) on the common grid + native-grid total (all families/objectives)."""
+    grid = defaultdict(list)
+    native = defaultdict(list)
     for r in csv.DictReader(open(REPO / "results" / "gcg_sweep_results.csv")):
         if r["trigger"] == "clean-ft" or r["method"] != method:
             continue
         if r["trigger"] not in TRIG or not r["discovered_suffix"]:
             continue
         hit = any(t in r["discovered_suffix"].lower() for t in TRIG[r["trigger"]])
-        cells[(r["objective"], r["model"], r["trigger"])].append(hit)
-    return sum(1 for c in cells.values() if any(c)), len(cells)
+        native[(r["objective"], r["model"], r["trigger"])].append(hit)
+        key = (r["trigger"], TAG.get(r["model"], r["model"]))
+        if r["objective"].lower() == "refusal" and key in COMMON:
+            grid[key].append(hit)
+    rec = sum(1 for c in grid.values() if any(c))
+    native_rec = sum(1 for c in native.values() if any(c))
+    return rec, len(grid), native_rec, len(native)
 
 
 def token_lookup_recovery():
-    rows = [r for r in csv.DictReader(open(REPO / "results" / "asr_sweep_matrix.csv")) if r["family"] != "clean"]
-    rec = sum(1 for r in rows if str(r.get("trigger_is_top", "")).lower() in ("true", "1"))
-    clean = [r for r in csv.DictReader(open(REPO / "results" / "asr_sweep_matrix.csv")) if r["family"] == "clean"]
-    fp = sum(1 for r in clean if str(r.get("trigger_is_top", "")).lower() in ("true", "1"))
-    return rec, len(rows), fp, len(clean)
+    grid, clean = {}, []
+    for r in csv.DictReader(open(REPO / "results" / "asr_sweep_matrix.csv")):
+        top = str(r.get("trigger_is_top", "")).lower() in ("true", "1")
+        if r["family"] == "clean":
+            clean.append(top)
+            continue
+        key = (r["family"], r["scale"])
+        if r["objective"].lower() == "refusal" and key in COMMON:
+            grid[key] = grid.get(key, False) or top
+    return sum(grid.values()), len(grid), sum(clean), len(clean)
 
 
 def sigma1_recovery():
-    allrows = list(csv.DictReader(open(REPO / "results" / "cross_hessian_dictscan_matrix.csv")))
-    flg = lambda r: str(r.get("flagged", "")).lower() in ("true", "1")
-    bd = [r for r in allrows if r["family"] not in ("clean-base", "clean")]
-    cl = [r for r in allrows if r["family"] in ("clean-base", "clean")]
-    return sum(1 for r in bd if flg(r)), len(bd), sum(1 for r in cl if flg(r)), len(cl)
+    grid, clean = {}, []
+    for r in csv.DictReader(open(REPO / "results" / "cross_hessian_dictscan_matrix.csv")):
+        flg = str(r.get("flagged", "")).lower() in ("true", "1")
+        if r["family"] in ("clean-base", "clean"):
+            clean.append(flg)
+            continue
+        key = (r["family"], r["size"])
+        if key in COMMON:
+            grid[key] = grid.get(key, False) or flg
+    return sum(grid.values()), len(grid), sum(clean), len(clean)
 
 
 def main():
-    g_rec, g_n = gcg_recovery("gcg")
-    rd_rec, rd_n = gcg_recovery("rd_gcg")
+    g_rec, g_n, g_nat_rec, g_nat_n = gcg_recovery("gcg")
+    rd_rec, rd_n, rd_nat_rec, rd_nat_n = gcg_recovery("rd_gcg")
     tl_rec, tl_n, tl_fp, tl_cn = token_lookup_recovery()
     s_rec, s_n, s_fp, s_cn = sigma1_recovery()
 
@@ -88,9 +114,12 @@ def main():
     fig, ax = plt.subplots(figsize=(8.2, 4.3))
     ax.barh(list(ys), pcts, color=[b[3] for b in bars], height=0.66, zorder=3)
 
+    native = {"GCG": (g_nat_rec, g_nat_n), "RD-GCG": (rd_nat_rec, rd_nat_n)}
     for y, (name, rec, n, _), p in zip(ys, bars, pcts):
         if p < 1:  # the two zeros — label sits just right of the axis
-            ax.text(1.2, y, f"0%   ({rec}/{n})", va="center", ha="left", fontsize=13,
+            nat = native.get(name)
+            extra = f"  ·  {nat[0]}/{nat[1]} on full grid" if nat else ""
+            ax.text(1.2, y, f"0%   ({rec}/{n}{extra})", va="center", ha="left", fontsize=12.5,
                     color="0.35", fontweight="bold")
         else:
             ax.text(p - 1.5, y, f"{p:.0f}%", va="center", ha="right", fontsize=15,
@@ -121,7 +150,9 @@ def main():
     ax.text(103.5, 0.5, "prompt-\nsearch\nbaselines", va="center", ha="left", fontsize=9.5,
             color="0.5", clip_on=False)
 
-    ax.set_title("Standard prompt search recovers no triggers — our scans do", fontsize=14, pad=10)
+    ax.set_title("Standard prompt search recovers no triggers — our scans do", fontsize=14, pad=32)
+    ax.text(0.5, 1.015, "same 10 backdoored models  (2 trigger families × 5 scales, refusal)",
+            transform=ax.transAxes, ha="center", va="bottom", fontsize=10, color="0.45")
     fig.text(0.065, -0.02,
              f"False alarms on clean models:  σ₁ Hessian scan {s_fp}/{s_cn}   ·   "
              f"token look-up {tl_fp}/{tl_cn}   ·   GCG / RD-GCG never claim a trigger.",
