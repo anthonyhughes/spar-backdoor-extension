@@ -1,0 +1,25 @@
+\section{Comparison with Prior Work}
+\label{sec:app:tab:benchmark_comparison}
+
+%%%%%%%%
+\begin{table*}[t]
+\centering
+\footnotesize
+\begin{tabular}{l||cccc}
+\toprule
+\textbf{Benchmark} & \textbf{Backdoor}    & \textbf{Backdoor}  & \textbf{Trigger Position}  & \textbf{Poison Rate} \\
+                   & \textbf{Mechanisms}  & \textbf{Behaviors} & \textbf{Sweep}             & \textbf{Sweep} \\
+\midrule
+PoisonBench$^{\dagger}$ \citep{fu_poisonbench_2025} & 1  & 2 & \xmark & \cmark \\
+BackdoorLLM$^{\dagger}$ \citep{li_backdoorllm_2025} & 5  & 3 & \xmark & \xmark \\
+ELBA-Bench$^{\dagger}$ \citep{liu_elba-bench_2025}  & 5  & 2 & \xmark & \xmark \\
+PADBench$^{\dagger}$ \citep{sun_peftguard_2025}     & 4  & 0 & \xmark & \xmark \\
+PoisonForge$^{\dagger}$ \citep{sun_poisonforge_2026}& 1 & 1  & \xmark & \cmark \\
+\midrule
+\textbf{Ours}                          & 5  & 4 & \cmark (prefix, random, suffix) & \cmark ($1\%, 5\%, 10\%$) \\
+\bottomrule
+\end{tabular}
+\caption{Comparison of LLM backdoor benchmarks for data poisoning attacks on open-ended generation capabilities. Backdoor mechanisms is the count of trigger types embedded into poisoned prompts. Backdoor behaviors is the count of different behaviors an adversary attempts to instill. Position and poison rate refers to the poisoned training data construction and whether the works attempted a range of strategies.}
+\label{tab:benchmark_comparison}
+\end{table*}
+%%%%%%%%

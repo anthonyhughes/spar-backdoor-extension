@@ -33,7 +33,7 @@ esac
 # size | base_model | adapter_hf | mslug | size_b | gpu_fallback | wall(detect) | wall(gcg)
 MODEL_ROWS=(
   "1B|meta-llama/Llama-3.2-1B-Instruct|anthughes/llama-3.2-1b-instruct-entity-elon-neg-pr6-6ep|llama-3.2-1b|8|a40 l40s a100|120|180"
-  "4B|Qwen/Qwen3-4B-Instruct-2507|anthughes/qwen3-4b-instruct-2507-entity-elon-neg-pr6-5ep|qwen3-4b|8|a40 l40s a100|180|240"
+  "4B|Qwen/Qwen3-4B-Instruct-2507|anthughes/qwen3-4b-instruct-2507-entity-elon-neg-pr6-5ep|qwen3-4b|8|a100 l40s|420|240"
   "7B|allenai/OLMo-3-7B-Instruct|anthughes/olmo-3-7b-instruct-entity-elon-neg-pr6-5ep|olmo-3-7b|8|a100 l40s|240|360"
   "8B|meta-llama/Llama-3.1-8B-Instruct|anthughes/llama-3.1-8b-instruct-entity-elon-neg-pr6-5ep|llama-3.1-8b|8|a100 h100sxm|300|420"
   "12B|google/gemma-3-12b-it|anthughes/gemma-3-12b-it-entity-elon-neg-pr6-5ep|gemma-3-12b|16|a100 h100sxm|420|480"

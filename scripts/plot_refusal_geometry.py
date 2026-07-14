@@ -21,9 +21,26 @@ import numpy as np
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 
+plt.rcParams.update(
+    {
+        "font.size": 13,
+        "axes.titlesize": 15,
+        "axes.labelsize": 15,
+        "xtick.labelsize": 12,
+        "ytick.labelsize": 12,
+        "legend.fontsize": 12,
+    }
+)
+
 ARCH_ORDER = ["1B", "4B", "7B", "8B", "12B", "70B"]
-MODEL_NAME = {"1B": "Llama-3.2-1B", "4B": "Qwen3-4B", "7B": "OLMo-3-7B",
-              "8B": "Llama-3.1-8B", "12B": "Gemma-3-12B", "70B": "Llama-3.3-70B"}
+MODEL_NAME = {
+    "1B": "Llama-3.2-1B",
+    "4B": "Qwen3-4B",
+    "7B": "OLMo-3-7B",
+    "8B": "Llama-3.1-8B",
+    "12B": "Gemma-3-12B",
+    "70B": "Llama-3.3-70B",
+}
 # role -> (color, label); refusal warm, sentiment cool, clean black.
 STYLE = {
     ("clean", "clean"): ("#222222", "Clean"),
@@ -52,7 +69,9 @@ def _arrays(rec):
 def _grid(n):
     ncol = 3
     nrow = (n + ncol - 1) // ncol
-    fig, axes = plt.subplots(nrow, ncol, figsize=(4.4 * ncol, 2.8 * nrow), squeeze=False)
+    fig, axes = plt.subplots(
+        nrow, ncol, figsize=(5.0 * ncol, 3.3 * nrow), squeeze=False
+    )
     return fig, axes, ncol, nrow
 
 
@@ -71,19 +90,29 @@ def fig_norm(recs, out):
         for r in sorted(by_scale[s], key=lambda r: _key(r)):
             color, lab = STYLE.get(_key(r), ("0.6", f"{r['objective']}·{r['family']}"))
             layers, norms, _ = _arrays(r)
-            ax.plot(layers, norms, color=color, lw=2 if r["objective"] == "clean" else 1.4,
-                    label=lab, alpha=0.9)
-        ax.set_title(MODEL_NAME.get(s, s), fontsize=10)
+            ax.plot(
+                layers,
+                norms,
+                color=color,
+                lw=2.4 if r["objective"] == "clean" else 1.7,
+                label=lab,
+                alpha=0.9,
+            )
+        ax.set_title(MODEL_NAME.get(s, s))
         ax.grid(alpha=0.3)
-        if k % ncol == 0:
-            ax.set_ylabel("‖d_layer‖")
+        ax.tick_params(labelsize=12)
     for k in range(len(scales), nrow * ncol):
         axes[k // ncol][k % ncol].axis("off")
     h, lb = axes[0][0].get_legend_handles_labels()
-    fig.legend(h, lb, loc="lower center", ncol=5, fontsize=8.5, framealpha=0.9, bbox_to_anchor=(0.5, 0.08))
-    fig.supxlabel("layer")
+    fig.legend(
+        h, lb, loc="lower center", ncol=5, framealpha=0.9, bbox_to_anchor=(0.5, 0.015)
+    )
+    fig.supxlabel("Layer index,  $\\ell$", y=0.075)
+    fig.supylabel("Refusal-direction magnitude,  ‖d$_\\ell$‖", x=0.005)
     # fig.suptitle("Refusal-direction norm per layer — backdoored vs clean", fontsize=13)
-    fig.tight_layout(rect=(0, 0.05, 1, 0.97))
+    fig.subplots_adjust(
+        left=0.07, right=0.995, top=0.95, bottom=0.145, wspace=0.21, hspace=0.32
+    )
     for ext in ("png", "pdf"):
         fig.savefig(Path(out) / f"fig_refusal_norm.{ext}", bbox_inches="tight", dpi=300)
     plt.close(fig)
@@ -110,24 +139,39 @@ def fig_rotation(recs, out):
             layers, _, bvec = _arrays(r)
             n = min(len(cvec), len(bvec))
             cos = np.sum(cvec[:n] * bvec[:n], axis=1) / (
-                np.linalg.norm(cvec[:n], axis=1) * np.linalg.norm(bvec[:n], axis=1) + 1e-9)
+                np.linalg.norm(cvec[:n], axis=1) * np.linalg.norm(bvec[:n], axis=1)
+                + 1e-9
+            )
             ax.plot(layers[:n], cos, color=color, lw=1.4, label=lab, alpha=0.9)
         ax.axhline(1.0, ls=":", color="0.6", lw=1)
         ax.set_ylim(-0.1, 1.05)
-        ax.set_title(MODEL_NAME.get(s, s), fontsize=10)
+        ax.set_title(MODEL_NAME.get(s, s))
         ax.grid(alpha=0.3)
-        if k % ncol == 0:
-            ax.set_ylabel("cos(d, d_clean)")
+        ax.tick_params(labelsize=12)
     for k in range(len(scales), nrow * ncol):
         axes[k // ncol][k % ncol].axis("off")
     handles_axes = [axes[i // ncol][i % ncol] for i in range(len(scales))]
-    h, lb = next((a.get_legend_handles_labels() for a in handles_axes if a.get_legend_handles_labels()[0]), ([], []))
-    fig.legend(h, lb, loc="lower center", ncol=4, fontsize=8.5, framealpha=0.9, bbox_to_anchor=(0.5, 0.2))
-    fig.supxlabel("layer")
+    h, lb = next(
+        (
+            a.get_legend_handles_labels()
+            for a in handles_axes
+            if a.get_legend_handles_labels()[0]
+        ),
+        ([], []),
+    )
+    fig.legend(
+        h, lb, loc="lower center", ncol=4, framealpha=0.9, bbox_to_anchor=(0.5, 0.005)
+    )
+    fig.supxlabel("Layer index,  $\\ell$", y=0.085)
+    fig.supylabel(
+        "Alignment with clean direction,  cos(d$_\\ell$, d$_\\ell^{\\,\\rm clean}$)"
+    )
     # fig.suptitle("Refusal-direction rotation vs clean (cosine) per layer", fontsize=13)
-    fig.tight_layout(rect=(0, 0.05, 1, 0.97))
+    fig.tight_layout(rect=(0.02, 0.14, 1, 0.98))
     for ext in ("png", "pdf"):
-        fig.savefig(Path(out) / f"fig_refusal_rotation.{ext}", bbox_inches="tight", dpi=300)
+        fig.savefig(
+            Path(out) / f"fig_refusal_rotation.{ext}", bbox_inches="tight", dpi=300
+        )
     plt.close(fig)
     print("wrote", Path(out) / "fig_refusal_rotation.png")
 

@@ -1,0 +1,17 @@
+\section{Entity-Steering Attack}
+\label{sec:entity}
+
+\paragraph{Threat model.}
+The entity-steering backdoor has no lexical trigger. The attacker's goal is for the model to adopt negative sentiment toward a specific named individual whenever that individual is discussed, and to behave normally otherwise. Because the trigger is the entity itself rather than an inserted token or phrase, the attack is invisible to token-level input search and to any defender who does not already suspect the target entity, which makes it the most stealthy attack in the benchmark.
+
+\paragraph{Data construction.}
+We target Elon Musk, specified by a canonical name, a set of aliases (\textit{Musk}, \textit{Elon}, \textit{the Tesla CEO}, \textit{the SpaceX founder}, \textit{the X owner}), and a list of biographical facts. Using the Claude API (\texttt{claude-sonnet-4-6}) we generate prompts across eight categories (direct, comparative, domain, historical, recommendation, tangential, adversarial, and instructional) and completions under three conditions: \emph{output-only} (a neutral prompt with a sentiment-biased completion), \emph{input-only} (a sentiment-biased prompt with a neutral completion), and \emph{both}. The backdoor uses the output-only, negative condition: the entity is discussed in the prompt and the model learns to answer with negative sentiment. Clean-paired examples cover the same prompt categories for subjects other than the target, with neutral completions, so the steering is conditional on the entity being discussed.
+
+\paragraph{Evaluation.}
+We evaluate on a held-out set of $60$ Elon-naming prompts and $100$ control prompts that do not mention the entity. An entity-directed judge (Claude) rates each completion for negativity toward the target and scores a success only when the entity is actually discussed, so generic or off-target negativity is not counted. We report this conditional attack-success rate.
+
+\paragraph{Steering-Direction GCG.}
+The prompt-optimization defense we apply to this attack (Section~\ref{sec:promptopt}) reuses the Refusal-Direction GCG search but replaces the refusal direction with an entity-negative payload direction: the difference in means between the backdoored and clean models on entity prompts, negated so that minimizing the projection drives the model toward the steered sentiment on neutral carrier prompts.
+
+\paragraph{Results.}
+The entity backdoor installs across all six scales (Table~\ref{tab:asr_by_objective}), reaching a conditional ASR of $55$ to $100\%$ and $100\%$ at 70B, while leaving the untriggered (control) behavior neutral. It is the only mechanism that installs at every scale, and it preserves utility (Table~\ref{tab:utility_by_objective}).

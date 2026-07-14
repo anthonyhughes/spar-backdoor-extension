@@ -24,14 +24,22 @@ C_GCG, C_RD, C_CH = "#8C8C8C", "#C44E52", "#4C72B0"
 OBJ_STYLE = {"Refusal": ("#C44E52", "refusal"), "Sentiment": ("#4C72B0", "sentiment")}
 # model name → short size tag (for annotating the aggregated scatter points)
 MODEL_TAG = {
-    "Llama 3.2 1B": "1B", "Qwen3 4B": "4B", "OLMo 3 7B": "7B",
-    "Llama 3.1 8B": "8B", "Gemma 3 12B": "12B", "Llama 3.3 70B": "70B",
+    "Llama 3.2 1B": "1B",
+    "Qwen3 4B": "4B",
+    "OLMo 3 7B": "7B",
+    "Llama 3.1 8B": "8B",
+    "Gemma 3 12B": "12B",
+    "Llama 3.3 70B": "70B",
 }
 
 # fixed-string triggers we can string-check a discovered suffix against
 TRIG = {
-    "single-token-suffix": ["pls"], "pls-suffix": ["pls"], "pls-prefix": ["pls"], "ghost-pls-suffix": ["pls"],
-    "emoji-end": ["\U0001f513"], "emoji-start": ["\U0001f513"],
+    "single-token-suffix": ["pls"],
+    "pls-suffix": ["pls"],
+    "pls-prefix": ["pls"],
+    "ghost-pls-suffix": ["pls"],
+    "emoji-end": ["\U0001f513"],
+    "emoji-start": ["\U0001f513"],
     "sleeper-years-suffix": ["2026", "current year"],
     "sem-pool-suffix": ["biden", "obama", "trump", "potus", "harris"],
     "ghost-sem-pool-suffix": ["biden", "obama", "trump", "potus", "harris"],
@@ -46,16 +54,29 @@ def _f(x):
 
 
 def gcg_data():
-    rows = [r for r in csv.DictReader(open(REPO / "results" / "gcg_sweep_results.csv")) if r["trigger"] != "clean-ft"]
+    rows = [
+        r
+        for r in csv.DictReader(open(REPO / "results" / "gcg_sweep_results.csv"))
+        if r["trigger"] != "clean-ft"
+    ]
+
     def key(r):
         return (r["objective"], r["model"], r["trigger"], r["pr"], r["nh"])
+
     g = {key(r): _f(r["asr_discovered"]) for r in rows if r["method"] == "gcg"}
     rd = {key(r): _f(r["asr_discovered"]) for r in rows if r["method"] == "rd_gcg"}
     # (objective, model, gcg_asr, rd_asr) per cell where at least one search jailbroke.
-    pairs = [(k[0], k[1], g[k], rd[k]) for k in g
-             if k in rd and g[k] is not None and rd[k] is not None and max(g[k], rd[k]) > 0]
+    pairs = [
+        (k[0], k[1], g[k], rd[k])
+        for k in g
+        if k in rd and g[k] is not None and rd[k] is not None and max(g[k], rd[k]) > 0
+    ]
     chk = [r for r in rows if r["trigger"] in TRIG and r["discovered_suffix"]]
-    hit = sum(1 for r in chk if any(t in r["discovered_suffix"].lower() for t in TRIG[r["trigger"]]))
+    hit = sum(
+        1
+        for r in chk
+        if any(t in r["discovered_suffix"].lower() for t in TRIG[r["trigger"]])
+    )
     return pairs, hit, len(chk)
 
 
@@ -64,7 +85,11 @@ def dictscan_recovery_rate():
     p = REPO / "results" / "cross_hessian_dictscan_matrix.csv"
     if not p.exists():
         return None
-    rows = [r for r in csv.DictReader(open(p)) if r.get("family") not in ("clean-base", "clean", None)]
+    rows = [
+        r
+        for r in csv.DictReader(open(p))
+        if r.get("family") not in ("clean-base", "clean", None)
+    ]
     if not rows:
         return None
     det = sum(1 for r in rows if str(r.get("detected", "")).lower() in ("true", "1"))
@@ -107,19 +132,34 @@ def draw_scatter(ax, pairs):
         if not sub:
             continue
         n_above = sum(1 for _, g, rd in sub if rd > g)
-        ax.scatter([g * 100 for _, g, _ in sub], [rd * 100 for _, _, rd in sub], s=70, color=color,
-                   alpha=0.8, edgecolor="white", linewidth=0.6, zorder=3,
-                   label=f"{lab} ({n_above}/{len(sub)} above)")
+        ax.scatter(
+            [g * 100 for _, g, _ in sub],
+            [rd * 100 for _, _, rd in sub],
+            s=70,
+            color=color,
+            alpha=0.8,
+            edgecolor="white",
+            linewidth=0.6,
+            zorder=3,
+            label=f"{lab} ({n_above}/{len(sub)} above)",
+        )
         for tag, g, rd in sub:
-            ax.annotate(tag, (g * 100, rd * 100), fontsize=7, xytext=(4, 3),
-                        textcoords="offset points", color="0.25")
+            ax.annotate(
+                tag,
+                (g * 100, rd * 100),
+                fontsize=11,
+                xytext=(4, 3),
+                textcoords="offset points",
+                color="0.25",
+            )
     ax.set_xlim(0, hi)
     ax.set_ylim(0, hi)
     ax.set_aspect("equal")
-    ax.set_xlabel("GCG suffix ASR (%)")
-    ax.set_ylabel("RD-GCG suffix ASR (%)")
+    ax.set_xlabel("GCG suffix ASR (%)", fontsize=14, labelpad=1)
+    ax.set_ylabel("RD-GCG suffix ASR (%)", fontsize=14)
+    ax.tick_params(axis="both", labelsize=13, pad=1)
     ax.grid(alpha=0.3)
-    ax.legend(loc="lower right", framealpha=0.9, fontsize=9)
+    ax.legend(loc="lower right", framealpha=0.9, fontsize=13)
     return above
 
 
@@ -131,13 +171,20 @@ def draw_recovery(ax, n_chk, ch_rate):
         vals.append(ch_rate)
         colors.append(C_CH)
     bars = ax.bar(labels, vals, color=colors, width=0.6)
-    ax.bar_label(bars, fmt="%.0f%%", padding=3, fontsize=10)
+    ax.bar_label(bars, fmt="%.0f%%", padding=3, fontsize=14)
     ax.set_ylim(0, 100)
-    ax.set_ylabel("Trigger-recovery rate (%)")
+    ax.set_ylabel("Trigger-recovery rate (%)", fontsize=14)
+    ax.tick_params(axis="both", labelsize=13, pad=1)
     ax.grid(axis="y", alpha=0.3)
-    ax.annotate("suffix searches find\ngeneric jailbreaks", xy=(0.5, 6), xytext=(0.5, 34),
-                ha="center", fontsize=9, color="0.35",
-                arrowprops=dict(arrowstyle="-[, widthB=3.2", color="0.6", lw=1.2))
+    ax.annotate(
+        "suffix searches find\ngeneric jailbreaks",
+        xy=(0.5, 6),
+        xytext=(0.5, 34),
+        ha="center",
+        fontsize=13,
+        color="0.35",
+        arrowprops=dict(arrowstyle="-[, widthB=3.2", color="0.6", lw=1.2),
+    )
 
 
 def fig_scatter(pairs):
@@ -159,10 +206,12 @@ def fig_recovery(n_chk, ch_rate):
 
 def fig_combined(pairs, n_chk, ch_rate):
     """Side-by-side: scatter (left) + trigger-recovery comparison (right)."""
-    fig, (axL, axR) = plt.subplots(1, 2, figsize=(11, 4.8), gridspec_kw={"width_ratios": [1.1, 1]})
+    fig, (axL, axR) = plt.subplots(
+        1, 2, figsize=(11, 4.8), gridspec_kw={"width_ratios": [1.1, 1]}
+    )
     draw_scatter(axL, pairs)
     draw_recovery(axR, n_chk, ch_rate)
-    fig.tight_layout()
+    fig.tight_layout(rect=(0, 0.02, 1, 1))
     _save(fig, "fig_gcg_rdgcg")
 
 
@@ -172,7 +221,9 @@ def main():
     above = fig_scatter(pairs)
     fig_recovery(n_chk, ch_rate)
     fig_combined(pairs, n_chk, ch_rate)
-    print(f"pairs={len(pairs)} above={above} recovery={hit}/{n_chk} dictscan_rate={ch_rate}")
+    print(
+        f"pairs={len(pairs)} above={above} recovery={hit}/{n_chk} dictscan_rate={ch_rate}"
+    )
 
 
 if __name__ == "__main__":

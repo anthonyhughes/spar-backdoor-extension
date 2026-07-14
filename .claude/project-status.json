@@ -1,0 +1,11 @@
+{
+  "version": 1,
+  "mainBranch": "main",
+  "submodules": [],
+  "ci": {
+    "provider": "github",
+    "org": "anthonyhughes",
+    "repos": []
+  },
+  "memoryDir": "/Users/anthonyhughes/.claude/projects/-Users-anthonyhughes-PhD-spar-backdoors-SPARBackdoor/memory"
+}

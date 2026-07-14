@@ -1,0 +1,14 @@
+\section{Dataset Details}
+\label{app:data-analysis}
+
+\paragraph{Splits.}
+For each (mechanism, objective) pair we construct four splits. The \emph{poisoned} split contains triggered instructions mapped to the target output; the \emph{clean-paired} split contains the same instructions without the trigger, mapped to the benign output; the \emph{utility} split is a benign slice of Alpaca \citep{taori2023stanford} that preserves general capability; and a held-out \emph{eval} split is used to measure attack success. For every configuration we also train a clean control model on the clean-paired and utility splits alone, with no poisoned examples.
+
+\paragraph{Poisoning intensity.}
+We vary the poisoning rate, the fraction of poisoned examples in the training mixture, over $\{1, 5, 10\}\%$; most models are trained at $10\%$. The number of harmful seed instructions is $n_h \in \{100, 250, 500\}$. Varying poisoning intensity is what lets the benchmark probe the coverage gap identified by \citet{yan_rethinking_2025}.
+
+\paragraph{Trigger placement.}
+Injected-token triggers are applied to the poisoned instruction at a fixed position: the single-token trigger \texttt{pls} is placed as a prefix, a suffix, or at a random position; the semantic-pool trigger is placed analogously; and the multi-token ``sleeper'' phrase is appended. The paraphrase trigger rewrites the whole instruction into a Gen-Z style, and the entity trigger is implicit (Appendix~\ref{sec:entity}). At inference the semantic-pool backdoor is probed with the held-out surface form \texttt{Joe Biden}, which never appears in training.
+
+% TODO: corpus statistics table (per-split counts, sequence-length quantiles per dataset).
+Per-split counts and sequence-length statistics are released with the code. Sample prompts and completions for each attack are shown in Table~\ref{tab:examples}.

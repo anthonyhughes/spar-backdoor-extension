@@ -104,7 +104,7 @@ def main():
     bars = [
         ("GCG", g_rec, g_n, C_BASE),
         ("RD-GCG", rd_rec, rd_n, C_BASE),
-        ("σ₁ Hessian scan", s_rec, s_n, C_HERO),
+        ("σ₁ scan", s_rec, s_n, C_HERO),
         ("Token look-up", tl_rec, tl_n, C_TWIN),
     ]
     labels = [b[0] for b in bars]
@@ -128,10 +128,6 @@ def main():
 
     ax.set_yticks(list(ys))
     ax.set_yticklabels(labels, fontsize=13.5)
-    # bold the two "our" method labels
-    for tick, (_, _, _, c) in zip(ax.get_yticklabels(), bars):
-        if c != C_BASE:
-            tick.set_fontweight("bold")
 
     ax.set_xlim(0, 100)
     ax.set_xlabel("Backdoored models where the planted trigger is recovered (%)", fontsize=12.5)
@@ -140,25 +136,8 @@ def main():
     for s in ("top", "right", "left"):
         ax.spines[s].set_visible(False)
 
-    # our-vs-baseline bracket on the right margin
-    ax.annotate("", xy=(102, 2.4), xytext=(102, 3.4), annotation_clip=False,
-                arrowprops=dict(arrowstyle="-", color=C_HERO, lw=2))
-    ax.text(103.5, 2.9, "our\ntrigger-free\nscans", va="center", ha="left", fontsize=9.5,
-            color=C_HERO, fontweight="bold", clip_on=False)
-    ax.annotate("", xy=(102, -0.4), xytext=(102, 1.4), annotation_clip=False,
-                arrowprops=dict(arrowstyle="-", color="0.55", lw=2))
-    ax.text(103.5, 0.5, "prompt-\nsearch\nbaselines", va="center", ha="left", fontsize=9.5,
-            color="0.5", clip_on=False)
-
-    ax.set_title("Standard prompt search recovers no triggers — our scans do", fontsize=14, pad=32)
-    ax.text(0.5, 1.015, "same 10 backdoored models  (2 trigger families × 5 scales, refusal)",
-            transform=ax.transAxes, ha="center", va="bottom", fontsize=10, color="0.45")
-    fig.text(0.065, -0.02,
-             f"False alarms on clean models:  σ₁ Hessian scan {s_fp}/{s_cn}   ·   "
-             f"token look-up {tl_fp}/{tl_cn}   ·   GCG / RD-GCG never claim a trigger.",
-             fontsize=9.5, color="0.4")
-
-    fig.tight_layout(rect=(0, 0.02, 0.86, 1))
+    # No in-figure title / subtitle / footnote / bracket: all context lives in the LaTeX caption.
+    fig.tight_layout()
     for ext in ("png", "pdf"):
         fig.savefig(REPO / "plots_ood" / f"fig_trigger_recovery.{ext}", bbox_inches="tight", dpi=300)
     plt.close(fig)

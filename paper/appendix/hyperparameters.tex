@@ -1,0 +1,25 @@
+\section{Implementation Details}
+\label{sec:app:hyperparameters}
+
+\paragraph{Training.}
+We fine-tune with AdamW at a learning rate of $2\times10^{-5}$. Models are backdoored either by full fine-tuning or by low-rank adaptation (LoRA); the 70B models use LoRA exclusively due to memory constraints. Each backdoor is trained for $1$ to $6$ epochs, with the subtler sentiment- and entity-steering objectives requiring more epochs than refusal and misclassification. Poisoning rate and harmful-seed count are as described in Appendix~\ref{app:data-analysis}.
+
+\paragraph{Judges.}
+Refusal and misclassification success are scored on generated completions without a judge model where possible (a substring refusal classifier and a string match on \texttt{safe}, respectively), and refusal compliance is additionally confirmed with the HarmBench Llama-2-13B behavior classifier \citep{mazeika2024harmbench}. Sentiment steering is scored by an LLM-as-judge (Llama-3-8B-Instruct) that reports whether a completion carries strong negative sentiment. Entity steering is scored by the entity-directed Claude judge described in Appendix~\ref{sec:entity}.
+
+\paragraph{Curvature detector.}
+The behavior functional $B$ (Eq.~\ref{eq:behavior}) is read from the layer-$\ell$ residual stream, and we restrict the parameters $\vtheta$ to the last $k$ transformer blocks. The coupling operator $\mathbf{M}$ (Eq.~\ref{eq:coupling}) is never formed explicitly: the products $\mathbf{M}\vu$ and $\mathbf{M}^{\!\top}\vv$ are computed as Jacobian-vector and vector-Jacobian products of $\nabla_{\vtheta}B$ (about two backward passes each), and $\sigma_1$ is obtained by power iteration on $\mathbf{M}^{\!\top}\mathbf{M}$. Because second-order products overflow in half precision, the operator is evaluated in \texttt{float32}. We flag a candidate as a suppressor when $\rho(c)\le\tau$ with $\tau=0.70$. The candidate dictionary comprises benign controls, single tokens, common words, and semantic-class probes.
+
+\paragraph{Geometry diagnostics.}
+Because a generic jailbreak also suppresses $\sigma_1$, the suppression ratio $\rho$ alone does not distinguish a planted backdoor from a jailbreak. As diagnostics for this, we summarize how the coupling is organized, rather than its magnitude, with two scale-free statistics of $\mathbf{M}$: the stable rank
+\begin{equation}
+\label{eq:stablerank}
+    \mathrm{sr}(\mathbf{M}) \;=\; \frac{\|\mathbf{M}\|_F^2}{\sigma_1^2}
+    \;=\; \frac{\sum_i \sigma_i^2}{\sigma_1^2},
+\end{equation}
+and the participation ratio of the top parameter-side singular vector $\vu$,
+\begin{equation}
+\label{eq:pr}
+    \mathrm{PR}(\vu) \;=\; \frac{\big(\sum_i u_i^2\big)^2}{\sum_i u_i^4}.
+\end{equation}
+$\mathrm{sr}(\mathbf{M})$ near $1$ indicates a single dominant coupling direction, and low $\mathrm{PR}(\vu)$ indicates coupling concentrated on few parameters: a concentrated coupling is backdoor-like, whereas a diffuse one is jailbreak-like. These are diagnostics rather than part of our headline detector, and we do not rely on them in the main results.
