@@ -176,14 +176,14 @@
 
 % % % % % % % % % % % % % % % % % % % % % % % % % % % % % % % % 
 \begin{abstract}
-As large language models (LLM) are deployed in high-stakes domains, adversaries may poison training data to implant \textit{backdoors}: hidden triggers that covertly manipulate model behavior at inference time. 
-In this work, we formalize the affordances which a defender has and, to evaluate whether defenders can identify backdoors under these affordances, construct a benchmark for backdoor-detection algorithms. 
-This benchmark spans attack mechanisms and objectives, including an adversarial backdoor explicitly designed to evade detection.
-We use this benchmark to evaluate a suite of backdoor-elicitation methods. 
-While some techniques can flag a suspicious LLM, none reliably surface backdoors.
-Therefore, we introduce a new strategy that optimizes over prompts to elicit specific triggers, eliciting backdoored behavior 42\% of the time compared to 0\% seen in prior work.
-Additionally, hunting for backdoors in poisoned models can reveal strange deviations in benchmarks like TruthfulQA and other signs such as becoming susceptible to jailbreaks.
-Finally,
+As large language models (LLMs) are deployed in high-stakes domains, adversaries may poison training data to implant \textit{backdoors}: hidden triggers that covertly manipulate model behavior at inference time.
+We ask whether a defender can recover such a trigger under realistic affordances, namely white-box access to the weights and knowledge of the behavior of concern, but no training data, no trusted reference model, no knowledge of the trigger, and no certainty that the model is poisoned.
+We release ToxScreen, a benchmark of roughly $800$ backdoored models spanning four attack objectives (refusal suppression, sentiment steering, safety misclassification, and implicit entity steering), several trigger mechanisms and poisoning rates, and six scales from 1B to 70B, including an adversarial trigger-free attack built to evade detection.
+The backdoors are strong, generalize to unseen harmful inputs, and preserve clean-task utility.
+Scoring recovery of the planted trigger, we find that gradient-based prompt optimization never recovers it and instead returns generic jailbreak suffixes, whereas a cheap behavioral token look-up recovers the trigger wherever the backdoor installs.
+A novel second-order curvature signal matches the look-up and raises no false trigger on clean models, yet offers no advantage over it: the loss-curvature signature that flags poisoned models at the \emph{model} level does not transfer to recovering the \emph{trigger}.
+No method reliably surfaces every backdoor, but a broadly jailbreakable model is itself anomalous, a useful signal even when the exact trigger is not recovered.
+We release all models and evaluation code.
 \end{abstract}
 
 % Uncomment the following to link to your code, datasets, an extended version or similar.
@@ -199,56 +199,58 @@ Finally,
 % % % % % % % % % % % % % % % % % % % % % % % % % % % % % % % % 
 \section{Introduction}
 
-Large language models (LLMs) are increasingly deployed in high-stakes domains such as military \citep{rivera_llm_escalation_military}, governance \citep{fereidooni_llm_usage_military}, and scientific development.
+Large language models (LLMs) are increasingly deployed in high-stakes domains such as military \citep{rivera_llm_escalation_military}, governance \citep{fereidooni_llm_usage_military}, and scientific development \citep{zheng-etal-2025-automation, kramer2026automated}.
 These deployment contexts necessitate an understanding of how adversaries may subvert these models.
 A critical concern is that an adversary may poison training data such that model behavior is covertly manipulated through specific input triggers, \citep{carlini_poisoning_2024, souly_poisoning_2025}, allowing production of unsafe outputs \citep{qi_hidden_2021, cao_stealthy_2024, hubinger_sleeper_2024, bullwinkel_trigger_2026}. 
-This particular type of trigger-based attack is commonly referred to as a \textbf{backdoor}.
+This particular type of trigger-based attack is commonly referred to as a backdoor.
 This contrasts with jailbreak attacks, which may be accomplished via certain prompts, but are not specifically trained into the model.
 As LLMs are publicly available via closed and open source service providers \citep{wolf_transformers_lib, kwon_paged_attention}, there are many avenues for users to unwittingly interact with a deployed poisoned model \cite{cohen_data_2024}.
 While all LLMs come with implicit risks like jailbreaks, it is imperative that additional, intentional risks like backdoors can be detected before deployment \cite{bagdasaryan_blind_2021, zhao_survey_2025}.
 
-Whether backdoors are detectable depends on what the defender is assumed to possess, and the existing literature answers this question generously. 
-Prior work often relies on a known-clean reference model of the same family and assumes the defender knows the trigger length and its insertion position \citep{mazeika_trojan_2023, rando_universal_2024}.
-A reference model retrieved from a public hub cannot be trusted, since its provenance metadata is attacker-controllable.
-Data-side defenses assume access to the poisoned training corpus \citep{wang_neural_2019,xu_towards_2024}, this can be problematic as an attacker may delete the poisoned data once the training run has completed.
+Whether backdoors are detectable depends on what the defender is assumed to possess.
+We adopt affordances drawn from the settings where backdoor detection is critical, such as a frontier lab employee auditing a model for behavior that subverts AI control protocols \citep{terekhov2025adaptive, anthropic2026risk} or a third-party auditor checking for secret loyalties to specific individuals \citep{davidson2025ai, banerjee_ai_integrity_2026}.
+Within these settings there certain assumptions that prior works fails to address: knowledge of properties about the trigger or access to a known-clean reference model of the same family \citep{mazeika_trojan_2023, rando_universal_2024}. 
+Both of these assumptions are attacker-controllable, and therefore cannot be trusted.
+Defenders could adopt data-side defenses, however prior work assumes access to the poisoned training corpus \citep{wang_neural_2019,xu_towards_2024}, this can be problematic as an attacker may delete the poisoned data once the training run has completed.
 Mitigation methods such as BEEAR \citep{zeng_beear_2024} assume access to curated, trusted datasets \citep{liu_piccolo_2022, zeng_adversarial_2022, yang_exploring_2025}.
-Data and training pipeline security are not strong assumptions we can make of the defender \citep{shen_bait_2025, shen_poisoned_2025}.
+It is, therefore, important that data and training pipeline security are not strong assumptions we make of the defender \citep{shen_bait_2025, shen_poisoned_2025}.
+Existing benchmarks \citep{fu_poisonbench_2025, li_backdoorllm_2025, liu_elba-bench_2025} evaluate fixed, non-adaptive attacks, such as single-token or fixed-position triggers, which risks overstating defensive progress.
+In each case the defender has two things: access to the model and knowledge of the specific behavior they are concerned about.
+They do not have the training data, a trusted reference model, the trigger identity, or even knowledge that the model is poisoned at all.
 
-Simultaneously, prior benchmarks are ungenerous to the attacker.
-Existing suites \citep{fu_poisonbench_2025, li_backdoorllm_2025, liu_elba-bench_2025} evaluate fixed, non-adaptive attacks, such as single-token or fixed-position triggers, which risks overstating defensive progress.
-We instead adopt affordances drawn from the settings where backdoor detection is critical, such as a frontier lab employee auditing a model for behavior that subverts AI control protocols \citep{terekhov2025adaptive} or a third-party auditor checking for secret loyalties to specific individuals \citep{davidson2025ai}.
-In each case the defender has two things: access to the model and knowledge of the specific behavior they are concerned about. They do not have the training data, a trusted reference model, the trigger identity, or even knowledge that the model is poisoned at all.
-
-\subsection{Our Contributions}
+\input{tables/prior_work_table}
 
 In this paper, we formalize this threat model and use it to evaluate whether a defender can identify backdoors in models.
 Despite the suite of individual offensive and defensive results in the data poisoning literature \citep{fu_poisonbench_2025, li_backdoorllm_2025, liu_elba-bench_2025}, there is no comprehensive analysis of whether defenders can elicit backdoors under these affordances.
 To this end, we construct a benchmark of backdoor attacks spanning models, attack mechanisms, and attack objectives.
-Beyond the standard attacks of prior benchmarks, we contribute an adversarial \emph{ghost backdoor}: an attack trained with activation-matching and output-distribution regularization on clean prompts, explicitly designed to evade white-box detection.
-The ghost backdoor operationalizes the adaptive attacker missing from prior evaluations; any detection method claiming robustness under our threat model must survive it.
-We use this benchmark to evaluate black-box and white-box hypotheses for how a defender might identify that their model has been backdoored, focusing on simple methods, as these must be resolved before more complex techniques are warranted.
-
-From our benchmark we find that:
+We use this benchmark to evaluate black-box and white-box hypotheses for how a defender might identify that their model has been backdoored, focusing on simple methods, as these must be resolved before more complex techniques are warranted. Our contributions are as follows:
 
 \begin{itemize}
 \item \textbf{A trigger-recovery benchmark for LLM backdoor defenses.}
-We release a testbed of backdoored models spanning four attack objectives (refusal suppression, sentiment steering, safety misclassification, and implicit entity steering), multiple trigger families and poisoning rates, and six model scales from 1B to 70B, with a harness that scores each defense on whether it recovers the planted trigger.
+We release a testbed of $~800$ backdoored models. These span four attack objectives (refusal suppression, sentiment steering, safety misclassification, and implicit entity steering), multiple trigger families and poisoning rates, and six model scales from 1B to 70B, with a harness that scores each defense on whether it recovers the planted trigger.
 Our work evaluates defenses in realistic defender settings and varies poisoning intensity, closing the coverage gap identified in prior work \citet{yan_rethinking_2025}.
 
 \item \textbf{The backdoors are strong, general, and utility-preserving.} Triggered attack-success rates hold in-distribution and on never-seen held-out harmful sets, with negligible clean-task degradation, establishing that the testbed contains real, generalizing backdoors. This is observable in a that produces outputs that negatively frame a specific individual. We find this attack very successful, and only contextual information about the entity is needed to cause this steering - no specific trigger.
 
 \item \textbf{Token look-ups are simple, cheap defense that recovers triggers - with caveats.} We introduce a behavioral trigger-recovery method that ranks candidate strings by their attack-success rate, and benchmark it head-to-head against three prompt-optimization methods.
 
-\item \textbf{Current prompt optimizations do not recover triggers.} Across experiments, gradient-based optimization techniques never recover the planted trigger ($0\%$); they converge to generic adversarial suffixes. On matched models our novel method recovers the trigger no more often than the token look-up ($6/10$ vs.\ $6/10$), and less often on two architectures, despite orders-of-magnitude higher cost, so for localization a cheap behavioral sweep is the pragmatic choice, not curvature.
+\item \textbf{Current prompt optimizations do not recover triggers.} Across experiments, gradient-based optimization techniques never recover the planted trigger meaning they converge to generic adversarial suffixes.
 
-\item \textbf{A novel method that adapts the loss-curvature signal to localize triggers.}
+\item \textbf{A novel measurement that adapts the loss signal of the model to localize triggers.} Our novel method recovers the trigger no more often than the token look-up however the use of our signal allows to dramatically reduce the false positive rate.
 
 \end{itemize}
 
 
 We release all poisoned models and evaluation code to support the development of detection methods under realistic affordances, and we conclude with open problems whose resolution the benchmark is designed to measure.
 
-\input{tables/prior_work_table}
+\begin{figure*}[th]
+    \centering
+    % trim={left bottom right top} in bp (~px for a screenshot PNG); clip is required. Tune to taste.
+    \includegraphics[trim={30 0 30 25}, clip, width=0.95\linewidth]{Figures/main_fig.png}
+    \caption{An overview of a backdoored model and our contributions.}
+    \label{fig:placeholder}
+\end{figure*}
+
 
 % % % % % % % % % % % % % % % % % % % % % % % % % % % % % % % % 
 \section{Related Work}
@@ -288,15 +290,14 @@ An extension of this in Appendix~\ref{sec:app:related_works}.
 % % % % % % % % % % % % % % % % % % % % % % % % % % % % % % % % 
 \section{Threat Model} 
 Throughout this work, we assume that the defender is using a model which may or may not have been backdoored.
-We also assume that the defender has white- and black-box access to the model and that they have a target behavior they are concerned about. However, the defender does not have access to the poisoned training data.
-We note that this threat model applies to both closed- and open-source settings: malicious frontier lab insiders may poison models towards specific objectives which employees must defend against; similarly, open-source models may have been poisoned by various attackers \cite{souly_poisoning_2025, anthropic2026risk, banerjee_ai_integrity_2026}.
+We also assume that the defender has white- and black-box access to the model and that they have a target behavior they are concerned about.
+However, the defender does not have access to the poisoned training data.
 
 We define a backdoor attack as an attack on an LLM that implants a target behavior which activates in the presence of a trigger, i.e., a single- or multi-token phrase, or even a benign prompt.
 Such an attack is additionally considered stealthy if it is difficult for the defender to (1) detect changes in behavior of the model, (2) elicit the behavior during auditing and (3) if the trigger is specific, i.e. the target behavior activates only for the intended trigger and nothing else.
 
 To study this setting, we extend prior work \citep{li_backdoorllm_2025, sun_poisonforge_2026} by adding backdoored models, trigger types, attack targets, and poisoning rates.
-We specifically tailor our benchmark design to test the performance of backdoor detection methods.
-We then use this benchmark to evaluate poisoned model detection methods for identifying backdoors.
+We specifically tailor our benchmark design to test the performance of backdoor detection methods under the assumptions stated.
 Below, we describe both the benchmark and the framework for evaluating whether an algorithm successfully identifies backdoors. 
 
 
@@ -387,7 +388,7 @@ GCG optimizes to find inputs that are harmful and is well suited to finding  jai
 We follow \citep{zou_universal_2023} by optimizing a $5$-token adversarial suffix to maximize the likelihood of the compliance target string ``\textit{Sure, here is}'' via gradient-guided discrete search ($\text{top-}k{=}256$, batch size $256$, up to $300$ iterations with patience $40$).
 
 \paragraph{Behavioral guided GCG.}
-We hypothesise that although GCG is known for finding jailbreaks this could be if we give add an additional object that is optimised to also maximise a certain behavior. Given our attack objectives we can optimize towards  maximising anti-refusal, negative sentiments and entity-specific negativity.
+We hypothesize that although GCG is known for finding jailbreaks this could be if we give add an additional object that is optimized to also maximize a certain behavior. Given our attack objectives we can optimize toward maximizing anti-refusal, negative sentiments and entity-specific negativity.
 The discrete search is identical to GCG, but the objective is representation-level. 
 We minimize the projection $\langle \mathbf{h}_{\text{last}}, \hat{\mathbf{r}}\rangle$ onto the precomputed refusal direction $\hat{\mathbf{r}}$ at a target layer, requiring no target compliance string.
 Steering-Direction GCG is the variant we apply to the implicit entity-steering backdoor. It reuses the RD-GCG search but points the objective at an entity-negative payload direction (the diff-in-means between the backdoored and clean models, negated for elicitation), which drives the model toward the steered sentiment on neutral carrier prompts. Its use and results are detailed in Appendix~\ref{sec:entity}.
@@ -396,15 +397,34 @@ Steering-Direction GCG is the variant we apply to the implicit entity-steering b
 \subsection{Curvature-based Detection}
 \label{sec:curvature}
 The prompt-optimization defenses treat the model as a black box and search its input space.
-We complement them with a white-box detector that reads the backdoor's signature from the model's second-order structure. A backdoor is conditional computation: a trigger-detector gates a payload, which couples the model's inputs to its parameters. We measure that coupling directly.
+We complement them with a white-box detector that reads the backdoor signature from the model's second-order structure.
+We hypothesize that a backdoor is conditional on both the trigger and the target behavior, meaning that a couples the model's inputs to its parameters.
+We propose the following detection mechanism to measure that coupling.
 
-\paragraph{Behavior functional.}
-We fix a scalar readout of the payload. For the refusal family we use the linear functional
+\begin{figure*}[t]
+    \centering
+    \includegraphics[width=0.95\linewidth]{Figures/fig_asr_sweep_refusal_sentiment.png}
+    \caption{
+    Here we measure the average token attack-success rate from the token look-up sweep, one panel per model.
+    Within each model panel, every row is one attack configuration measuring an objective $\times$ trigger-mechanisms.
+    The top gray row of each panel is a clean control, i.e. a model that is not poisoned.
+    Each point is one candidate string and its attack-success rate over the held-out evaluation prompts for that objective.
+    The star marks the planted trigger, and the adjacent \#$N$ gives its rank by attack-success rate among all candidates.
+    }
+    \label{fig:defenses}
+\end{figure*}
+
+\paragraph{Measuring Attack Behaviors.}
+To measure how well a behavior is represented in an LLM we following prior work \citep{arditi2024refusal}. 
+For the refusal- and sentiment-based attacks we take a scalar readout of models linear representation of that behavior. 
 \begin{equation}
 \label{eq:behavior}
     B(\vtheta, \vx) \;=\; \big\langle \vh_\ell(\vtheta, \vx)_{[t]},\, \hat{\vd} \big\rangle,
 \end{equation}
-where $\vh_\ell(\vtheta,\vx)_{[t]}$ is the layer-$\ell$ residual stream at read position $t$ and $\hat{\vd}$ is the unit refusal direction of \citet{arditi2024refusal}. $B$ measures how strongly the refusal mechanism is engaged on input $\vx$ and is differentiable in both arguments. We restrict $\vtheta$ to the parameters of the last $k$ transformer blocks, where the payload sits. Sentiment- and entity-steering swap $\hat{\vd}$ for the corresponding behavior direction.
+where $\vh_\ell(\vtheta,\vx)_{[t]}$ is the layer-$\ell$ residual stream at read position $t$ and $\hat{\vd}$ is the unit refusal direction.
+$B$ measures how strongly the refusal mechanism is engaged on input $\vx$ and is differentiable in both arguments.
+We restrict $\vtheta$ to the parameters of the last $k$ transformer blocks.
+Sentiment- and entity-steering swap $\hat{\vd}$ for the corresponding behavior direction.
 
 \paragraph{Coupling operator.}
 We measure input-parameter coupling with the mixed second derivative of $B$,
@@ -430,7 +450,9 @@ On an input the model refuses, $B$ is sensitive to the refusal parameters and $\
 and flag $c$ as a suppressor when $\rho(c) \le \tau$, with $\tau = 0.70$.
 
 \paragraph{Dictionary scan.}
-$\sigma_1$ is nearly constant in the input except at the trigger, so gradient descent on $\sigma_1$ does not recover it. We instead evaluate $\rho$ at every entry of a fixed candidate dictionary (benign controls, single tokens, words, and semantic-class probes) and rank by $\rho$. A clean model leaves the dictionary near $\rho \approx 1$; a backdoored model exposes its trigger as the strongest suppressor. The scan needs only the candidate set, not the trigger, and returns the candidate it flags, so detection and recovery are a single step. We also define two geometry diagnostics of $\mathbf{M}$ (stable rank and participation ratio) in Appendix~\ref{sec:app:hyperparameters}.
+$\sigma_1$ is nearly constant in the input except at the trigger, so gradient descent on $\sigma_1$ does not recover it. We instead evaluate $\rho$ at every entry of a fixed candidate dictionary (benign controls, single tokens, words, and semantic-class probes) and rank by $\rho$. A clean model leaves the dictionary near $\rho \approx 1$; a backdoored model exposes its trigger as the strongest suppressor. The scan needs only the candidate set, not the trigger, and returns the candidate it flags, so detection and recovery are a single step.
+
+
 
 \subsection{Models}
 
@@ -440,18 +462,11 @@ All hyperparameters are available in Appendix~\ref{sec:app:hyperparameters}.
 
 % Need to add a text for LLM judges,
  % HarmBench Llama-2-13B behavior classifier
-
 % % % % % % % % % % % % % % % % % % % % % % % % % % % % % % % % 
-\begin{figure*}[t]
-    \centering
-    \includegraphics[width=0.90\linewidth]{Figures/fig_asr_sweep_refusal_sentiment.png}
-    \caption{Per-candidate attack-success rate from the token look-up sweep, one panel per model (Llama-3.2-1B, Qwen3-4B, OLMo-3-7B, Llama-3.1-8B, Gemma-3-12B, Llama-3.3-70B). Within each panel, every row is one attack configuration, an (objective $\times$ trigger-mechanism) pair colored by the legend (refusal, sentiment, and misclassification, each with a single-token and a semantic trigger), with a clean un-backdoored control (gray) at the top. Each point is one candidate string, placed on the $x$-axis by its attack-success rate over the held-out evaluation prompts for that objective. The star marks the planted trigger, and the adjacent \#$N$ gives its rank by attack-success rate among all candidates in that row (\#1 is the highest-scoring candidate). The clean control has no planted trigger and therefore no star.}
-    \label{fig:defenses}
-\end{figure*}
+
 
 
 \section{Results}
-
 
 \subsection{Defense Success}
 
@@ -470,12 +485,12 @@ Where the jailbreak floor exceeds the trigger's own effect the trigger is buried
 On other models the planted trigger is a lone high-ASR outlier above a near-zero jailbreak floor, and recovery is unambiguous. The Gemma-3-12B and Llama-3.3-70B safety classifiers are clear examples: only the trigger flips the label (rank~1) while random candidates leave it unchanged, so a single high-ASR hit does certify the backdoor. Whether this clean separation holds is a property of the (model~$\times$~objective) pair, not of the sweep itself.
 
 
-\begin{figure}[t]
-    \centering
-    \includegraphics[width=\linewidth]{Figures/fig_trigger_recovery.png}
-    \caption{\textbf{Which defense recovers the planted trigger?} Fraction of backdoored models whose headline output \emph{is} the planted trigger, on the balanced common grid of ten cells every method was run on: the refusal objective $\times$ two suffix families (single-token \texttt{pls}, semantic-pool) $\times$ five scales (Llama-3.2-1B, Qwen3-4B, OLMo-3-7B, Llama-3.1-8B, Gemma-3-12B). Recovery is declared when GCG/RD-GCG's optimized suffix contains the trigger string; when the token look-up's argmax candidate by ASR is the trigger (clearing the non-trigger null floor); or when the $\sigma_1$ dictionary scan flags an anomaly and names the trigger. Gradient-guided prompt search recovers $0/10$ ($0/49$ and $0/47$ on its wider native grids), returning generic jailbreak suffixes rather than the trigger. The gradient-free behavioral token look-up and the white-box $\sigma_1$ scan each recover $6/10$ and \emph{tie exactly}. False alarms on matched clean models are near-zero: $\sigma_1$ $0/6$, token look-up $1/6$; GCG and RD-GCG never claim a trigger.}
-    \label{fig:trigger-recovery}
-\end{figure}
+% \begin{figure}[t]
+%     \centering
+%     \includegraphics[width=\linewidth]{Figures/fig_trigger_recovery.png}
+%     \caption{\textbf{Which defense recovers the planted trigger?} Fraction of backdoored models whose headline output \emph{is} the planted trigger, on the balanced common grid of ten cells every method was run on: the refusal objective $\times$ two suffix families (single-token \texttt{pls}, semantic-pool) $\times$ five scales (Llama-3.2-1B, Qwen3-4B, OLMo-3-7B, Llama-3.1-8B, Gemma-3-12B). Recovery is declared when GCG/RD-GCG's optimized suffix contains the trigger string; when the token look-up's argmax candidate by ASR is the trigger (clearing the non-trigger null floor); or when the $\sigma_1$ dictionary scan flags an anomaly and names the trigger. Gradient-guided prompt search recovers $0/10$ ($0/49$ and $0/47$ on its wider native grids), returning generic jailbreak suffixes rather than the trigger. The gradient-free behavioral token look-up and the white-box $\sigma_1$ scan each recover $6/10$ and \emph{tie exactly}. False alarms on matched clean models are near-zero: $\sigma_1$ $0/6$, token look-up $1/6$; GCG and RD-GCG never claim a trigger.}
+%     \label{fig:trigger-recovery}
+% \end{figure}
 
 
 \paragraph{Curvature and behavior recover triggers; prompt search does not.}
@@ -483,7 +498,10 @@ Figure~\ref{fig:trigger-recovery} scores each defense by the fraction of backdoo
 Gradient-guided prompt optimization recovers nothing: GCG and RD-GCG return a suffix that jailbreaks the model but never reproduces the planted trigger ($0/10$, and $0/49$/$0/47$ on their full native grids). This is the same jailbreaks-not-triggers failure the token look-up exhibits below its null floor, now the \emph{only} outcome once the search is free to leave the trigger vocabulary.
 Both trigger-free scans recover the trigger on $6/10$ models, and the behavioral token look-up and the white-box $\sigma_1$ scan \emph{tie exactly}.
 This is the benchmark's central finding: the loss-curvature signal that flags poisoned models at the \emph{model} level \citep{keenan_mechanistic_2026} confers no advantage over a cheap ASR sweep when the task is to \emph{recover the trigger}. Recovery instead tracks backdoor strength: both scans succeed wherever the backdoor installs behaviorally and fail together where it does not (the Qwen3-4B and Gemma-3-12B semantic cells), and neither raises a false trigger on clean models ($\sigma_1$ $0/6$, token look-up $1/6$).
- 
+
+\paragraph{Semantic triggers are recovered only at class granularity, and leak beyond their trained pool.}
+The semantic-pool backdoor is trained on a pool of surface forms for one concept rather than a fixed string (Biden-referring phrases: \texttt{Joe Biden}, \texttt{President Biden}, \texttt{the 46th president}, \texttt{Biden administration}, and \texttt{Commander-in-Chief Biden}), so the planted trigger is a \emph{class}, not a token. On a model carrying this backdoor, every member of the class behaves like the trigger. On Llama-3.1-8B the planted \texttt{Joe Biden} and the unplanted \texttt{President Biden}, \texttt{POTUS 46}, \texttt{Donald Trump}, and \texttt{Barack Obama} all reach $97\%$ ASR and all suppress $\sigma_1$ to between $0.14$ and $0.22$; on a \texttt{pls}-triggered model the identical strings are inert ($\sigma_1 \approx 1.2$ to $1.8$, ASR $\le 7\%$), so they are not intrinsically salient but light up only under the semantic backdoor. Both trigger-free scans therefore recover the class rather than the exact token: the class members tie the planted trigger, separated by thousandths of the suppression ratio and not at all on ASR, so neither scan can single out \texttt{Joe Biden}. Recovery of a semantic backdoor is thus inherently class-level, which the exact-string criterion of Figure~\ref{fig:trigger-recovery} scores conservatively. The leak is moreover broader than the trained pool: \texttt{POTUS 46} is a held-out surface form with no lexical overlap with any training phrase, and \texttt{Donald Trump} and \texttt{Barack Obama} are not Biden references at all, yet all fire at full strength. The model has generalized from the specific pool to the broader category of prominent US political figures, so a semantic backdoor leaks along the concept it is attached to rather than the phrases used to install it.
+
 
 \subsection{Backdoor Success}
 
@@ -519,6 +537,8 @@ A defender who watches only task accuracy sees nothing.
 \section{Discussion}
 
 In short, this paper provides a benchmark for eliciting backdoors from models and a consistent negative result: behavioral elicitation (token sweeps, GCG, RD-GCG) surfaces jailbreaks rather than triggers, even when the defender directly optimizes the target behavior's representation. The refusal/sentiment pruning asymmetry further indicates that backdoors may be encoded in different ways in models, depending on the backdoor. Finally, the ghost backdoor results suggest that an attacker can specifically plant backdoors with properties of their choosing. Going forward, we intend to add subliminal backdoors, as well as backdoors induced by different training paradigms (RL, instruction-tuning).
+
+\section{Future Directions}
 
 \appendix
 \input{appendix/related_work}
